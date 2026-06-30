@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block title %}Chat • Heartly{% endblock %}
+
+{% block content %}
+<div class="app-screen">
+    <div class="app-container flex min-h-screen flex-col px-4 py-5">
+
+        <!-- Header -->
+        <div class="app-card sticky top-4 z-20 mb-4 rounded-3xl p-4">
+            <div class="flex items-center gap-3">
+
+                <a href="{% url 'chat:chat_home' %}" class="app-soft flex h-10 w-10 items-center justify-center rounded-full">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </a>
+
+                <div class="app-soft flex h-11 w-11 items-center justify-center rounded-full">
+                    <i class="fa-solid fa-user app-muted"></i>
+                </div>
+
+                <div class="min-w-0">
+                    <h1 class="truncate text-base font-bold app-text-strong">
+                        {{ other_user.get_full_name|default:other_user.email }}
+                    </h1>
+                    <p class="app-muted text-xs">
+                        Real-time chat
+                    </p>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Messages -->
+        <div id="messages" class="flex-1 space-y-3 overflow-y-auto pb-5">
+            {% for message in chat_messages %}
+                {% if message.sender == request.user %}
+                    <div class="flex justify-end">
+                        <div class="max-w-[78%] rounded-3xl rounded-br-md bg-pink-600 px-4 py-3 text-white">
+                            <p class="text-sm leading-6">{{ message.content }}</p>
+                            <p class="mt-1 text-right text-[0.65rem] text-white/70">
+                                {{ message.created_at|time:"H:i" }}
+                            </p>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="flex justify-start">
+                        <div class="app-card max-w-[78%] rounded-3xl rounded-bl-md px-4 py-3 shadow-none">
+                            <p class="text-sm leading-6 app-text-strong">{{ message.content }}</p>
+                            <p class="app-muted mt-1 text-[0.65rem]">
+                                {{ message.created_at|time:"H:i" }}
+                            </p>
+                        </div>
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+
+        <!-- Input -->
+        <form id="chat-form" class="app-card sticky bottom-28 rounded-3xl p-3">
+            <div class="flex items-end gap-2">
+                <textarea
+                    id="chat-message-input"
+                    class="app-textarea min-h-[3rem] flex-1 resize-none"
+                    placeholder="Type a message..."
+                    rows="1"
+                    required
+                ></textarea>
+
+                <button type="submit" class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-pink-600 text-white">
+                    <i class="fa-solid fa-paper-plane"></i>
+                </button>
+            </div>
+        </form>
+
+    </div>
+</div>
+
+{{ conversation.id|json_script:"conversation-id" }}
+{{ request.user.id|json_script:"current-user-id" }}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const conversationId = JSON.parse(document.getElementById("conversation-id").textContent);
+    const currentUserId = JSON.parse(document.getElementById("current-user-id").textContent);
+
+    const messagesContainer = document.getElementById("messages");
+    const form = document.getElementById("chat-form");
+    const input = document.getElementById("chat-message-input");
+
+    function scrollToBottom() {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    scrollToBottom();
+
+    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+    const socketUrl = `${protocol}://${window.location.host}/ws/chat/${conversationId}/`;
+
+    const chatSocket = new WebSocket(socketUrl);
+
+    chatSocket.onmessage = function(event) {
+        const data = JSON.parse(event.data);
+        appendMessage(data);
+        scrollToBottom();
+    };
+
+    chatSocket.onclose = function() {
+        console.error("Chat socket closed unexpectedly.");
+    };
+
+    form.addEventListener("submit", function(event) {
+        event.preventDefault();
+
+        const message = input.value.trim();
+
+        if (!message) {
+            return;
+        }
+
+        chatSocket.send(JSON.stringify({
+            "message": message
+        }));
+
+        input.value = "";
+        input.focus();
+    });
+
+    function appendMessage(data) {
+        const isMine = Number(data.sender_id) === Number(currentUserId);
+
+        const wrapper = document.createElement("div");
+        wrapper.className = isMine ? "flex justify-end" : "flex justify-start";
+
+        const bubble = document.createElement("div");
+
+        if (isMine) {
+            bubble.className = "max-w-[78%] rounded-3xl rounded-br-md bg-pink-600 px-4 py-3 text-white";
+        } else {
+            bubble.className = "app-card max-w-[78%] rounded-3xl rounded-bl-md px-4 py-3 shadow-none";
+        }
+
+        const text = document.createElement("p");
+        text.className = isMine ? "text-sm leading-6" : "text-sm leading-6 app-text-strong";
+        text.textContent = data.content;
+
+        const time = document.createElement("p");
+        time.className = isMine ? "mt-1 text-right text-[0.65rem] text-white/70" : "app-muted mt-1 text-[0.65rem]";
+        time.textContent = data.created_at;
+
+        bubble.appendChild(text);
+        bubble.appendChild(time);
+        wrapper.appendChild(bubble);
+        messagesContainer.appendChild(wrapper);
+    }
+</script>
+{% endblock %}

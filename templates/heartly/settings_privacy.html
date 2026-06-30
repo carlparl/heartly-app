@@ -1,0 +1,43 @@
+{% extends "heartly/base.html" %}
+
+{% block title %}Privacy & Safety - Heartly{% endblock %}
+
+{% block topbar %}
+<header class="settings-mobile-topbar">
+  <a href="{% url 'settings' %}" class="heartly-icon-btn" aria-label="Back">‹</a>
+  <h1>Privacy & Safety</h1>
+  <span class="settings-topbar-spacer"></span>
+</header>
+{% endblock %}
+
+{% block content %}
+
+<section class="settings-subpage">
+
+  <div class="settings-subpage-card">
+    <h2>Privacy & Safety</h2>
+    <p>Control who can interact with you and how Heartly protects your experience.</p>
+
+    <div class="settings-subpage-list">
+
+      <div class="settings-subpage-item">
+        <strong>Blocked Users</strong>
+        <span>Review people you have blocked.</span>
+      </div>
+
+      <div class="settings-subpage-item">
+        <strong>Report History</strong>
+        <span>View reports you have submitted.</span>
+      </div>
+
+      <div class="settings-subpage-item">
+        <strong>Profile Visibility</strong>
+        <span>Control how your profile appears to others.</span>
+      </div>
+
+    </div>
+  </div>
+
+</section>
+
+{% endblock %}

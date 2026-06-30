@@ -1,0 +1,699 @@
+{% extends "heartly/base.html" %}
+{% load static %}
+
+{% block title %}Settings - Heartly{% endblock %}
+
+{% block content %}
+
+<style>
+    :root {
+        --hl-bg: #f7f7fb;
+        --hl-surface: #ffffff;
+        --hl-surface-2: #f1f2f6;
+        --hl-text: #111827;
+        --hl-soft-text: #6b7280;
+        --hl-border: rgba(17, 24, 39, 0.08);
+        --hl-pink: #ff3f7f;
+        --hl-pink-soft: rgba(255, 63, 127, 0.13);
+        --hl-danger: #ef4444;
+        --hl-shadow: 0 18px 45px rgba(17, 24, 39, 0.08);
+    }
+
+    html[data-heartly-theme="dark"],
+    body[data-heartly-theme="dark"] {
+        --hl-bg: #050509;
+        --hl-surface: #111116;
+        --hl-surface-2: #1b1b22;
+        --hl-text: #f9fafb;
+        --hl-soft-text: #a1a1aa;
+        --hl-border: rgba(255, 255, 255, 0.08);
+        --hl-pink: #ff5f95;
+        --hl-pink-soft: rgba(255, 95, 149, 0.16);
+        --hl-shadow: 0 20px 55px rgba(0, 0, 0, 0.4);
+    }
+
+    body {
+        background: var(--hl-bg) !important;
+        color: var(--hl-text) !important;
+        transition: background 0.25s ease, color 0.25s ease;
+    }
+
+    .settings-screen {
+        min-height: 100vh;
+        background:
+            radial-gradient(circle at top right, var(--hl-pink-soft), transparent 28%),
+            var(--hl-bg);
+        padding: 18px 14px 100px;
+        color: var(--hl-text);
+    }
+
+    .settings-phone {
+        max-width: 460px;
+        margin: 0 auto;
+    }
+
+    .settings-topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 18px;
+    }
+
+    .settings-back {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        background: var(--hl-surface);
+        border: 1px solid var(--hl-border);
+        color: var(--hl-text);
+        text-decoration: none;
+        display: grid;
+        place-items: center;
+        font-size: 22px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+    }
+
+    .settings-heading {
+        flex: 1;
+        text-align: center;
+        font-size: 18px;
+        font-weight: 900;
+        letter-spacing: -0.03em;
+        margin-right: 42px;
+    }
+
+    .account-hero {
+        background: var(--hl-surface);
+        border: 1px solid var(--hl-border);
+        border-radius: 34px;
+        padding: 20px;
+        box-shadow: var(--hl-shadow);
+        margin-bottom: 20px;
+    }
+
+    .account-main {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+
+    .account-avatar {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #ff3f7f, #ff8aae);
+        display: grid;
+        place-items: center;
+        color: white;
+        font-weight: 900;
+        font-size: 25px;
+        flex: 0 0 auto;
+        box-shadow: 0 14px 30px rgba(255, 63, 127, 0.3);
+    }
+
+    .account-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .account-name {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 900;
+        letter-spacing: -0.03em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .account-email {
+        margin: 3px 0 0;
+        font-size: 13px;
+        color: var(--hl-soft-text);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .account-status {
+        margin-top: 14px;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .status-pill {
+        padding: 8px 11px;
+        border-radius: 999px;
+        background: var(--hl-surface-2);
+        color: var(--hl-soft-text);
+        font-size: 12px;
+        font-weight: 800;
+    }
+
+    .edit-profile {
+        margin-left: auto;
+        border: none;
+        background: var(--hl-pink);
+        color: white;
+        border-radius: 999px;
+        padding: 10px 14px;
+        font-size: 13px;
+        font-weight: 900;
+        text-decoration: none;
+        white-space: nowrap;
+    }
+
+    .theme-card {
+        background: var(--hl-surface);
+        border: 1px solid var(--hl-border);
+        border-radius: 28px;
+        padding: 14px;
+        margin-bottom: 20px;
+        box-shadow: 0 12px 35px rgba(0, 0, 0, 0.04);
+    }
+
+    .theme-title {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+
+    .theme-title strong {
+        font-size: 15px;
+        font-weight: 900;
+    }
+
+    .theme-title span {
+        font-size: 12px;
+        color: var(--hl-soft-text);
+    }
+
+    .theme-switch {
+        background: var(--hl-surface-2);
+        border-radius: 999px;
+        padding: 5px;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 4px;
+    }
+
+    .theme-option {
+        border: none;
+        border-radius: 999px;
+        background: transparent;
+        color: var(--hl-soft-text);
+        padding: 10px 8px;
+        font-size: 13px;
+        font-weight: 900;
+        cursor: pointer;
+    }
+
+    .theme-option.active {
+        background: var(--hl-surface);
+        color: var(--hl-pink);
+        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.08);
+    }
+
+    .settings-section {
+        margin-bottom: 22px;
+    }
+
+    .section-name {
+        font-size: 12px;
+        font-weight: 900;
+        color: var(--hl-soft-text);
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        margin: 0 0 9px 8px;
+    }
+
+    .settings-group {
+        background: var(--hl-surface);
+        border: 1px solid var(--hl-border);
+        border-radius: 28px;
+        overflow: hidden;
+    }
+
+    .setting-row {
+        width: 100%;
+        border: none;
+        border-bottom: 1px solid var(--hl-border);
+        background: transparent;
+        color: var(--hl-text);
+        display: flex;
+        align-items: center;
+        gap: 13px;
+        padding: 16px;
+        text-align: left;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    .setting-row:last-child {
+        border-bottom: none;
+    }
+
+    .setting-row:active {
+        background: var(--hl-surface-2);
+    }
+
+    .row-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 15px;
+        background: var(--hl-pink-soft);
+        color: var(--hl-pink);
+        display: grid;
+        place-items: center;
+        font-size: 16px;
+        font-weight: 900;
+        flex: 0 0 auto;
+    }
+
+    .row-copy {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .row-title {
+        display: block;
+        font-size: 15px;
+        font-weight: 900;
+        margin-bottom: 2px;
+    }
+
+    .row-subtitle {
+        display: block;
+        color: var(--hl-soft-text);
+        font-size: 12px;
+        line-height: 1.35;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .row-arrow {
+        color: var(--hl-soft-text);
+        font-size: 21px;
+        transition: transform 0.2s ease;
+    }
+
+    .setting-row.open .row-arrow {
+        transform: rotate(90deg);
+    }
+
+    .mini-panel {
+        display: none;
+        padding: 0 16px 16px 67px;
+        border-bottom: 1px solid var(--hl-border);
+        background: var(--hl-surface);
+    }
+
+    .mini-panel.show {
+        display: block;
+    }
+
+    .mini-panel p {
+        margin: 0 0 12px;
+        color: var(--hl-soft-text);
+        font-size: 13px;
+        line-height: 1.5;
+    }
+
+    .mini-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .mini-btn {
+        border: 1px solid var(--hl-border);
+        background: var(--hl-surface-2);
+        color: var(--hl-text);
+        border-radius: 999px;
+        padding: 9px 12px;
+        font-size: 12px;
+        font-weight: 900;
+        cursor: pointer;
+        text-decoration: none;
+    }
+
+    .logout-wrap {
+        margin-top: 14px;
+    }
+
+    .logout-btn {
+        width: 100%;
+        border: 1px solid rgba(239, 68, 68, 0.18);
+        background: rgba(239, 68, 68, 0.08);
+        color: var(--hl-danger);
+        padding: 15px;
+        border-radius: 24px;
+        font-size: 15px;
+        font-weight: 900;
+        text-decoration: none;
+        display: block;
+        text-align: center;
+    }
+
+    .settings-footer {
+        color: var(--hl-soft-text);
+        text-align: center;
+        font-size: 12px;
+        margin-top: 18px;
+    }
+
+    @media (max-width: 390px) {
+        .settings-screen {
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+
+        .account-hero {
+            padding: 16px;
+        }
+
+        .edit-profile {
+            padding: 9px 11px;
+        }
+
+        .mini-panel {
+            padding-left: 16px;
+        }
+    }
+</style>
+
+<div class="settings-screen">
+    <div class="settings-phone">
+
+        <div class="settings-topbar">
+            {% url 'feed_home' as feed_home_url %}
+            {% url 'feed' as feed_url %}
+
+            <a class="settings-back"
+               href="{% if feed_home_url %}{{ feed_home_url }}{% elif feed_url %}{{ feed_url }}{% else %}/{% endif %}">
+                ‹
+            </a>
+
+            <div class="settings-heading">Settings</div>
+        </div>
+
+        <div class="account-hero">
+            <div class="account-main">
+                <div class="account-avatar">
+                    {% if user.first_name %}
+                        {{ user.first_name|first|upper }}
+                    {% elif user.username %}
+                        {{ user.username|first|upper }}
+                    {% else %}
+                        H
+                    {% endif %}
+                </div>
+
+                <div class="account-info">
+                    <p class="account-name">
+                        {% if user.get_full_name %}
+                            {{ user.get_full_name }}
+                        {% elif user.username %}
+                            {{ user.username }}
+                        {% else %}
+                            Heartly User
+                        {% endif %}
+                    </p>
+
+                    <p class="account-email">
+                        {% if user.email %}
+                            {{ user.email }}
+                        {% else %}
+                            No email connected
+                        {% endif %}
+                    </p>
+                </div>
+
+                {% url 'profile' as profile_url %}
+                {% url 'profile_home' as profile_home_url %}
+                {% url 'account_email' as account_email_url %}
+
+                <a class="edit-profile"
+                   href="{% if profile_url %}{{ profile_url }}{% elif profile_home_url %}{{ profile_home_url }}{% elif account_email_url %}{{ account_email_url }}{% else %}#{% endif %}">
+                    Edit
+                </a>
+            </div>
+
+            <div class="account-status">
+                <span class="status-pill">Signed in</span>
+                <span class="status-pill">Heartly account</span>
+            </div>
+        </div>
+
+        <div class="theme-card">
+            <div class="theme-title">
+                <strong>App appearance</strong>
+                <span>Saved on this device</span>
+            </div>
+
+            <div class="theme-switch">
+                <button type="button" class="theme-option" data-theme-choice="light">Light</button>
+                <button type="button" class="theme-option" data-theme-choice="dark">Dark</button>
+                <button type="button" class="theme-option" data-theme-choice="system">System</button>
+            </div>
+        </div>
+
+        <div class="settings-section">
+            <p class="section-name">Account</p>
+
+            <div class="settings-group">
+
+                {% url 'account_email' as email_url %}
+                <a class="setting-row" href="{% if email_url %}{{ email_url }}{% else %}#{% endif %}">
+                    <span class="row-icon">@</span>
+                    <span class="row-copy">
+                        <span class="row-title">Email</span>
+                        <span class="row-subtitle">Manage your email address</span>
+                    </span>
+                    <span class="row-arrow">›</span>
+                </a>
+
+                {% url 'account_change_password' as password_url %}
+                <a class="setting-row" href="{% if password_url %}{{ password_url }}{% else %}#{% endif %}">
+                    <span class="row-icon">✦</span>
+                    <span class="row-copy">
+                        <span class="row-title">Password</span>
+                        <span class="row-subtitle">Change your login password</span>
+                    </span>
+                    <span class="row-arrow">›</span>
+                </a>
+
+                <button type="button" class="setting-row" data-open-panel="privacy-panel">
+                    <span class="row-icon">◉</span>
+                    <span class="row-copy">
+                        <span class="row-title">Privacy</span>
+                        <span class="row-subtitle">Control profile visibility</span>
+                    </span>
+                    <span class="row-arrow">›</span>
+                </button>
+
+                <div class="mini-panel" id="privacy-panel">
+                    <p>
+                        Privacy controls are ready visually. To save these permanently, add privacy fields to your profile model.
+                    </p>
+                    <div class="mini-actions">
+                        <button type="button" class="mini-btn" data-demo-toggle>Profile visible: On</button>
+                        <button type="button" class="mini-btn" data-demo-toggle>Show activity: On</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="settings-section">
+            <p class="section-name">Preferences</p>
+
+            <div class="settings-group">
+
+                <button type="button" class="setting-row" data-open-panel="notifications-panel">
+                    <span class="row-icon">⌁</span>
+                    <span class="row-copy">
+                        <span class="row-title">Notifications</span>
+                        <span class="row-subtitle">Likes, chats, matches, and alerts</span>
+                    </span>
+                    <span class="row-arrow">›</span>
+                </button>
+
+                <div class="mini-panel" id="notifications-panel">
+                    <p>
+                        These switches work on the frontend. Backend saving needs a NotificationPreference model.
+                    </p>
+                    <div class="mini-actions">
+                        <button type="button" class="mini-btn" data-demo-toggle>Likes: On</button>
+                        <button type="button" class="mini-btn" data-demo-toggle>Chats: On</button>
+                        <button type="button" class="mini-btn" data-demo-toggle>Matches: On</button>
+                    </div>
+                </div>
+
+                <button type="button" class="setting-row" data-open-panel="safety-panel">
+                    <span class="row-icon">!</span>
+                    <span class="row-copy">
+                        <span class="row-title">Safety</span>
+                        <span class="row-subtitle">Reports, blocking, and account safety</span>
+                    </span>
+                    <span class="row-arrow">›</span>
+                </button>
+
+                <div class="mini-panel" id="safety-panel">
+                    <p>
+                        Connect this to your report/blocking views after the safety backend is finalized.
+                    </p>
+
+                    <div class="mini-actions">
+                        {% url 'report_issue' as report_issue_url %}
+                        {% url 'safety_home' as safety_home_url %}
+
+                        <a class="mini-btn"
+                           href="{% if report_issue_url %}{{ report_issue_url }}{% elif safety_home_url %}{{ safety_home_url }}{% else %}#{% endif %}">
+                            Open safety
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="settings-section">
+            <p class="section-name">Heartly</p>
+
+            <div class="settings-group">
+
+                <button type="button" class="setting-row" data-open-panel="about-panel">
+                    <span class="row-icon">♡</span>
+                    <span class="row-copy">
+                        <span class="row-title">About Heartly</span>
+                        <span class="row-subtitle">Version, support, and app info</span>
+                    </span>
+                    <span class="row-arrow">›</span>
+                </button>
+
+                <div class="mini-panel" id="about-panel">
+                    <p>
+                        Heartly is a social connection app. Keep this section simple until support, terms, and privacy pages are ready.
+                    </p>
+
+                    <div class="mini-actions">
+                        {% url 'welcome' as welcome_url %}
+                        <a class="mini-btn" href="{% if welcome_url %}{{ welcome_url }}{% else %}/{% endif %}">
+                            Welcome page
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="logout-wrap">
+                {% url 'account_logout' as logout_url %}
+                <a class="logout-btn" href="{% if logout_url %}{{ logout_url }}{% else %}/accounts/logout/{% endif %}">
+                    Log out
+                </a>
+            </div>
+        </div>
+
+        <p class="settings-footer">
+            Theme changes apply instantly.
+        </p>
+
+    </div>
+</div>
+
+<script>
+    (function () {
+        const THEME_KEY = "heartly-theme";
+        const html = document.documentElement;
+        const body = document.body;
+        const themeButtons = document.querySelectorAll("[data-theme-choice]");
+        const panelButtons = document.querySelectorAll("[data-open-panel]");
+        const demoButtons = document.querySelectorAll("[data-demo-toggle]");
+
+        function systemTheme() {
+            if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
+                return "dark";
+            }
+            return "light";
+        }
+
+        function applyTheme(choice) {
+            const finalTheme = choice === "system" ? systemTheme() : choice;
+
+            html.setAttribute("data-heartly-theme", finalTheme);
+            body.setAttribute("data-heartly-theme", finalTheme);
+
+            body.classList.remove("light-mode", "dark-mode");
+            body.classList.add(finalTheme + "-mode");
+
+            localStorage.setItem(THEME_KEY, choice);
+
+            themeButtons.forEach(function (button) {
+                button.classList.toggle(
+                    "active",
+                    button.getAttribute("data-theme-choice") === choice
+                );
+            });
+        }
+
+        const savedTheme = localStorage.getItem(THEME_KEY) || "light";
+        applyTheme(savedTheme);
+
+        themeButtons.forEach(function (button) {
+            button.addEventListener("click", function () {
+                applyTheme(button.getAttribute("data-theme-choice"));
+            });
+        });
+
+        if (window.matchMedia) {
+            window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function () {
+                if (localStorage.getItem(THEME_KEY) === "system") {
+                    applyTheme("system");
+                }
+            });
+        }
+
+        panelButtons.forEach(function (button) {
+            button.addEventListener("click", function () {
+                const panelId = button.getAttribute("data-open-panel");
+                const panel = document.getElementById(panelId);
+
+                if (!panel) return;
+
+                const alreadyOpen = panel.classList.contains("show");
+
+                document.querySelectorAll(".mini-panel").forEach(function (item) {
+                    item.classList.remove("show");
+                });
+
+                panelButtons.forEach(function (item) {
+                    item.classList.remove("open");
+                });
+
+                if (!alreadyOpen) {
+                    panel.classList.add("show");
+                    button.classList.add("open");
+                }
+            });
+        });
+
+        demoButtons.forEach(function (button) {
+            button.addEventListener("click", function () {
+                const text = button.textContent.trim();
+
+                if (text.endsWith("On")) {
+                    button.textContent = text.replace("On", "Off");
+                } else {
+                    button.textContent = text.replace("Off", "On");
+                }
+            });
+        });
+    })();
+</script>
+
+{% endblock %}

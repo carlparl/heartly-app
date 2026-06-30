@@ -1,0 +1,688 @@
+{% extends "heartly/base.html" %}
+{% load static %}
+
+{% block title %}Profile - Heartly{% endblock %}
+
+{% block content %}
+
+<style>
+    :root {
+        --profile-bg: #f8fafc;
+        --profile-card: #ffffff;
+        --profile-text: #111827;
+        --profile-muted: #6b7280;
+        --profile-border: #e5e7eb;
+        --profile-pink: #ec4899;
+        --profile-pink-soft: #fce7f3;
+        --profile-red: #ef4444;
+        --profile-shadow: 0 14px 35px rgba(15, 23, 42, 0.08);
+    }
+
+    :root[data-theme="dark"] {
+        --profile-bg: #080b12;
+        --profile-card: #111827;
+        --profile-text: #f9fafb;
+        --profile-muted: #9ca3af;
+        --profile-border: #263244;
+        --profile-pink: #f472b6;
+        --profile-pink-soft: rgba(244, 114, 182, 0.14);
+        --profile-shadow: 0 14px 35px rgba(0, 0, 0, 0.38);
+    }
+
+    .profile-page {
+        min-height: 100vh;
+        background: var(--profile-bg);
+        color: var(--profile-text);
+        padding: 18px 16px 92px;
+        max-width: 520px;
+        margin: 0 auto;
+    }
+
+    .profile-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 22px;
+    }
+
+    .profile-title {
+        font-size: 28px;
+        font-weight: 900;
+        margin: 0;
+        letter-spacing: -0.04em;
+    }
+
+    .profile-subtitle {
+        color: var(--profile-muted);
+        font-size: 14px;
+        margin-top: 4px;
+    }
+
+    .top-icon-btn {
+        width: 46px;
+        height: 46px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: var(--profile-card);
+        color: var(--profile-text);
+        text-decoration: none;
+        border: 1px solid var(--profile-border);
+        box-shadow: var(--profile-shadow);
+        font-size: 20px;
+    }
+
+    .top-icon-btn:hover {
+        background: var(--profile-pink-soft);
+        color: var(--profile-pink);
+    }
+
+    .profile-section {
+        margin-bottom: 24px;
+    }
+
+    .profile-section-title {
+        color: var(--profile-muted);
+        font-size: 13px;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin: 0 0 10px;
+        padding-left: 4px;
+    }
+
+    .profile-card {
+        background: var(--profile-card);
+        border: 1px solid var(--profile-border);
+        border-radius: 24px;
+        overflow: hidden;
+        box-shadow: var(--profile-shadow);
+    }
+
+    .profile-main-card {
+        padding: 18px;
+    }
+
+    .profile-identity {
+        display: flex;
+        gap: 16px;
+        align-items: center;
+    }
+
+    .profile-avatar {
+        width: 82px;
+        height: 82px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 4px solid var(--profile-pink-soft);
+        background: var(--profile-pink-soft);
+        flex-shrink: 0;
+    }
+
+    .profile-avatar-fallback {
+        width: 82px;
+        height: 82px;
+        border-radius: 50%;
+        background: var(--profile-pink-soft);
+        color: var(--profile-pink);
+        display: grid;
+        place-items: center;
+        font-size: 32px;
+        font-weight: 900;
+        border: 4px solid var(--profile-pink-soft);
+        flex-shrink: 0;
+        text-transform: uppercase;
+    }
+
+    .profile-name {
+        margin: 0;
+        font-size: 22px;
+        font-weight: 900;
+        letter-spacing: -0.04em;
+    }
+
+    .profile-username {
+        margin: 4px 0 0;
+        color: var(--profile-muted);
+        font-size: 14px;
+        font-weight: 700;
+    }
+
+    .profile-bio {
+        margin: 16px 0 0;
+        color: var(--profile-text);
+        font-size: 15px;
+        line-height: 1.5;
+    }
+
+    .profile-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 9px;
+        margin-top: 14px;
+    }
+
+    .profile-pill {
+        background: var(--profile-pink-soft);
+        color: var(--profile-pink);
+        border-radius: 999px;
+        padding: 8px 12px;
+        font-size: 13px;
+        font-weight: 900;
+    }
+
+    .profile-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 18px;
+    }
+
+    .primary-action,
+    .secondary-action {
+        border-radius: 999px;
+        padding: 12px 14px;
+        text-align: center;
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 900;
+    }
+
+    .primary-action {
+        background: var(--profile-pink);
+        color: #ffffff;
+    }
+
+    .secondary-action {
+        background: var(--profile-pink-soft);
+        color: var(--profile-pink);
+    }
+
+    .profile-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        border-top: 1px solid var(--profile-border);
+        margin-top: 18px;
+    }
+
+    .profile-stat {
+        text-align: center;
+        padding: 15px 8px 4px;
+    }
+
+    .profile-stat-number {
+        display: block;
+        font-size: 20px;
+        font-weight: 900;
+        color: var(--profile-text);
+    }
+
+    .profile-stat-label {
+        display: block;
+        margin-top: 3px;
+        color: var(--profile-muted);
+        font-size: 12px;
+        font-weight: 800;
+    }
+
+    .profile-row,
+    .profile-row-button {
+        width: 100%;
+        border: none;
+        background: transparent;
+        color: var(--profile-text);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 16px;
+        text-decoration: none;
+        cursor: pointer;
+        font: inherit;
+        text-align: left;
+    }
+
+    .profile-row + .profile-row,
+    .profile-form-row + .profile-row,
+    .profile-row + .profile-form-row {
+        border-top: 1px solid var(--profile-border);
+    }
+
+    .profile-form-row {
+        margin: 0;
+    }
+
+    .profile-left {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        min-width: 0;
+    }
+
+    .profile-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 16px;
+        background: var(--profile-pink-soft);
+        color: var(--profile-pink);
+        display: grid;
+        place-items: center;
+        font-size: 20px;
+        flex-shrink: 0;
+    }
+
+    .profile-label {
+        font-weight: 900;
+        font-size: 15px;
+        margin: 0;
+    }
+
+    .profile-desc {
+        color: var(--profile-muted);
+        font-size: 13px;
+        margin: 3px 0 0;
+        line-height: 1.35;
+    }
+
+    .profile-chevron {
+        color: var(--profile-muted);
+        font-size: 22px;
+        flex-shrink: 0;
+    }
+
+    .danger-row .profile-icon {
+        background: rgba(239, 68, 68, 0.12);
+        color: var(--profile-red);
+    }
+
+    .danger-row .profile-label {
+        color: var(--profile-red);
+    }
+
+    .profile-tabs {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+
+    .profile-tab {
+        border: 1px solid var(--profile-border);
+        background: var(--profile-card);
+        color: var(--profile-muted);
+        border-radius: 999px;
+        padding: 10px;
+        font-weight: 900;
+        cursor: pointer;
+    }
+
+    .profile-tab.active {
+        background: var(--profile-pink);
+        color: #ffffff;
+        border-color: var(--profile-pink);
+    }
+
+    .profile-content {
+        padding: 18px;
+    }
+
+    .profile-empty {
+        text-align: center;
+        padding: 16px 8px;
+    }
+
+    .profile-empty-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 20px;
+        background: var(--profile-pink-soft);
+        color: var(--profile-pink);
+        display: grid;
+        place-items: center;
+        margin: 0 auto 12px;
+        font-size: 24px;
+    }
+
+    .profile-empty-title {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 900;
+    }
+
+    .profile-empty-text {
+        margin: 6px 0 0;
+        color: var(--profile-muted);
+        font-size: 14px;
+        line-height: 1.45;
+    }
+
+    .profile-post {
+        padding: 14px 0;
+    }
+
+    .profile-post + .profile-post {
+        border-top: 1px solid var(--profile-border);
+    }
+
+    .profile-post-text {
+        margin: 0;
+        font-size: 14px;
+        line-height: 1.5;
+    }
+
+    .profile-post-date {
+        margin-top: 8px;
+        color: var(--profile-muted);
+        font-size: 12px;
+        font-weight: 800;
+    }
+
+    .profile-footer {
+        text-align: center;
+        color: var(--profile-muted);
+        font-size: 12px;
+        margin-top: 28px;
+    }
+
+    @media (max-width: 380px) {
+        .profile-actions {
+            grid-template-columns: 1fr;
+        }
+
+        .profile-name {
+            font-size: 20px;
+        }
+    }
+</style>
+
+<div class="profile-page">
+
+    <!-- Header -->
+    <div class="profile-header">
+        <div>
+            <h1 class="profile-title">Profile</h1>
+            <p class="profile-subtitle">Your Heartly account and activity.</p>
+        </div>
+
+        <a href="/accounts/settings/" class="top-icon-btn" title="Settings" aria-label="Open settings">
+            ⚙️
+        </a>
+    </div>
+
+    <!-- Main Profile -->
+    <section class="profile-section">
+        <div class="profile-card profile-main-card">
+
+            <div class="profile-identity">
+                {% if profile_photo_url %}
+                    <img src="{{ profile_photo_url }}" alt="Profile picture" class="profile-avatar">
+                {% else %}
+                    <div class="profile-avatar-fallback">
+                        {{ profile_initial|default:"U" }}
+                    </div>
+                {% endif %}
+
+                <div>
+                    <h2 class="profile-name">{{ display_name|default:"Heartly User" }}</h2>
+                    <p class="profile-username">@{{ username|default:"user" }}</p>
+                </div>
+            </div>
+
+            <p class="profile-bio">
+                {{ bio|default:"No bio added yet. Add a short intro so people know more about you." }}
+            </p>
+
+            <div class="profile-meta">
+                {% if location %}
+                    <span class="profile-pill">📍 {{ location }}</span>
+                {% endif %}
+                <span class="profile-pill">💗 Heartly member</span>
+                {% if joined_month %}
+                    <span class="profile-pill">📅 Joined {{ joined_month }}</span>
+                {% endif %}
+            </div>
+
+            <div class="profile-actions">
+                <a href="/profiles/edit/" class="primary-action">Edit profile</a>
+                <a href="/profiles/photos/" class="secondary-action">Manage photos</a>
+            </div>
+
+            <div class="profile-stats">
+                <div class="profile-stat">
+                    <span class="profile-stat-number">{{ posts_count|default:"0" }}</span>
+                    <span class="profile-stat-label">Posts</span>
+                </div>
+
+                <div class="profile-stat">
+                    <span class="profile-stat-number">{{ matches_count|default:"0" }}</span>
+                    <span class="profile-stat-label">Matches</span>
+                </div>
+
+                <div class="profile-stat">
+                    <span class="profile-stat-number">{{ photos_count|default:"0" }}</span>
+                    <span class="profile-stat-label">Photos</span>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- Quick Access -->
+    <section class="profile-section">
+        <h2 class="profile-section-title">Quick access</h2>
+
+        <div class="profile-card">
+
+            <a href="/accounts/settings/" class="profile-row">
+                <div class="profile-left">
+                    <div class="profile-icon">⚙️</div>
+                    <div>
+                        <p class="profile-label">Settings</p>
+                        <p class="profile-desc">Theme, privacy, notifications, and account options.</p>
+                    </div>
+                </div>
+                <span class="profile-chevron">›</span>
+            </a>
+
+            <a href="/feed/" class="profile-row">
+                <div class="profile-left">
+                    <div class="profile-icon">🏠</div>
+                    <div>
+                        <p class="profile-label">Feed</p>
+                        <p class="profile-desc">Go back to the Heartly social feed.</p>
+                    </div>
+                </div>
+                <span class="profile-chevron">›</span>
+            </a>
+
+            <a href="/matches/" class="profile-row">
+                <div class="profile-left">
+                    <div class="profile-icon">💞</div>
+                    <div>
+                        <p class="profile-label">Matches</p>
+                        <p class="profile-desc">View people you matched with.</p>
+                    </div>
+                </div>
+                <span class="profile-chevron">›</span>
+            </a>
+
+            <a href="/chat/" class="profile-row">
+                <div class="profile-left">
+                    <div class="profile-icon">💬</div>
+                    <div>
+                        <p class="profile-label">Messages</p>
+                        <p class="profile-desc">Open your conversations.</p>
+                    </div>
+                </div>
+                <span class="profile-chevron">›</span>
+            </a>
+
+            <a href="/ai/" class="profile-row">
+                <div class="profile-left">
+                    <div class="profile-icon">🤖</div>
+                    <div>
+                        <p class="profile-label">Heartly AI</p>
+                        <p class="profile-desc">Open your AI assistant.</p>
+                    </div>
+                </div>
+                <span class="profile-chevron">›</span>
+            </a>
+
+        </div>
+    </section>
+
+    <!-- Account -->
+    <section class="profile-section">
+        <h2 class="profile-section-title">Account</h2>
+
+        <div class="profile-card">
+
+            <a href="/profiles/edit/" class="profile-row">
+                <div class="profile-left">
+                    <div class="profile-icon">👤</div>
+                    <div>
+                        <p class="profile-label">Edit profile</p>
+                        <p class="profile-desc">Change your name, bio, location, and profile details.</p>
+                    </div>
+                </div>
+                <span class="profile-chevron">›</span>
+            </a>
+
+            <a href="/profiles/photos/" class="profile-row">
+                <div class="profile-left">
+                    <div class="profile-icon">🖼️</div>
+                    <div>
+                        <p class="profile-label">Profile photos</p>
+                        <p class="profile-desc">Upload or update your profile pictures.</p>
+                    </div>
+                </div>
+                <span class="profile-chevron">›</span>
+            </a>
+
+            <a href="/accounts/password/change/" class="profile-row">
+                <div class="profile-left">
+                    <div class="profile-icon">🔐</div>
+                    <div>
+                        <p class="profile-label">Password & security</p>
+                        <p class="profile-desc">Change your password and secure your account.</p>
+                    </div>
+                </div>
+                <span class="profile-chevron">›</span>
+            </a>
+
+        </div>
+    </section>
+
+    <!-- Activity -->
+    <section class="profile-section">
+        <h2 class="profile-section-title">Activity</h2>
+
+        <div class="profile-tabs">
+            <button class="profile-tab active" type="button" data-tab="posts">Posts</button>
+            <button class="profile-tab" type="button" data-tab="about">About</button>
+            <button class="profile-tab" type="button" data-tab="photos">Photos</button>
+        </div>
+
+        <div class="profile-card profile-content">
+
+            <div class="profile-tab-panel" id="tab-posts">
+                {% if posts %}
+                    {% for post in posts %}
+                        <div class="profile-post">
+                            <p class="profile-post-text">
+                                {{ post.content|default:"Post has no text." }}
+                            </p>
+
+                            {% if post.created_at %}
+                                <div class="profile-post-date">
+                                    {{ post.created_at|date:"M d, Y" }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="profile-empty">
+                        <div class="profile-empty-icon">📝</div>
+                        <h3 class="profile-empty-title">No posts yet</h3>
+                        <p class="profile-empty-text">Your posts will appear here after you publish them.</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="profile-tab-panel" id="tab-about" style="display: none;">
+                <div class="profile-empty">
+                    <div class="profile-empty-icon">👤</div>
+                    <h3 class="profile-empty-title">About {{ display_name|default:"you" }}</h3>
+                    <p class="profile-empty-text">
+                        {{ bio|default:"Add your profile bio so this section feels complete." }}
+                    </p>
+                </div>
+            </div>
+
+            <div class="profile-tab-panel" id="tab-photos" style="display: none;">
+                <div class="profile-empty">
+                    <div class="profile-empty-icon">🖼️</div>
+                    <h3 class="profile-empty-title">Photos</h3>
+                    <p class="profile-empty-text">
+                        Your uploaded photos will appear here after the gallery is connected.
+                    </p>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- Logout -->
+    <section class="profile-section">
+        <div class="profile-card">
+            <form method="post" action="/accounts/logout/" class="profile-form-row">
+                {% csrf_token %}
+                <button type="submit" class="profile-row-button danger-row">
+                    <div class="profile-left">
+                        <div class="profile-icon">🚪</div>
+                        <div>
+                            <p class="profile-label">Log out</p>
+                            <p class="profile-desc">Sign out of your Heartly account.</p>
+                        </div>
+                    </div>
+                    <span class="profile-chevron">›</span>
+                </button>
+            </form>
+        </div>
+    </section>
+
+    <p class="profile-footer">Heartly v1.0</p>
+
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const tabs = document.querySelectorAll(".profile-tab");
+
+        const panels = {
+            posts: document.getElementById("tab-posts"),
+            about: document.getElementById("tab-about"),
+            photos: document.getElementById("tab-photos")
+        };
+
+        tabs.forEach(function (tab) {
+            tab.addEventListener("click", function () {
+                const selectedTab = tab.dataset.tab;
+
+                tabs.forEach(function (item) {
+                    item.classList.remove("active");
+                });
+
+                tab.classList.add("active");
+
+                Object.keys(panels).forEach(function (key) {
+                    if (panels[key]) {
+                        panels[key].style.display = key === selectedTab ? "block" : "none";
+                    }
+                });
+            });
+        });
+    });
+</script>
+
+{% endblock %}

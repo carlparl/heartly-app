@@ -1,0 +1,139 @@
+{% extends 'heartly/base.html' %}
+{% block title %}AI Dating Coach - Heartly{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 pb-24 max-w-md mx-auto flex flex-col">
+
+    <!-- Header -->
+    <div class="bg-white px-5 py-4 flex items-center border-b sticky top-0 z-10">
+        <a href="{% url 'profile' %}" class="text-gray-500 mr-4">
+            <i class="fas fa-arrow-left text-xl"></i>
+        </a>
+        <div class="flex-1">
+            <h1 class="text-xl font-semibold">AI Dating Coach</h1>
+            <p class="text-xs text-[#14b8a6]">Always here to help</p>
+        </div>
+        <!-- Remaining Questions -->
+        <div class="text-right">
+            <p class="text-xs text-gray-500">Questions left</p>
+            <p class="text-lg font-bold text-[#14b8a6]" id="remaining-count">{{ remaining_questions }}</p>
+        </div>
+    </div>
+
+    <!-- Chat Area -->
+    <div class="flex-1 p-4 overflow-y-auto" id="chat-box">
+        <!-- Welcome Message -->
+        <div class="flex gap-3 mb-5">
+            <div class="w-8 h-8 bg-[#14b8a6] rounded-full flex items-center justify-center flex-shrink-0">
+                <i class="fas fa-robot text-white text-sm"></i>
+            </div>
+            <div class="bg-white px-4 py-3 rounded-3xl rounded-tl-none max-w-[80%] shadow-sm">
+                <p class="text-sm">Hi! I'm your AI Dating Coach ❤️</p>
+                <p class="text-xs text-gray-500 mt-1">Ask me anything about dating, opening lines, replies, or date ideas.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Input -->
+    <div class="bg-white border-t p-4 sticky bottom-16">
+        <div class="flex gap-2">
+            <input type="text" id="user-input" 
+                   class="flex-1 border border-gray-300 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-[#14b8a6]"
+                   placeholder="Ask me anything about dating...">
+            <button onclick="sendMessage()"
+                    class="bg-[#14b8a6] hover:bg-[#0f766e] text-white w-11 h-11 rounded-2xl flex items-center justify-center transition">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+function addMessage(text, type) {
+    const chatBox = document.getElementById('chat-box');
+    const div = document.createElement('div');
+
+    if (type === 'user') {
+        div.className = 'flex justify-end mb-4';
+        div.innerHTML = `
+            <div class="bg-[#14b8a6] text-white px-4 py-3 rounded-3xl rounded-br-none max-w-[80%]">
+                <p class="text-sm">${text}</p>
+            </div>
+        `;
+    } else {
+        div.className = 'flex gap-3 mb-4';
+        div.innerHTML = `
+            <div class="w-8 h-8 bg-[#14b8a6] rounded-full flex items-center justify-center flex-shrink-0">
+                <i class="fas fa-robot text-white text-sm"></i>
+            </div>
+            <div class="bg-white px-4 py-3 rounded-3xl rounded-tl-none max-w-[80%] shadow-sm">
+                <p class="text-sm">${text}</p>
+            </div>
+        `;
+    }
+
+    chatBox.appendChild(div);
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+function addTypingIndicator() {
+    const chatBox = document.getElementById('chat-box');
+    const div = document.createElement('div');
+    div.id = 'typing-indicator';
+    div.className = 'flex gap-3 mb-4';
+    div.innerHTML = `
+        <div class="w-8 h-8 bg-[#14b8a6] rounded-full flex items-center justify-center flex-shrink-0">
+            <i class="fas fa-robot text-white text-sm"></i>
+        </div>
+        <div class="bg-white px-4 py-3 rounded-3xl rounded-tl-none shadow-sm">
+            <p class="text-sm text-gray-400">Typing...</p>
+        </div>
+    `;
+    chatBox.appendChild(div);
+    chatBox.scrollTop = chatBox.scrollHeight;
+    return div;
+}
+
+function sendMessage() {
+    const input = document.getElementById('user-input');
+    const message = input.value.trim();
+    if (!message) return;
+
+    addMessage(message, 'user');
+    input.value = '';
+
+    const typing = addTypingIndicator();
+
+    fetch('/ai/chat/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ message: message })
+    })
+    .then(res => res.json())
+    .then(data => {
+        typing.remove();
+        addMessage(data.response, 'ai');
+
+        // Update remaining questions count
+        if (data.remaining !== undefined) {
+            document.getElementById('remaining-count').innerText = data.remaining;
+        }
+    })
+    .catch(() => {
+        typing.remove();
+        addMessage("Sorry, I'm having trouble right now. Please try again.", 'ai');
+    });
+}
+
+// Send with Enter key
+document.getElementById('user-input').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        sendMessage();
+    }
+});
+</script>
+{% endblock %}ss

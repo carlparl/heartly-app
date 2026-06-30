@@ -1,0 +1,107 @@
+{% extends "heartly/base.html" %}
+
+{% block title %}Log In - Heartly{% endblock %}
+
+{% block outer_content %}
+
+<main class="heartly-outer-page login-smooth-page">
+
+  <section class="login-smooth-card heartly-card heartly-glow-card">
+
+    <div class="login-smooth-header">
+      <div class="login-smooth-logo">
+        ♥
+      </div>
+
+      <div>
+        <p class="login-smooth-kicker">Welcome back</p>
+
+        <h1>Log in</h1>
+
+        <p>
+          Continue to your feed, matches, chats, and Heartly AI Coach.
+        </p>
+      </div>
+    </div>
+
+    <form method="post" action="{% url 'account_login' %}" class="login-smooth-form">
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div class="auth-error-box">
+          {{ form.non_field_errors }}
+        </div>
+      {% endif %}
+
+      <div class="login-smooth-field">
+        <label for="id_login">Email or Username</label>
+        <input
+          type="text"
+          name="login"
+          id="id_login"
+          placeholder="Enter your email or username"
+          autocomplete="username"
+          required
+        >
+
+        {% if form.login.errors %}
+          <div class="auth-field-error">
+            {{ form.login.errors }}
+          </div>
+        {% endif %}
+      </div>
+
+      <div class="login-smooth-field">
+        <label for="id_password">Password</label>
+        <input
+          type="password"
+          name="password"
+          id="id_password"
+          placeholder="Enter your password"
+          autocomplete="current-password"
+          required
+        >
+
+        {% if form.password.errors %}
+          <div class="auth-field-error">
+            {{ form.password.errors }}
+          </div>
+        {% endif %}
+      </div>
+
+      {% if form.remember %}
+        <label class="login-smooth-check">
+          {{ form.remember }}
+          <span>Remember me</span>
+        </label>
+      {% endif %}
+
+      {% if redirect_field_value %}
+        <input
+          type="hidden"
+          name="{{ redirect_field_name }}"
+          value="{{ redirect_field_value }}"
+        >
+      {% endif %}
+
+      <button type="submit" class="heartly-btn heartly-btn-primary login-smooth-submit">
+        Log In
+      </button>
+
+      <a href="{% url 'account_reset_password' %}" class="login-smooth-forgot">
+        Forgot password?
+      </a>
+    </form>
+
+    <div class="login-smooth-bottom">
+      <p>
+        New to Heartly?
+        <a href="{% url 'account_signup' %}">Create account</a>
+      </p>
+    </div>
+
+  </section>
+
+</main>
+
+{% endblock %}

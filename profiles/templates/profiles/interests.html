@@ -1,0 +1,42 @@
+{% extends "heartly/base.html" %}
+
+{% block title %}Interests - Heartly{% endblock %}
+
+{% block topbar %}
+<header class="settings-mobile-topbar">
+  <a href="{% url 'profiles:profile_home' %}" class="heartly-icon-btn">‹</a>
+  <h1>Interests</h1>
+  <span class="settings-topbar-spacer"></span>
+</header>
+{% endblock %}
+
+{% block content %}
+
+<section class="profile-v2-screen">
+
+  <section class="profile-v2-section heartly-card">
+    <div class="profile-v2-heading">
+      <h3>Choose interests</h3>
+    </div>
+
+    <form method="post" class="profile-interest-form">
+      {% csrf_token %}
+
+      <div class="profile-interest-grid">
+        {% for checkbox in form.interests %}
+          <label>
+            {{ checkbox.tag }}
+            <span>{{ checkbox.choice_label }}</span>
+          </label>
+        {% endfor %}
+      </div>
+
+      <button type="submit" class="heartly-btn heartly-btn-primary" style="width:100%; margin-top:16px;">
+        Save Interests
+      </button>
+    </form>
+  </section>
+
+</section>
+
+{% endblock %}

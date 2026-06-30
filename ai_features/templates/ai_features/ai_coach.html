@@ -1,0 +1,85 @@
+{% extends "heartly/base.html" %}
+{% load static %}
+
+{% block title %}AI Coach - Heartly{% endblock %}
+
+{% block content %}
+
+<section class="ai-v2-screen">
+
+  <section class="ai-v2-hero heartly-card heartly-glow-card">
+
+    <div class="ai-v2-bot">
+      <div class="ai-v2-antenna"></div>
+      <div class="ai-v2-face">
+        <span></span>
+        <span></span>
+      </div>
+    </div>
+
+    <h1>Hi there! 👋</h1>
+    <p>I’m your Heartly AI Coach</p>
+
+  </section>
+
+  <section class="ai-v2-prompts">
+    <button type="button" data-prompt="How do I start a conversation?">
+      Start a conversation
+    </button>
+
+    <button type="button" data-prompt="How do I know if someone likes me?">
+      Signs they like me
+    </button>
+
+    <button type="button" data-prompt="How can I improve my profile?">
+      Improve my profile
+    </button>
+
+    <button type="button" data-prompt="What red flags should I watch for?">
+      Red flags
+    </button>
+  </section>
+
+  {% if ai_response %}
+    <section class="ai-v2-response heartly-card">
+      <h2>Coach says</h2>
+      <p>{{ ai_response|linebreaksbr }}</p>
+    </section>
+  {% endif %}
+
+  <form method="post" class="ai-v2-input-card heartly-card">
+    {% csrf_token %}
+
+    <input
+      type="text"
+      name="message"
+      id="aiCoachInput"
+      value="{{ user_message }}"
+      placeholder="Ask Heartly..."
+      autocomplete="off"
+      required
+    >
+
+    <button type="submit">
+      ➜
+    </button>
+  </form>
+
+</section>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const input = document.getElementById("aiCoachInput");
+
+  document.querySelectorAll("[data-prompt]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      input.value = button.getAttribute("data-prompt");
+      input.focus();
+    });
+  });
+});
+</script>
+{% endblock %}

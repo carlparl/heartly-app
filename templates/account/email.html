@@ -1,0 +1,109 @@
+{% extends "heartly/base.html" %}
+
+{% block title %}Email Settings - Heartly{% endblock %}
+
+{% block topbar %}
+<header class="settings-mobile-topbar">
+  <a href="/settings/account/" class="heartly-icon-btn" aria-label="Back">‹</a>
+  <h1>Email</h1>
+  <span class="settings-topbar-spacer"></span>
+</header>
+{% endblock %}
+
+{% block content %}
+
+<section class="auth-settings-screen">
+
+  <div class="auth-settings-card">
+    <div class="auth-settings-icon">✉️</div>
+
+    <h2>Email addresses</h2>
+    <p>
+      Manage the email addresses connected to your Heartly account.
+    </p>
+
+    {% if emailaddresses %}
+      <form action="{% url 'account_email' %}" method="post" class="auth-settings-form">
+        {% csrf_token %}
+
+        <div class="email-list">
+
+          {% for emailaddress in emailaddresses %}
+            <label class="email-item {% if emailaddress.primary %}email-primary{% endif %}">
+              <input
+                type="radio"
+                name="email"
+                value="{{ emailaddress.email }}"
+                {% if emailaddress.primary %}checked{% endif %}
+              >
+
+              <span class="email-item-body">
+                <strong>{{ emailaddress.email }}</strong>
+
+                <span>
+                  {% if emailaddress.verified %}
+                    Verified
+                  {% else %}
+                    Unverified
+                  {% endif %}
+
+                  {% if emailaddress.primary %}
+                    · Primary
+                  {% endif %}
+                </span>
+              </span>
+            </label>
+          {% endfor %}
+
+        </div>
+
+        <div class="email-actions">
+          <button type="submit" name="action_primary" class="heartly-btn heartly-btn-soft">
+            Make Primary
+          </button>
+
+          <button type="submit" name="action_send" class="heartly-btn heartly-btn-ghost">
+            Re-send Verification
+          </button>
+
+          <button type="submit" name="action_remove" class="heartly-btn heartly-btn-danger auth-full-btn">
+            Remove Selected
+          </button>
+        </div>
+      </form>
+    {% else %}
+      <div class="auth-empty-box">
+        No email address has been added yet.
+      </div>
+    {% endif %}
+  </div>
+
+  {% if can_add_email %}
+    <div class="auth-settings-card">
+      <h2>Add email</h2>
+      <p>
+        Add another email address to your Heartly account.
+      </p>
+
+      <form method="post" action="{% url 'account_email' %}" class="auth-settings-form">
+        {% csrf_token %}
+
+        <div class="auth-field">
+          <label for="{{ form.email.id_for_label }}">New Email Address</label>
+          {{ form.email }}
+
+          {% if form.email.errors %}
+            <div class="auth-field-error">{{ form.email.errors }}</div>
+          {% endif %}
+        </div>
+
+        <button type="submit" name="action_add" class="heartly-btn heartly-btn-primary auth-full-btn">
+          Add Email
+        </button>
+      </form>
+    </div>
+  {% endif %}
+
+</section>
+
+{% endblock %}

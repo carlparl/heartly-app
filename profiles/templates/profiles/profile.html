@@ -1,0 +1,93 @@
+{% extends "heartly/base.html" %}
+
+{% block title %}Profile - Heartly{% endblock %}
+
+{% block content %}
+
+<section class="profile-v2-screen">
+
+  <section class="profile-v2-card heartly-card">
+
+    <div class="profile-v2-top">
+      <h1>My Profile</h1>
+      <a href="/settings/" class="profile-v2-icon">⚙</a>
+    </div>
+
+    <div class="profile-v2-photo-card">
+      {% if profile.profile_picture %}
+        <img src="{{ profile.profile_picture.url }}" alt="{{ profile.name }}">
+      {% else %}
+        <div class="profile-v2-fallback">
+          {{ profile.name|first|upper }}
+        </div>
+      {% endif %}
+
+      <a href="{% url 'profiles:edit_profile' %}" class="profile-v2-camera">📷</a>
+    </div>
+
+    <div class="profile-v2-info">
+      <h2>{{ profile.name }}</h2>
+
+      <p>
+        {% if profile.age %}{{ profile.age }}{% endif %}
+        {% if profile.location %} · 📍 {{ profile.location }}{% else %}📍 Add location{% endif %}
+      </p>
+    </div>
+
+    <div class="profile-v2-stats">
+      <div>
+        <strong>{{ request.user.heartly_posts.count|default:"0" }}</strong>
+        <span>Posts</span>
+      </div>
+
+      <div>
+        <strong>{{ request.user.heartly_post_likes.count|default:"0" }}</strong>
+        <span>Likes</span>
+      </div>
+
+      <div>
+        <strong>0</strong>
+        <span>Matches</span>
+      </div>
+    </div>
+
+    <div class="profile-v2-actions">
+      <a href="{% url 'profiles:edit_profile' %}" class="heartly-btn heartly-btn-primary">Edit</a>
+      <a href="/ai/" class="heartly-btn heartly-btn-ghost">AI Coach</a>
+    </div>
+
+  </section>
+
+  <section class="profile-v2-section heartly-card">
+    <div class="profile-v2-heading">
+      <h3>About me</h3>
+      <a href="{% url 'profiles:edit_profile' %}">Edit</a>
+    </div>
+
+    {% if profile.bio %}
+      <p>{{ profile.bio }}</p>
+    {% else %}
+      <p>Add a short bio.</p>
+    {% endif %}
+  </section>
+
+  <section class="profile-v2-section heartly-card">
+    <div class="profile-v2-heading">
+      <h3>Interests</h3>
+      <a href="{% url 'profiles:edit_interests' %}">Manage</a>
+    </div>
+
+    <div class="profile-v2-chips">
+      {% for interest in profile.interests.all %}
+        <span>{{ interest.name }}</span>
+      {% empty %}
+        <span>Music</span>
+        <span>Travel</span>
+        <span>Movies</span>
+      {% endfor %}
+    </div>
+  </section>
+
+</section>
+
+{% endblock %}

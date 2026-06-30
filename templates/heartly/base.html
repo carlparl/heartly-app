@@ -1,0 +1,161 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en" data-theme="system">
+<head>
+  <meta charset="UTF-8">
+
+  <script>
+    (function () {
+      const savedTheme = localStorage.getItem("heartly-theme");
+      const validThemes = ["system", "light", "dark"];
+      const safeTheme = validThemes.includes(savedTheme) ? savedTheme : "system";
+      document.documentElement.setAttribute("data-theme", safeTheme);
+    })();
+  </script>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+
+  <title>{% block title %}Heartly{% endblock %}</title>
+
+  <link rel="stylesheet" href="{% static 'css/heartly-theme.css' %}">
+
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #16091f;
+      color: #fdf7ff;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .heartly-safe-shell {
+      min-height: 100vh;
+    }
+  </style>
+
+  {% block extra_css %}{% endblock %}
+</head>
+
+<body>
+
+<div class="heartly-safe-shell">
+  <div class="heartly-app">
+
+    {% block outer_content %}
+
+      {% block topbar %}
+        <header class="heartly-topbar">
+          <div class="heartly-topbar-inner">
+
+            <a href="/feed/" class="heartly-logo" aria-label="Heartly home">
+              <span class="heartly-logo-mark">♥</span>
+              <span>Heartly</span>
+            </a>
+
+            <div class="heartly-header-actions">
+
+              <a
+                href="/notifications/"
+                class="heartly-icon-btn heartly-notification-btn"
+                aria-label="Notifications"
+              >
+                🔔
+                {% if unread_notifications_count %}
+                  <span class="heartly-notification-dot"></span>
+                {% endif %}
+              </a>
+
+              <a
+                href="/settings/"
+                class="heartly-icon-btn"
+                aria-label="Settings"
+              >
+                ⚙
+              </a>
+
+            </div>
+
+          </div>
+        </header>
+      {% endblock %}
+
+      <main class="heartly-page">
+
+        {% if messages %}
+          <section class="heartly-message-stack">
+            {% for message in messages %}
+              <div class="heartly-soft-card heartly-message heartly-message-{{ message.tags|default:'info' }}">
+                {{ message }}
+              </div>
+            {% endfor %}
+          </section>
+        {% endif %}
+
+        {% block content %}{% endblock %}
+
+      </main>
+
+      {% block bottom_nav %}
+        <nav class="heartly-bottom-nav" aria-label="Main navigation">
+
+          <a
+            href="/feed/"
+            class="heartly-nav-item {% if request.path|slice:':6' == '/feed/' %}active{% endif %}"
+          >
+            <span class="heartly-nav-icon">🏠</span>
+            <span>Feed</span>
+          </a>
+
+          <a
+            href="/matches/"
+            class="heartly-nav-item {% if request.path|slice:':9' == '/matches/' %}active{% endif %}"
+          >
+            <span class="heartly-nav-icon">💞</span>
+            <span>Match</span>
+          </a>
+
+          <a
+            href="/ai/"
+            class="heartly-nav-item {% if request.path|slice:':4' == '/ai/' %}active{% endif %}"
+          >
+            <span class="heartly-nav-icon">🤖</span>
+            <span>AI</span>
+          </a>
+
+          <a
+            href="/chat/"
+            class="heartly-nav-item {% if request.path|slice:':6' == '/chat/' %}active{% endif %}"
+          >
+            <span class="heartly-nav-icon">💬</span>
+            <span>Chat</span>
+          </a>
+
+          <a
+            href="/profiles/"
+            class="heartly-nav-item {% if request.path|slice:':10' == '/profiles/' %}active{% endif %}"
+          >
+            <span class="heartly-nav-icon">👤</span>
+            <span>Profile</span>
+          </a>
+
+        </nav>
+      {% endblock %}
+
+    {% endblock %}
+
+  </div>
+</div>
+
+<script src="{% static 'js/heartly-theme.js' %}"></script>
+
+{% block extra_js %}{% endblock %}
+
+</body>
+</html>

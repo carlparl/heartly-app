@@ -1,0 +1,354 @@
+{% extends "heartly/base.html" %}
+{% load static %}
+
+{% block title %}Feed - Heartly{% endblock %}
+
+{% block content %}
+
+<section class="x-feed-screen">
+
+  <header class="x-feed-header heartly-card">
+    <div>
+      <h1>Feed</h1>
+      <p>Share moments.</p>
+    </div>
+
+    <button type="button" class="x-compose-main-btn" id="openComposerBtn">
+      +
+    </button>
+  </header>
+
+  <section class="x-compose-shortcuts heartly-card">
+    <button type="button" id="openTextComposer">Text</button>
+    <button type="button" id="openImageComposer">Photo</button>
+    <button type="button" id="openVideoComposer">Video</button>
+  </section>
+
+  <section class="x-post-list">
+
+    {% for item in posts_data %}
+      {% with post=item.post %}
+
+        <article class="x-post heartly-card">
+
+          <header class="x-post-header">
+
+            <div class="x-author">
+              {% if item.author_photo %}
+                <img src="{{ item.author_photo }}" alt="{{ item.author_name }}">
+              {% else %}
+                <div class="x-author-fallback">
+                  {{ item.author_name|first|upper }}
+                </div>
+              {% endif %}
+
+              <div>
+                <strong>{{ item.author_name }}</strong>
+                <span>
+                  {{ post.created_at|timesince }} ago
+                  {% if post.edited_at %} · edited{% endif %}
+                </span>
+              </div>
+            </div>
+
+            {% if request.user == post.user %}
+              <div class="x-post-menu-wrap">
+                <button type="button" class="x-post-menu-btn">⋯</button>
+
+                <div class="x-post-menu">
+                  <button
+                    type="button"
+                    class="x-post-menu-action editPostBtn"
+                    data-edit-url="{% url 'feed:edit_post' post.id %}"
+                    data-edit-content="{{ post.content|escape }}"
+                  >
+                    Edit
+                  </button>
+
+                  <form method="post" action="{% url 'feed:delete_post' post.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="x-post-menu-action danger">
+                      Delete
+                    </button>
+                  </form>
+                </div>
+              </div>
+            {% endif %}
+
+          </header>
+
+          {% if post.content %}
+            <div class="x-post-text">
+              {{ post.content|linebreaksbr }}
+            </div>
+          {% endif %}
+
+          {% if item.media %}
+            <div class="x-post-media-grid count-{{ item.media|length }}">
+
+              {% for media in item.media %}
+
+                {% if media.media_type == "image" and media.image %}
+                  <figure class="x-post-media-item">
+                    <img
+                      src="{{ media.image.url }}"
+                      alt="{{ media.alt_text|default:'Post image' }}"
+                    >
+                  </figure>
+                {% endif %}
+
+                {% if media.media_type == "video" and media.video %}
+                  <figure class="x-post-media-item video">
+                    <video controls playsinline preload="metadata">
+                      <source src="{{ media.video.url }}">
+                    </video>
+                  </figure>
+                {% endif %}
+
+              {% endfor %}
+
+            </div>
+          {% endif %}
+
+          <footer class="x-post-actions">
+
+            <form method="post" action="{% url 'feed:like_post' post.id %}">
+              {% csrf_token %}
+              <button type="submit" class="{% if item.is_liked %}is-liked{% endif %}">
+                {% if item.is_liked %}♥{% else %}♡{% endif %}
+                {{ item.likes_count }}
+              </button>
+            </form>
+
+            <button type="button">
+              💬 {{ item.comments_count }}
+            </button>
+
+            <button type="button" class="copyFeedLinkBtn">
+              ↗ Share
+            </button>
+
+          </footer>
+
+          <section class="x-comments">
+
+            {% for comment in item.comments %}
+              <div class="x-comment">
+                <strong>{{ comment.user.get_full_name|default:comment.user.username }}</strong>
+                <span>{{ comment.text }}</span>
+              </div>
+            {% endfor %}
+
+            <form method="post" action="{% url 'feed:add_comment' post.id %}" class="x-comment-form">
+              {% csrf_token %}
+              <input type="text" name="text" placeholder="Reply..." required>
+              <button type="submit">Post</button>
+            </form>
+
+          </section>
+
+        </article>
+
+      {% endwith %}
+    {% empty %}
+
+      <section class="x-empty heartly-card">
+        <div>💬</div>
+        <h2>No posts yet</h2>
+        <p>Start the Feed.</p>
+
+        <button type="button" class="heartly-btn heartly-btn-primary" id="emptyComposerBtn">
+          Create post
+        </button>
+      </section>
+
+    {% endfor %}
+
+  </section>
+
+</section>
+
+<!-- CREATE COMPOSER -->
+<div class="x-modal-backdrop" id="composerModal">
+  <div class="x-composer-modal">
+
+    <header class="x-modal-header">
+      <button type="button" class="heartly-icon-btn" id="closeComposerBtn">×</button>
+      <strong>Create post</strong>
+      <button type="submit" form="createPostForm" class="x-submit-btn">Post</button>
+    </header>
+
+    <form
+      method="post"
+      action="{% url 'feed:create_post' %}"
+      enctype="multipart/form-data"
+      id="createPostForm"
+      class="x-composer-form"
+    >
+      {% csrf_token %}
+
+      <textarea
+        name="content"
+        id="createPostText"
+        placeholder="What is happening?"
+      ></textarea>
+
+      <section class="x-selected-media" id="createMediaPreview"></section>
+
+      <section class="x-alt-text-stack" id="createAltTextStack"></section>
+
+      <div class="x-composer-tools">
+
+        <label title="Add images">
+          🖼️
+          <input
+            type="file"
+            name="images"
+            id="createImagesInput"
+            accept="image/jpeg,image/png,image/webp"
+            multiple
+            hidden
+          >
+        </label>
+
+        <label title="Add video">
+          🎥
+          <input
+            type="file"
+            name="video"
+            id="createVideoInput"
+            accept="video/mp4,video/webm,video/quicktime"
+            hidden
+          >
+        </label>
+
+        <button type="button" id="clearCreateMediaBtn">
+          Clear
+        </button>
+
+      </div>
+
+      <p class="x-composer-rule">
+        Up to 4 photos or 1 video.
+      </p>
+
+    </form>
+
+  </div>
+</div>
+
+<!-- EDIT COMPOSER -->
+<div class="x-modal-backdrop" id="editModal">
+  <div class="x-composer-modal">
+
+    <header class="x-modal-header">
+      <button type="button" class="heartly-icon-btn" id="closeEditBtn">×</button>
+      <strong>Edit post</strong>
+      <button type="submit" form="editPostForm" class="x-submit-btn">Save</button>
+    </header>
+
+    <form
+      method="post"
+      enctype="multipart/form-data"
+      id="editPostForm"
+      class="x-composer-form"
+    >
+      {% csrf_token %}
+
+      <textarea
+        name="content"
+        id="editPostContent"
+        placeholder="Update post..."
+      ></textarea>
+
+      <label class="x-remove-media-check">
+        <input type="checkbox" name="remove_media">
+        Remove current media
+      </label>
+
+      <section class="x-selected-media" id="editMediaPreview"></section>
+
+      <section class="x-alt-text-stack" id="editAltTextStack"></section>
+
+      <div class="x-composer-tools">
+
+        <label title="Replace with images">
+          🖼️
+          <input
+            type="file"
+            name="images"
+            id="editImagesInput"
+            accept="image/jpeg,image/png,image/webp"
+            multiple
+            hidden
+          >
+        </label>
+
+        <label title="Replace with video">
+          🎥
+          <input
+            type="file"
+            name="video"
+            id="editVideoInput"
+            accept="video/mp4,video/webm,video/quicktime"
+            hidden
+          >
+        </label>
+
+        <button type="button" id="clearEditMediaBtn">
+          Clear
+        </button>
+
+      </div>
+
+      <p class="x-composer-rule">
+        Replacement: up to 4 photos or 1 video.
+      </p>
+
+    </form>
+
+  </div>
+</div>
+
+<!-- SIMPLE X-STYLE IMAGE CROP MODAL -->
+<div class="x-modal-backdrop" id="xCropModal">
+  <div class="x-crop-modal">
+
+    <header class="x-modal-header">
+      <button type="button" class="heartly-icon-btn" id="closeCropBtn">×</button>
+      <strong>Edit photo</strong>
+      <button type="button" class="x-submit-btn" id="applyCropBtn">Apply</button>
+    </header>
+
+    <div class="x-crop-stage">
+      <canvas id="xCropCanvas"></canvas>
+    </div>
+
+    <div class="x-crop-controls">
+
+      <div class="x-crop-ratio-row">
+        <button type="button" data-x-ratio="1" class="is-active">Square</button>
+        <button type="button" data-x-ratio="0.8">Portrait</button>
+        <button type="button" data-x-ratio="1.777">Wide</button>
+      </div>
+
+      <label>
+        Zoom
+        <input type="range" id="xCropZoom" min="1" max="3" step="0.01" value="1">
+      </label>
+
+      <div class="x-crop-ratio-row two">
+        <button type="button" id="xRotateLeftBtn">↺ Rotate</button>
+        <button type="button" id="xRotateRightBtn">↻ Rotate</button>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/feed-media-editor.js' %}?v=3"></script>
+{% endblock %}

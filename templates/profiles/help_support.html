@@ -1,0 +1,312 @@
+{% extends "base.html" %}
+
+{% block title %}Help & Support • Heartly{% endblock %}
+
+{% block content %}
+<div class="app-screen">
+    <div class="app-container px-4 py-5">
+
+        <!-- Header -->
+        <div class="mb-6">
+            <h1 class="app-page-title">Help & Support</h1>
+            <p class="app-page-subtitle">
+                Get help using Heartly, learn safety basics, and contact support.
+            </p>
+        </div>
+
+        <!-- Messages -->
+        {% if messages %}
+            <div class="mb-5 space-y-3">
+                {% for message in messages %}
+                    <div class="app-card rounded-2xl p-4 text-sm font-bold">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <!-- Quick Help Card -->
+        <div class="app-card mb-6 overflow-hidden rounded-3xl">
+
+            <details class="help-item">
+                <summary class="app-list-row cursor-pointer">
+                    <span class="app-list-label">
+                        <i class="fa-solid fa-circle-question app-list-icon"></i>
+                        How Heartly works
+                    </span>
+                    <i class="fa-solid fa-chevron-right app-chevron help-chevron"></i>
+                </summary>
+
+                <div class="help-content">
+                    <p>
+                        Heartly helps users create profiles, discover people, chat, post on the feed,
+                        and use the AI coach for safer, better conversations.
+                    </p>
+
+                    <div class="help-steps">
+                        <div>
+                            <span>1</span>
+                            Complete your profile.
+                        </div>
+                        <div>
+                            <span>2</span>
+                            Discover people and view profiles.
+                        </div>
+                        <div>
+                            <span>3</span>
+                            Start respectful conversations.
+                        </div>
+                        <div>
+                            <span>4</span>
+                            Use Heartly AI for message and safety support.
+                        </div>
+                    </div>
+                </div>
+            </details>
+
+            <details class="help-item">
+                <summary class="app-list-row cursor-pointer">
+                    <span class="app-list-label">
+                        <i class="fa-solid fa-shield-heart app-list-icon"></i>
+                        Safety guidance
+                    </span>
+                    <i class="fa-solid fa-chevron-right app-chevron help-chevron"></i>
+                </summary>
+
+                <div class="help-content">
+                    <p>
+                        Keep your personal information private and stay alert when meeting or chatting
+                        with new people.
+                    </p>
+
+                    <ul class="help-list">
+                        <li>Do not share passwords, private codes, or financial details.</li>
+                        <li>Do not send money to people you meet online.</li>
+                        <li>Meet in public places if you decide to meet someone.</li>
+                        <li>Report suspicious, rude, or unsafe behavior.</li>
+                    </ul>
+                </div>
+            </details>
+
+            <details class="help-item">
+                <summary class="app-list-row cursor-pointer">
+                    <span class="app-list-label">
+                        <i class="fa-solid fa-envelope app-list-icon"></i>
+                        Contact support
+                    </span>
+                    <i class="fa-solid fa-chevron-right app-chevron help-chevron"></i>
+                </summary>
+
+                <div class="help-content">
+                    <form method="post" class="space-y-4">
+                        {% csrf_token %}
+
+                        <div>
+                            <label class="mb-2 block text-sm font-black app-text-strong">
+                                What do you need help with?
+                            </label>
+
+                            <select name="category" class="app-input" required>
+                                <option value="">Choose a category</option>
+                                <option value="account">Account problem</option>
+                                <option value="profile">Profile problem</option>
+                                <option value="chat">Chat problem</option>
+                                <option value="safety">Safety concern</option>
+                                <option value="bug">Bug or error</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="mb-2 block text-sm font-black app-text-strong">
+                                Message
+                            </label>
+
+                            <textarea
+                                name="message"
+                                class="app-textarea"
+                                rows="4"
+                                placeholder="Explain the issue clearly..."
+                                required
+                            ></textarea>
+                        </div>
+
+                        <button type="submit" class="app-btn-primary">
+                            <i class="fa-solid fa-paper-plane"></i>
+                            Send Support Request
+                        </button>
+                    </form>
+                </div>
+            </details>
+
+        </div>
+
+        <!-- FAQ Section -->
+        <div class="mb-3">
+            <h2 class="app-section-title">Frequently Asked Questions</h2>
+        </div>
+
+        <div class="app-card mb-6 overflow-hidden rounded-3xl">
+
+            <details class="help-item">
+                <summary class="app-list-row cursor-pointer">
+                    <span class="app-list-label">
+                        <i class="fa-solid fa-user-pen app-list-icon"></i>
+                        How do I edit my profile?
+                    </span>
+                    <i class="fa-solid fa-chevron-right app-chevron help-chevron"></i>
+                </summary>
+
+                <div class="help-content">
+                    Go to Profile, then tap Edit Profile. You can update your photo, bio,
+                    location, interests, and preferences.
+                </div>
+            </details>
+
+            <details class="help-item">
+                <summary class="app-list-row cursor-pointer">
+                    <span class="app-list-label">
+                        <i class="fa-solid fa-at app-list-icon"></i>
+                        Can I change my username?
+                    </span>
+                    <i class="fa-solid fa-chevron-right app-chevron help-chevron"></i>
+                </summary>
+
+                <div class="help-content">
+                    Yes. Go to Profile, open Account Settings, then choose a new username.
+                    Usernames must be unique.
+                </div>
+            </details>
+
+            <details class="help-item">
+                <summary class="app-list-row cursor-pointer">
+                    <span class="app-list-label">
+                        <i class="fa-solid fa-robot app-list-icon"></i>
+                        What does Heartly AI do?
+                    </span>
+                    <i class="fa-solid fa-chevron-right app-chevron help-chevron"></i>
+                </summary>
+
+                <div class="help-content">
+                    Heartly AI helps with respectful message ideas, profile improvements,
+                    conversation advice, and safety guidance.
+                </div>
+            </details>
+
+            <details class="help-item">
+                <summary class="app-list-row cursor-pointer">
+                    <span class="app-list-label">
+                        <i class="fa-solid fa-ban app-list-icon"></i>
+                        What happens when I block someone?
+                    </span>
+                    <i class="fa-solid fa-chevron-right app-chevron help-chevron"></i>
+                </summary>
+
+                <div class="help-content">
+                    Blocked users should not be able to contact you. The blocked users list
+                    will show people you have blocked.
+                </div>
+            </details>
+
+        </div>
+
+        <!-- Safety Notice -->
+        <div class="app-card mb-6 rounded-3xl p-5">
+            <div class="flex items-start gap-4">
+                <div class="app-soft flex h-12 w-12 shrink-0 items-center justify-center rounded-full">
+                    <i class="fa-solid fa-shield-halved app-list-icon text-xl"></i>
+                </div>
+
+                <div>
+                    <h3 class="text-base font-black app-text-strong">
+                        Stay safe on Heartly
+                    </h3>
+                    <p class="app-muted mt-1 text-sm leading-6">
+                        If someone makes you uncomfortable, stop replying, block them,
+                        and report the issue. Your safety comes first.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <a href="{% url 'profile' %}" class="app-btn-secondary">
+            <i class="fa-solid fa-arrow-left"></i>
+            Back to Profile
+        </a>
+
+    </div>
+</div>
+
+<style>
+    .help-item {
+        border-bottom: 1px solid var(--app-border);
+    }
+
+    .help-item:last-child {
+        border-bottom: none;
+    }
+
+    .help-item summary {
+        list-style: none;
+    }
+
+    .help-item summary::-webkit-details-marker {
+        display: none;
+    }
+
+    .help-content {
+        padding: 0 1.25rem 1.25rem;
+        color: var(--app-muted);
+        font-size: 0.9rem;
+        line-height: 1.7;
+    }
+
+    .help-item[open] .help-chevron {
+        transform: rotate(90deg);
+    }
+
+    .help-chevron {
+        transition: transform 0.2s ease;
+    }
+
+    .help-steps {
+        margin-top: 1rem;
+        display: grid;
+        gap: 0.75rem;
+    }
+
+    .help-steps div {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-size: 0.85rem;
+        font-weight: 800;
+        color: var(--app-text-strong);
+    }
+
+    .help-steps span {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.65rem;
+        height: 1.65rem;
+        border-radius: 9999px;
+        background: linear-gradient(135deg, #ec4899, #7c3aed);
+        color: white;
+        font-size: 0.75rem;
+        font-weight: 950;
+        flex-shrink: 0;
+    }
+
+    .help-list {
+        margin-top: 1rem;
+        display: grid;
+        gap: 0.65rem;
+        padding-left: 1.1rem;
+    }
+
+    .help-list li {
+        list-style: disc;
+    }
+</style>
+{% endblock %}

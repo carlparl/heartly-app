@@ -1,0 +1,100 @@
+{% extends "heartly/base.html" %}
+
+{% block title %}Settings - Heartly{% endblock %}
+
+{% block topbar %}
+<header class="settings-mobile-topbar">
+  <a href="/feed/" class="heartly-icon-btn" aria-label="Back">
+  ‹
+</a>
+
+  <h1>Settings</h1>
+
+  <span class="settings-topbar-spacer"></span>
+</header>
+{% endblock %}
+
+{% block content %}
+
+<section class="settings-screen">
+
+  <div class="settings-card">
+    <h2>Appearance</h2>
+    <p>Choose how Heartly looks on your device.</p>
+
+    <div class="settings-option-stack">
+
+      <button type="button" class="settings-theme-option" data-theme-choice="system">
+        <div>
+          <strong>Use system theme</strong>
+          <span>Changes automatically when your device changes.</span>
+        </div>
+        <span class="settings-radio"></span>
+      </button>
+
+      <button type="button" class="settings-theme-option" data-theme-choice="light">
+        <div>
+          <strong>Light mode</strong>
+          <span>Always use the light Heartly theme.</span>
+        </div>
+        <span class="settings-radio"></span>
+      </button>
+
+      <button type="button" class="settings-theme-option" data-theme-choice="dark">
+        <div>
+          <strong>Dark mode</strong>
+          <span>Always use the dark Heartly theme.</span>
+        </div>
+        <span class="settings-radio"></span>
+      </button>
+
+    </div>
+  </div>
+
+  <div class="settings-card settings-menu-card">
+
+  <a href="{% url 'settings_account' %}" class="settings-menu-item">
+    <span class="settings-menu-left">
+      <span class="settings-menu-icon">👤</span>
+      <span>Account</span>
+    </span>
+    <span class="settings-chevron">›</span>
+  </a>
+
+  <a href="{% url 'settings_privacy' %}" class="settings-menu-item">
+    <span class="settings-menu-left">
+      <span class="settings-menu-icon">🛡️</span>
+      <span>Privacy & Safety</span>
+    </span>
+    <span class="settings-chevron">›</span>
+  </a>
+
+  <a href="{% url 'notifications_home' %}" class="settings-menu-item">
+    <span class="settings-menu-left">
+      <span class="settings-menu-icon">🔔</span>
+      <span>Notifications</span>
+    </span>
+    <span class="settings-chevron">›</span>
+  </a>
+
+  <a href="{% url 'settings_help' %}" class="settings-menu-item">
+    <span class="settings-menu-left">
+      <span class="settings-menu-icon">❔</span>
+      <span>Help & Support</span>
+    </span>
+    <span class="settings-chevron">›</span>
+  </a>
+
+  <a href="{% url 'settings_about' %}" class="settings-menu-item">
+    <span class="settings-menu-left">
+      <span class="settings-menu-icon">♡</span>
+      <span>About Heartly</span>
+    </span>
+    <span class="settings-chevron">›</span>
+  </a>
+
+</div>
+
+</section>
+
+{% endblock %}

@@ -1,0 +1,167 @@
+{% extends "heartly/base.html" %}
+{% load static %}
+
+{% block title %}Log Out • Heartly{% endblock %}
+
+{% block app_nav %}{% endblock %}
+
+{% block content %}
+<style>
+    .heartly-auth-page {
+        min-height: 100vh;
+        background:
+            radial-gradient(circle at top left, rgba(255, 83, 137, 0.25), transparent 35%),
+            radial-gradient(circle at bottom right, rgba(255, 0, 92, 0.18), transparent 35%),
+            linear-gradient(135deg, #fff5f8 0%, #ffffff 45%, #fff0f5 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px 16px;
+    }
+
+    .heartly-auth-card {
+        width: 100%;
+        max-width: 400px;
+        background: rgba(255, 255, 255, 0.97);
+        border: 1px solid rgba(255, 255, 255, 0.75);
+        border-radius: 32px;
+        box-shadow: 0 25px 70px rgba(219, 39, 119, 0.15);
+        overflow: hidden;
+    }
+
+    .heartly-auth-top {
+        padding: 38px 28px 20px;
+        text-align: center;
+    }
+
+    .heartly-logout-icon {
+        width: 78px;
+        height: 78px;
+        margin: 0 auto 22px;
+        border-radius: 26px;
+        background: linear-gradient(135deg, #ff2f7d, #ff6b9d);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 16px 35px rgba(255, 47, 125, 0.32);
+    }
+
+    .heartly-logout-icon i {
+        font-size: 34px;
+        color: white;
+    }
+
+    .heartly-auth-title {
+        font-size: 27px;
+        font-weight: 950;
+        color: #111111;
+        margin: 0 0 8px;
+        letter-spacing: -0.03em;
+    }
+
+    .heartly-auth-subtitle {
+        color: #666666;
+        font-size: 15px;
+        line-height: 1.5;
+        max-width: 260px;
+        margin: 0 auto;
+    }
+
+    .heartly-auth-body {
+        padding: 8px 28px 32px;
+        text-align: center;
+    }
+
+    .heartly-btn-group {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-top: 28px;
+    }
+
+    .heartly-submit {
+        width: 100%;
+        border: none;
+        border-radius: 20px;
+        padding: 15px 18px;
+        background: linear-gradient(135deg, #ff2f7d, #e6005c);
+        color: #ffffff;
+        font-size: 16px;
+        font-weight: 950;
+        cursor: pointer;
+        box-shadow: 0 16px 35px rgba(255, 47, 125, 0.28);
+        transition: all 0.2s ease;
+    }
+
+    .heartly-submit:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 20px 42px rgba(255, 47, 125, 0.34);
+    }
+
+    .heartly-secondary-btn {
+        width: 100%;
+        border: 2px solid #f1d7e0;
+        border-radius: 20px;
+        padding: 14px 18px;
+        background: #fff;
+        color: #444;
+        font-size: 15.5px;
+        font-weight: 800;
+        text-decoration: none;
+        display: inline-block;
+        transition: all 0.2s ease;
+    }
+
+    .heartly-secondary-btn:hover {
+        background: #fff5f8;
+        border-color: #f8c1d3;
+    }
+
+    @media (max-width: 480px) {
+        .heartly-auth-page {
+            align-items: flex-start;
+            padding-top: 40px;
+        }
+        .heartly-auth-card {
+            border-radius: 28px;
+        }
+    }
+</style>
+
+<div class="heartly-auth-page">
+    <div class="heartly-auth-card">
+
+        <div class="heartly-auth-top">
+            <div class="heartly-logout-icon">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </div>
+
+            <h1 class="heartly-auth-title">Log out?</h1>
+            <p class="heartly-auth-subtitle">
+                You can always log back in anytime to continue finding real connections.
+            </p>
+        </div>
+
+        <div class="heartly-auth-body">
+            <form method="post" action="{% url 'account_logout' %}">
+                {% csrf_token %}
+
+                {% if redirect_field_value %}
+                    <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">
+                {% endif %}
+
+                <div class="heartly-btn-group">
+                    <button type="submit" class="heartly-submit">
+                        Yes, log me out
+                    </button>
+
+                    <a href="{% url 'matches:discover' %}" class="heartly-secondary-btn">
+                        Cancel, stay logged in
+                    </a>
+                </div>
+            </form>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

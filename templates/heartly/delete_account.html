@@ -1,0 +1,63 @@
+{% extends "heartly/base.html" %}
+
+{% block title %}Delete Account - Heartly{% endblock %}
+
+{% block topbar %}
+<header class="settings-mobile-topbar">
+  <a href="{% url 'settings_account' %}" class="heartly-icon-btn" aria-label="Back">‹</a>
+  <h1>Delete Account</h1>
+  <span class="settings-topbar-spacer"></span>
+</header>
+{% endblock %}
+
+{% block content %}
+
+<section class="settings-subpage">
+
+  <div class="settings-subpage-card delete-account-card">
+    <h2>Delete your account?</h2>
+
+    <p>
+      This action is permanent. Your Heartly account will be removed and you will be logged out.
+    </p>
+
+    <div class="delete-warning-box">
+      <strong>Before you continue</strong>
+      <span>
+        Deleting your account cannot be undone from this screen. Type DELETE below to confirm.
+      </span>
+    </div>
+
+    <form method="post" class="delete-account-form">
+      {% csrf_token %}
+
+      <div class="heartly-field">
+        <label for="id_confirm_text" class="heartly-label">
+          Type DELETE to confirm
+        </label>
+
+        <input
+          type="text"
+          name="confirm_text"
+          id="id_confirm_text"
+          class="heartly-input"
+          placeholder="DELETE"
+          autocomplete="off"
+          required
+        >
+      </div>
+
+      <button type="submit" class="heartly-btn heartly-btn-danger">
+        Delete Account
+      </button>
+
+      <a href="{% url 'settings_account' %}" class="heartly-btn heartly-btn-ghost" style="width: 100%; margin-top: 12px;">
+        Cancel
+      </a>
+    </form>
+
+  </div>
+
+</section>
+
+{% endblock %}

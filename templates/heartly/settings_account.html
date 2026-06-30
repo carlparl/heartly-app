@@ -1,0 +1,51 @@
+{% extends "heartly/base.html" %}
+
+{% block title %}Account - Heartly{% endblock %}
+
+{% block topbar %}
+<header class="settings-mobile-topbar">
+  <a href="{% url 'settings' %}" class="heartly-icon-btn" aria-label="Back">‹</a>
+  <h1>Account</h1>
+  <span class="settings-topbar-spacer"></span>
+</header>
+{% endblock %}
+
+{% block content %}
+
+<section class="settings-subpage">
+
+  <div class="settings-subpage-card">
+    <h2>Your Account</h2>
+    <p>Manage your basic account details and access settings.</p>
+
+    <div class="settings-subpage-list">
+
+      <div class="settings-subpage-item">
+        <strong>Username</strong>
+        <span>{{ request.user.username }}</span>
+      </div>
+
+      <div class="settings-subpage-item">
+        <strong>Email</strong>
+        <span>{{ request.user.email|default:"No email added yet" }}</span>
+      </div>
+
+      <a href="{% url 'account_change_password' %}" class="settings-subpage-item">
+        <strong>Change Password</strong>
+        <span>Update your login password.</span>
+      </a>
+      <a href="{% url 'delete_account' %}" class="settings-subpage-item danger-item">
+        <strong>Delete Account</strong>
+        <span>Permanently remove your Heartly account and profile data.</span>
+      </a>
+      <a href="{% url 'account_logout' %}" class="settings-subpage-item">
+        <strong>Log Out</strong>
+        <span>Sign out of your Heartly account.</span>
+      </a>
+
+    </div>
+  </div>
+
+</section>
+
+{% endblock %}

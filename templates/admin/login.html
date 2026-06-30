@@ -1,0 +1,100 @@
+{% extends "admin/base_site.html" %}
+{% load static i18n %}
+
+{% block title %}Heartly Admin Login{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'css/heartly_admin.css' %}">
+{% endblock %}
+
+{% block branding %}
+{% endblock %}
+
+{% block content %}
+<div class="heartly-admin-page">
+
+    <div class="heartly-admin-card">
+
+        <div class="heartly-admin-brand">
+            <div class="heartly-admin-logo">
+                <i class="fa-solid fa-heart"></i>
+            </div>
+
+            <h1>Heartly Admin</h1>
+            <p>Secure dashboard access</p>
+        </div>
+
+        {% if form.errors and not form.non_field_errors %}
+            <div class="heartly-admin-error">
+                Please enter the correct username and password.
+            </div>
+        {% endif %}
+
+        {% if form.non_field_errors %}
+            {% for error in form.non_field_errors %}
+                <div class="heartly-admin-error">
+                    {{ error }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        {% if user.is_authenticated %}
+            <div class="heartly-admin-error">
+                You are authenticated as {{ username }}, but you are not authorized to access this page.
+            </div>
+        {% endif %}
+
+        <form action="{{ app_path }}" method="post" id="login-form" class="heartly-admin-form">
+            {% csrf_token %}
+
+            <div class="heartly-field">
+                <label for="id_username">Username</label>
+                <div class="heartly-input-wrap">
+                    <i class="fa-solid fa-user"></i>
+                    <input
+                        type="text"
+                        name="username"
+                        id="id_username"
+                        autofocus
+                        autocapitalize="none"
+                        autocomplete="username"
+                        maxlength="150"
+                        required
+                    >
+                </div>
+            </div>
+
+            <div class="heartly-field">
+                <label for="id_password">Password</label>
+                <div class="heartly-input-wrap">
+                    <i class="fa-solid fa-lock"></i>
+                    <input
+                        type="password"
+                        name="password"
+                        id="id_password"
+                        autocomplete="current-password"
+                        required
+                    >
+                </div>
+            </div>
+
+            <input type="hidden" name="next" value="{{ next }}">
+
+            <button type="submit" class="heartly-admin-btn">
+                Log in
+                <i class="fa-solid fa-arrow-right"></i>
+            </button>
+        </form>
+
+        <div class="heartly-admin-footer">
+            <span>
+                <i class="fa-solid fa-shield-halved"></i>
+                Private admin area
+            </span>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

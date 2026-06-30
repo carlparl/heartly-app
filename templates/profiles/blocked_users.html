@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Blocked Users • Heartly{% endblock %}
+
+{% block content %}
+<div class="app-screen">
+    <div class="app-container px-4 py-5">
+
+        <div class="mb-6">
+            <h1 class="app-page-title">Blocked Users</h1>
+            <p class="app-page-subtitle">
+                People you block will not be able to contact you.
+            </p>
+        </div>
+
+        <div class="app-card rounded-3xl p-8 text-center">
+            <div class="app-soft mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full">
+                <i class="fa-solid fa-ban text-2xl app-muted"></i>
+            </div>
+
+            <h2 class="text-xl font-black app-text-strong">No blocked users</h2>
+
+            <p class="app-muted mt-2 text-sm leading-6">
+                When you block someone, they will appear here.
+            </p>
+        </div>
+
+        <a href="{% url 'profile' %}" class="app-btn-secondary mt-5">
+            <i class="fa-solid fa-arrow-left"></i>
+            Back to Profile
+        </a>
+
+    </div>
+</div>
+{% endblock %}

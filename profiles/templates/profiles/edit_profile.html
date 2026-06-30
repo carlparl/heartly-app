@@ -1,0 +1,49 @@
+{% extends "heartly/base.html" %}
+
+{% block title %}Edit Profile - Heartly{% endblock %}
+
+{% block topbar %}
+<header class="settings-mobile-topbar">
+  <a href="{% url 'profiles:profile_home' %}" class="heartly-icon-btn">‹</a>
+  <h1>Edit Profile</h1>
+  <span class="settings-topbar-spacer"></span>
+</header>
+{% endblock %}
+
+{% block content %}
+
+<section class="profile-v2-screen">
+
+  <section class="profile-v2-section heartly-card">
+    <div class="profile-v2-heading">
+      <h3>Profile details</h3>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" class="profile-edit-form">
+      {% csrf_token %}
+
+      {% for field in form %}
+        <div class="heartly-field">
+          <label class="heartly-label" for="{{ field.id_for_label }}">
+            {{ field.label }}
+          </label>
+
+          {{ field }}
+
+          {% if field.errors %}
+            <div class="heartly-form-error">
+              {{ field.errors }}
+            </div>
+          {% endif %}
+        </div>
+      {% endfor %}
+
+      <button type="submit" class="heartly-btn heartly-btn-primary" style="width:100%;">
+        Save Profile
+      </button>
+    </form>
+  </section>
+
+</section>
+
+{% endblock %}

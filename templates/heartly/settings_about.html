@@ -1,0 +1,46 @@
+{% extends "heartly/base.html" %}
+
+{% block title %}About Heartly - Heartly{% endblock %}
+
+{% block topbar %}
+<header class="settings-mobile-topbar">
+  <a href="{% url 'settings' %}" class="heartly-icon-btn" aria-label="Back">‹</a>
+  <h1>About</h1>
+  <span class="settings-topbar-spacer"></span>
+</header>
+{% endblock %}
+
+{% block content %}
+
+<section class="settings-subpage">
+
+  <div class="settings-subpage-card">
+    <h2>About Heartly</h2>
+    <p>
+      Heartly is built for meaningful connections, better conversations,
+      and guidance from the Heartly AI Coach.
+    </p>
+
+    <div class="settings-subpage-list">
+
+      <div class="settings-subpage-item">
+        <strong>App Name</strong>
+        <span>Heartly</span>
+      </div>
+
+      <div class="settings-subpage-item">
+        <strong>Design System</strong>
+        <span>Velvet Aurora theme with light, dark, and system mode.</span>
+      </div>
+
+      <div class="settings-subpage-item">
+        <strong>Current Build</strong>
+        <span>v1.00_beta</span>
+      </div>
+
+    </div>
+  </div>
+
+</section>
+
+{% endblock %}

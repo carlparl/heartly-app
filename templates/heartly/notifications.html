@@ -1,0 +1,33 @@
+{% extends "heartly/base.html" %}
+
+{% block title %}Notifications - Heartly{% endblock %}
+
+{% block topbar %}
+<header class="settings-mobile-topbar">
+  <a href="{% url 'settings' %}" class="heartly-icon-btn" aria-label="Back">‹</a>
+  <h1>Notifications</h1>
+  <span class="settings-topbar-spacer"></span>
+</header>
+{% endblock %}
+
+{% block content %}
+
+<section class="settings-subpage">
+
+  <div class="settings-subpage-card">
+    <h2>Notifications</h2>
+    <p>Your Heartly notifications will appear here.</p>
+
+    <div class="settings-subpage-list">
+
+      <div class="settings-subpage-item">
+        <strong>No notifications yet</strong>
+        <span>New matches, likes, comments, and messages will show here when available.</span>
+      </div>
+
+    </div>
+  </div>
+
+</section>
+
+{% endblock %}

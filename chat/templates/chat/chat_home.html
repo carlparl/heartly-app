@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Chat • Heartly{% endblock %}
+
+{% block content %}
+<div class="app-screen">
+    <div class="app-container px-4 py-5">
+
+        <div class="mb-5">
+            <h1 class="app-page-title">Chat</h1>
+            <p class="app-page-subtitle">Your conversations appear here.</p>
+        </div>
+
+        {% if conversation_items %}
+            <div class="space-y-3">
+                {% for item in conversation_items %}
+                    <a href="{% url 'chat:chat_room' item.conversation.id %}"
+                       class="app-card block rounded-3xl p-4 transition hover:scale-[1.01]">
+
+                        <div class="flex items-center gap-3">
+
+                            <div class="app-soft flex h-12 w-12 shrink-0 items-center justify-center rounded-full">
+                                <i class="fa-solid fa-user app-muted"></i>
+                            </div>
+
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center justify-between gap-3">
+                                    <h2 class="truncate text-sm font-bold app-text-strong">
+                                        {{ item.other_user.get_full_name|default:item.other_user.email }}
+                                    </h2>
+
+                                    {% if item.unread_count %}
+                                        <span class="flex h-5 min-w-5 items-center justify-center rounded-full bg-pink-600 px-2 text-xs font-black text-white">
+                                            {{ item.unread_count }}
+                                        </span>
+                                    {% endif %}
+                                </div>
+
+                                <p class="app-muted mt-1 truncate text-xs">
+                                    {% if item.last_message %}
+                                        {{ item.last_message.content }}
+                                    {% else %}
+                                        No messages yet.
+                                    {% endif %}
+                                </p>
+                            </div>
+
+                        </div>
+
+                    </a>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="app-card rounded-3xl p-8 text-center">
+                <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-pink-600">
+                    <i class="fa-solid fa-comment text-2xl text-white"></i>
+                </div>
+
+                <h2 class="text-xl font-bold app-text-strong">
+                    No chats yet
+                </h2>
+
+                <p class="app-muted mt-2 text-sm leading-6">
+                    When you start a conversation, it will appear here.
+                </p>
+            </div>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends "heartly/base.html" %}
+
+{% block title %}Help & Support - Heartly{% endblock %}
+
+{% block topbar %}
+<header class="settings-mobile-topbar">
+  <a href="{% url 'settings' %}" class="heartly-icon-btn" aria-label="Back">‹</a>
+  <h1>Help</h1>
+  <span class="settings-topbar-spacer"></span>
+</header>
+{% endblock %}
+
+{% block content %}
+
+<section class="settings-subpage">
+
+  <div class="settings-subpage-card">
+    <h2>Help & Support</h2>
+    <p>Get help using Heartly and report problems with your experience.</p>
+
+    <div class="settings-subpage-list">
+
+      <div class="settings-subpage-item">
+        <strong>Contact Support</strong>
+        <span>Support messaging will be connected later.</span>
+      </div>
+
+      <div class="settings-subpage-item">
+        <strong>Report a Problem</strong>
+        <span>Tell Heartly when something is broken or unsafe.</span>
+      </div>
+
+      <div class="settings-subpage-item">
+        <strong>Safety Tips</strong>
+        <span>Read guidance for respectful and safe connections.</span>
+      </div>
+
+    </div>
+  </div>
+
+</section>
+
+{% endblock %}
