@@ -1,0 +1,281 @@
+/* =========================================================
+   HEARTLY TOPBAR RESET — GLASS LOGO LEFT + GLASS BELL RIGHT
+   Loads after heartly-theme.css
+   ========================================================= */
+
+/* Kill all old topbar systems */
+.heartly-topbar,
+.heartly-topbar-inner,
+.heartly-topbar-notification-only,
+.heartly-floating-topbar,
+.heartly-floating-notification,
+.heartly-header-actions,
+.heartly-logo,
+.heartly-logo-mark {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Glass variables */
+:root,
+html[data-theme="light"] {
+  --hl-glass-bg: rgba(255, 255, 255, 0.46);
+  --hl-glass-bg-hover: rgba(255, 255, 255, 0.66);
+  --hl-glass-border: rgba(255, 255, 255, 0.62);
+  --hl-glass-inner-border: rgba(255, 255, 255, 0.46);
+  --hl-glass-shadow: 0 16px 38px rgba(75, 30, 105, 0.16);
+}
+
+html[data-theme="dark"] {
+  --hl-glass-bg: rgba(35, 19, 51, 0.42);
+  --hl-glass-bg-hover: rgba(45, 25, 65, 0.62);
+  --hl-glass-border: rgba(255, 255, 255, 0.15);
+  --hl-glass-inner-border: rgba(255, 255, 255, 0.10);
+  --hl-glass-shadow: 0 18px 44px rgba(0, 0, 0, 0.36);
+}
+
+@media (prefers-color-scheme: dark) {
+  html[data-theme="system"] {
+    --hl-glass-bg: rgba(35, 19, 51, 0.42);
+    --hl-glass-bg-hover: rgba(45, 25, 65, 0.62);
+    --hl-glass-border: rgba(255, 255, 255, 0.15);
+    --hl-glass-inner-border: rgba(255, 255, 255, 0.10);
+    --hl-glass-shadow: 0 18px 44px rgba(0, 0, 0, 0.36);
+  }
+}
+
+/* New clean app topbar */
+.hl-app-topbar {
+  position: fixed !important;
+  top: 14px !important;
+  left: 50% !important;
+  z-index: 9999 !important;
+
+  width: 100% !important;
+  max-width: var(--heartly-app-width, 460px) !important;
+
+  transform: translateX(-50%) !important;
+  padding: 0 18px !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+
+  pointer-events: none !important;
+}
+
+/* Shared glass style */
+.hl-brand,
+.hl-fixed-bell {
+  position: relative !important;
+  overflow: hidden !important;
+
+  border: 1px solid var(--hl-glass-border) !important;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.38),
+      rgba(255, 255, 255, 0.10)
+    ),
+    var(--hl-glass-bg) !important;
+
+  box-shadow:
+    var(--hl-glass-shadow),
+    inset 0 1px 0 var(--hl-glass-inner-border) !important;
+
+  backdrop-filter: blur(22px) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(150%) !important;
+
+  color: var(--heartly-text-strong) !important;
+  text-decoration: none !important;
+
+  pointer-events: auto !important;
+
+  transition:
+    transform 160ms ease,
+    background 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.hl-brand::before,
+.hl-fixed-bell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    radial-gradient(
+      circle at 20% 0%,
+      rgba(255, 255, 255, 0.42),
+      transparent 42%
+    );
+  pointer-events: none;
+}
+
+.hl-brand:hover,
+.hl-fixed-bell:hover,
+.hl-fixed-bell.is-active {
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.48),
+      rgba(255, 255, 255, 0.14)
+    ),
+    var(--hl-glass-bg-hover) !important;
+
+  border-color: rgba(139, 92, 246, 0.34) !important;
+  box-shadow:
+    0 18px 44px rgba(139, 92, 246, 0.18),
+    inset 0 1px 0 var(--hl-glass-inner-border) !important;
+}
+
+.hl-brand:active,
+.hl-fixed-bell:active {
+  transform: scale(0.96) !important;
+}
+
+/* Left logo card */
+.hl-brand {
+  height: 46px !important;
+  min-width: 46px !important;
+
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 9px !important;
+
+  padding: 5px 12px 5px 5px !important;
+  border-radius: 18px !important;
+}
+
+.hl-brand-logo {
+  position: relative !important;
+  z-index: 1 !important;
+
+  width: 36px !important;
+  height: 36px !important;
+
+  border-radius: 14px !important;
+  overflow: hidden !important;
+
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  background: var(--heartly-gradient, linear-gradient(135deg, #8b5cf6, #ff6b8a)) !important;
+  box-shadow: 0 10px 22px rgba(139, 92, 246, 0.20) !important;
+
+  flex: 0 0 auto !important;
+}
+
+.hl-brand-logo img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  display: block !important;
+}
+
+.hl-brand-name {
+  position: relative !important;
+  z-index: 1 !important;
+
+  color: var(--heartly-text-strong) !important;
+  font-size: 15px !important;
+  font-weight: 950 !important;
+  letter-spacing: -0.04em !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+}
+
+/* Right notification button */
+.hl-fixed-bell {
+  width: 46px !important;
+  height: 46px !important;
+  min-width: 46px !important;
+  max-width: 46px !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+
+  border-radius: 18px !important;
+
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  line-height: 1 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.hl-fixed-bell-icon {
+  position: relative !important;
+  z-index: 1 !important;
+
+  display: block !important;
+  font-size: 19px !important;
+  line-height: 1 !important;
+  width: auto !important;
+  height: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.hl-fixed-bell-dot {
+  position: absolute !important;
+  z-index: 2 !important;
+
+  top: 7px !important;
+  right: 7px !important;
+
+  width: 9px !important;
+  height: 9px !important;
+
+  border-radius: 999px !important;
+  background: var(--heartly-secondary, #ff6b8a) !important;
+  border: 2px solid rgba(255, 255, 255, 0.92) !important;
+
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Page spacing under floating header */
+.heartly-page {
+  padding-top: 82px !important;
+}
+
+/* Small phones */
+@media (max-width: 380px) {
+  .hl-app-topbar {
+    top: 12px !important;
+    padding: 0 14px !important;
+  }
+
+  .hl-brand {
+    height: 44px !important;
+    padding-right: 10px !important;
+  }
+
+  .hl-brand-logo {
+    width: 34px !important;
+    height: 34px !important;
+  }
+
+  .hl-brand-name {
+    font-size: 14px !important;
+  }
+
+  .hl-fixed-bell {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    max-width: 44px !important;
+  }
+}

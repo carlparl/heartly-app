@@ -1,0 +1,41 @@
+{% extends "heartly/base.html" %}
+
+{% block title %}About Heartly - Heartly{% endblock %}
+
+{% block topbar %}
+<header class="settings-mobile-topbar">
+  <a href="{% url 'settings' %}" class="heartly-icon-btn" aria-label="Back">‹</a>
+  <h1>About</h1>
+  <span class="settings-topbar-spacer"></span>
+</header>
+{% endblock %}
+
+{% block content %}
+<section class="settings-screen">
+
+  <div class="settings-card about-heartly-card">
+    <div class="about-heartly-logo">♡</div>
+
+    <h2>Heartly</h2>
+    <p>
+      Heartly is a social and relationship-focused app designed around connection,
+      communication, and supportive guidance.
+    </p>
+
+    <div class="settings-info-list">
+      <div>
+        <span>Version</span>
+        <strong>0.1 development</strong>
+      </div>
+
+      <div>
+        <span>Status</span>
+        <strong>Local build</strong>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+{% include "accounts/settings_shared_styles.html" %}
+{% endblock %}

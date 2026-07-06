@@ -1,0 +1,413 @@
+{% extends "heartly/base.html" %}
+{% load static %}
+
+{% block title %}Edit Post - Heartly{% endblock %}
+
+{% block content %}
+<div class="heartly-page edit-post-page">
+
+    <section class="edit-post-card">
+        <header class="edit-post-header">
+            <a href="{% url 'feed:feed_home' %}" class="edit-post-back">‹</a>
+
+            <div>
+                <span class="heartly-kicker">Update</span>
+                <h1 class="heartly-page-title">Edit post</h1>
+                <p class="heartly-page-subtitle">
+                    Review your current post, update the text, or replace the media.
+                </p>
+            </div>
+        </header>
+
+        <section class="edit-current-preview">
+            <h2>Current post</h2>
+
+            {% if post.content %}
+                <p class="edit-current-text">{{ post.content }}</p>
+            {% else %}
+                <p class="edit-muted-text">No text added.</p>
+            {% endif %}
+
+            {% if post.image %}
+                <div class="edit-media-frame">
+                    <img src="{{ post.image.url }}" alt="Current post image">
+                </div>
+            {% elif post.video %}
+                <div class="edit-media-frame">
+                    <video src="{{ post.video.url }}" controls></video>
+                </div>
+            {% else %}
+                <div class="edit-empty-media">
+                    No media attached.
+                </div>
+            {% endif %}
+        </section>
+
+        <form
+            method="post"
+            enctype="multipart/form-data"
+            class="edit-post-form"
+        >
+            {% csrf_token %}
+
+            <label class="edit-field">
+                <span>Post text</span>
+                <textarea
+                    name="content"
+                    rows="5"
+                    maxlength="1000"
+                    placeholder="Update your post..."
+                >{{ post.content }}</textarea>
+            </label>
+
+            {% if post.image or post.video %}
+                <label class="edit-remove-media">
+                    <input type="checkbox" name="remove_media" value="1">
+                    <span>Remove current media</span>
+                </label>
+            {% endif %}
+
+            <section class="edit-new-media">
+                <h2>Replace media</h2>
+
+                <div class="edit-preview-box" id="editPreviewBox">
+                    <img id="editImagePreview" alt="New image preview">
+                    <video id="editVideoPreview" controls></video>
+                    <p id="editPreviewEmpty">
+                        Choose a new image or video to preview it before saving.
+                    </p>
+                </div>
+
+                <div class="edit-upload-grid">
+                    <label>
+                        <span>New photo</span>
+                        <input type="file" name="image" id="editImageInput" accept="image/*">
+                    </label>
+
+                    <label>
+                        <span>New video</span>
+                        <input type="file" name="video" id="editVideoInput" accept="video/*">
+                    </label>
+                </div>
+            </section>
+
+            <div class="edit-actions">
+                <a href="{% url 'feed:feed_home' %}" class="edit-cancel-btn">
+                    Cancel
+                </a>
+
+                <button type="submit" class="edit-save-btn">
+                    Save changes
+                </button>
+            </div>
+        </form>
+    </section>
+
+</div>
+{% endblock %}
+
+{% block extra_css %}
+.edit-post-page {
+    display: grid;
+    gap: var(--heartly-section-gap);
+    padding-bottom: 90px;
+}
+
+.edit-post-card {
+    padding: 16px;
+    border-radius: var(--heartly-radius-xl);
+    display: grid;
+    gap: 16px;
+    background: var(--heartly-card);
+    border: 1px solid var(--heartly-border);
+    box-shadow: var(--heartly-shadow-soft);
+}
+
+.edit-post-header {
+    display: grid;
+    grid-template-columns: 42px 1fr;
+    gap: 12px;
+    align-items: start;
+}
+
+.edit-post-back {
+    width: 42px;
+    height: 42px;
+    border-radius: 16px;
+    display: grid;
+    place-items: center;
+    color: var(--heartly-text);
+    background: var(--heartly-card-soft);
+    text-decoration: none;
+    font-size: 1.7rem;
+    font-weight: 850;
+}
+
+.edit-current-preview,
+.edit-new-media {
+    display: grid;
+    gap: 10px;
+}
+
+.edit-current-preview h2,
+.edit-new-media h2 {
+    margin: 0;
+    color: var(--heartly-text);
+    font-size: 0.95rem;
+    font-weight: 950;
+}
+
+.edit-current-text {
+    margin: 0;
+    padding: 12px;
+    border-radius: 18px;
+    color: var(--heartly-text);
+    background: var(--heartly-card-soft);
+    font-size: 0.9rem;
+    line-height: 1.45;
+    font-weight: 650;
+    white-space: pre-wrap;
+}
+
+.edit-muted-text {
+    margin: 0;
+    color: var(--heartly-muted);
+    font-size: 0.84rem;
+    font-weight: 750;
+}
+
+.edit-media-frame,
+.edit-empty-media,
+.edit-preview-box {
+    border-radius: 24px;
+    overflow: hidden;
+    background: var(--heartly-card-soft);
+    border: 1px solid var(--heartly-border);
+}
+
+.edit-media-frame img,
+.edit-media-frame video {
+    width: 100%;
+    max-height: 620px;
+    display: block;
+    object-fit: cover;
+}
+
+.edit-empty-media {
+    min-height: 120px;
+    display: grid;
+    place-items: center;
+    color: var(--heartly-muted);
+    font-size: 0.84rem;
+    font-weight: 800;
+}
+
+.edit-post-form {
+    display: grid;
+    gap: 14px;
+}
+
+.edit-field {
+    display: grid;
+    gap: 7px;
+}
+
+.edit-field span {
+    color: var(--heartly-muted);
+    font-size: 0.76rem;
+    font-weight: 950;
+}
+
+.edit-field textarea {
+    width: 100%;
+    resize: vertical;
+    min-height: 140px;
+    border: none;
+    border-radius: 22px;
+    padding: 12px;
+    color: var(--heartly-text);
+    background: var(--heartly-card-soft);
+    outline: none;
+    font-size: 0.9rem;
+    line-height: 1.45;
+    font-weight: 650;
+}
+
+.edit-remove-media {
+    min-height: 46px;
+    padding: 0 12px;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--heartly-text);
+    background: var(--heartly-accent-soft);
+    font-size: 0.84rem;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.edit-remove-media input {
+    width: 17px;
+    height: 17px;
+    accent-color: var(--heartly-accent);
+}
+
+.edit-preview-box {
+    aspect-ratio: 1 / 1;
+    display: grid;
+    place-items: center;
+    border-style: dashed;
+}
+
+.edit-preview-box img,
+.edit-preview-box video {
+    width: 100%;
+    height: 100%;
+    display: none;
+    object-fit: cover;
+}
+
+.edit-preview-box p {
+    max-width: 250px;
+    margin: 0;
+    color: var(--heartly-muted);
+    text-align: center;
+    font-size: 0.82rem;
+    line-height: 1.4;
+    font-weight: 750;
+}
+
+.edit-upload-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.edit-upload-grid label {
+    min-height: 56px;
+    border-radius: 18px;
+    display: grid;
+    place-items: center;
+    gap: 4px;
+    color: var(--heartly-text);
+    background: var(--heartly-card-soft);
+    font-size: 0.82rem;
+    font-weight: 950;
+    cursor: pointer;
+}
+
+.edit-upload-grid input {
+    width: 100%;
+    max-width: 160px;
+    font-size: 0.68rem;
+}
+
+.edit-actions {
+    display: grid;
+    grid-template-columns: 0.8fr 1.2fr;
+    gap: 10px;
+}
+
+.edit-cancel-btn,
+.edit-save-btn {
+    min-height: 48px;
+    border: none;
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    font-size: 0.86rem;
+    font-weight: 950;
+    cursor: pointer;
+}
+
+.edit-cancel-btn {
+    color: var(--heartly-text);
+    background: var(--heartly-card-soft);
+}
+
+.edit-save-btn {
+    color: #ffffff;
+    background: linear-gradient(135deg, var(--heartly-primary), var(--heartly-primary-2));
+    box-shadow: var(--heartly-shadow-btn);
+}
+
+@media (max-width: 430px) {
+    .edit-post-header {
+        grid-template-columns: 1fr;
+    }
+
+    .edit-upload-grid,
+    .edit-actions {
+        grid-template-columns: 1fr;
+    }
+}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const editImageInput = document.getElementById("editImageInput");
+    const editVideoInput = document.getElementById("editVideoInput");
+    const editImagePreview = document.getElementById("editImagePreview");
+    const editVideoPreview = document.getElementById("editVideoPreview");
+    const editPreviewEmpty = document.getElementById("editPreviewEmpty");
+
+    function resetEditPreview() {
+        editImagePreview.style.display = "none";
+        editVideoPreview.style.display = "none";
+        editImagePreview.removeAttribute("src");
+        editVideoPreview.removeAttribute("src");
+        editPreviewEmpty.style.display = "block";
+    }
+
+    function showEditImagePreview(file) {
+        const url = URL.createObjectURL(file);
+
+        editImagePreview.src = url;
+        editImagePreview.style.display = "block";
+
+        editVideoPreview.style.display = "none";
+        editVideoPreview.removeAttribute("src");
+
+        editPreviewEmpty.style.display = "none";
+    }
+
+    function showEditVideoPreview(file) {
+        const url = URL.createObjectURL(file);
+
+        editVideoPreview.src = url;
+        editVideoPreview.style.display = "block";
+
+        editImagePreview.style.display = "none";
+        editImagePreview.removeAttribute("src");
+
+        editPreviewEmpty.style.display = "none";
+    }
+
+    editImageInput.addEventListener("change", function () {
+        const file = editImageInput.files[0];
+
+        if (!file) {
+            resetEditPreview();
+            return;
+        }
+
+        editVideoInput.value = "";
+        showEditImagePreview(file);
+    });
+
+    editVideoInput.addEventListener("change", function () {
+        const file = editVideoInput.files[0];
+
+        if (!file) {
+            resetEditPreview();
+            return;
+        }
+
+        editImageInput.value = "";
+        showEditVideoPreview(file);
+    });
+</script>
+{% endblock %}

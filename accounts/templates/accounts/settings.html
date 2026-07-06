@@ -4,696 +4,841 @@
 {% block title %}Settings - Heartly{% endblock %}
 
 {% block content %}
+<div class="heartly-page settings-page">
+
+    <section class="heartly-hero-card settings-hero">
+        <span class="heartly-kicker">Control center</span>
+        <h1 class="heartly-page-title">Settings</h1>
+        <p class="heartly-page-subtitle">
+            Manage your account, email, privacy, appearance, and session from one place.
+        </p>
+    </section>
+
+    {% if messages %}
+        <section class="settings-messages">
+            {% for message in messages %}
+                <div class="settings-message {{ message.tags }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </section>
+    {% endif %}
+
+    <section class="settings-stack">
+
+        <!-- ACCOUNT -->
+        <article class="heartly-panel settings-card">
+            <div class="settings-card-head">
+                <div class="settings-card-icon">👤</div>
+
+                <div>
+                    <h2>Account</h2>
+                    <p>Update your basic account details.</p>
+                </div>
+            </div>
+
+            <form method="post" action="{% url 'settings' %}" class="settings-form">
+                {% csrf_token %}
+                <input type="hidden" name="settings_form" value="account">
+
+                {% if account_form.non_field_errors %}
+                    <div class="settings-error-box">
+                        {{ account_form.non_field_errors }}
+                    </div>
+                {% endif %}
+
+                <div class="settings-form-grid">
+                    {% for field in account_form %}
+                        <div class="settings-field">
+                            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {{ field }}
+
+                            {% if field.help_text %}
+                                <small>{{ field.help_text }}</small>
+                            {% endif %}
+
+                            {% if field.errors %}
+                                <div class="settings-error-box">
+                                    {{ field.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <button type="submit" class="settings-primary-btn">
+                    Save account details
+                </button>
+            </form>
+
+            <div class="settings-list">
+                <a href="{% url 'profiles:profile_home' %}" class="settings-item">
+                    <div class="settings-item-icon">🪪</div>
+
+                    <div class="settings-item-text">
+                        <strong>View profile</strong>
+                        <span>See how your Heartly profile appears.</span>
+                    </div>
+
+                    <div class="settings-item-arrow">›</div>
+                </a>
+
+                <a href="{% url 'profiles:edit_profile' %}" class="settings-item">
+                    <div class="settings-item-icon">✏️</div>
+
+                    <div class="settings-item-text">
+                        <strong>Edit profile</strong>
+                        <span>Update your photo, bio, age, location, and display name.</span>
+                    </div>
+
+                    <div class="settings-item-arrow">›</div>
+                </a>
+
+                <a href="{% url 'profiles:edit_interests' %}" class="settings-item">
+                    <div class="settings-item-icon">✨</div>
+
+                    <div class="settings-item-text">
+                        <strong>Interests</strong>
+                        <span>Choose interests that improve your match suggestions.</span>
+                    </div>
+
+                    <div class="settings-item-arrow">›</div>
+                </a>
+
+                <a href="{% url 'account_change_password' %}" class="settings-item">
+                    <div class="settings-item-icon">🔐</div>
+
+                    <div class="settings-item-text">
+                        <strong>Password & security</strong>
+                        <span>Change your password and protect your account.</span>
+                    </div>
+
+                    <div class="settings-item-arrow">›</div>
+                </a>
+            </div>
+        </article>
+
+        <!-- EMAIL -->
+        <article class="heartly-panel settings-card">
+            <div class="settings-card-head">
+                <div class="settings-card-icon">📧</div>
+
+                <div>
+                    <h2>Email addresses</h2>
+                    <p>Manage connected emails without leaving Settings.</p>
+                </div>
+            </div>
+
+            <form method="post" action="{% url 'settings' %}" class="settings-email-form">
+                {% csrf_token %}
+
+                {% if email_addresses %}
+                    <div class="settings-email-list">
+                        {% for emailaddress in email_addresses %}
+                            <label class="settings-email-item {% if emailaddress.primary %}primary{% endif %}">
+                                <input
+                                    type="radio"
+                                    name="selected_email"
+                                    value="{{ emailaddress.email }}"
+                                    {% if emailaddress.primary or forloop.first %}checked{% endif %}
+                                >
+
+                                <div class="settings-email-dot"></div>
+
+                                <div class="settings-email-main">
+                                    <strong>{{ emailaddress.email }}</strong>
+
+                                    <div class="settings-email-badges">
+                                        {% if emailaddress.primary %}
+                                            <span class="email-badge primary">Primary</span>
+                                        {% endif %}
+
+                                        {% if emailaddress.verified %}
+                                            <span class="email-badge verified">Verified</span>
+                                        {% else %}
+                                            <span class="email-badge unverified">Unverified</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </label>
+                        {% endfor %}
+                    </div>
+
+                    <div class="settings-email-actions">
+                        <button type="submit" name="settings_form" value="email_primary" class="settings-soft-btn">
+                            Make primary
+                        </button>
+
+                        <button type="submit" name="settings_form" value="email_verify" class="settings-soft-btn">
+                            Send verification
+                        </button>
+
+                        <button type="submit" name="settings_form" value="email_remove" class="settings-danger-btn">
+                            Remove selected
+                        </button>
+                    </div>
+                {% else %}
+                    <div class="settings-mini-empty">
+                        <strong>No email connected</strong>
+                        <span>Add an email address to secure your account.</span>
+                    </div>
+                {% endif %}
+            </form>
+
+            <form method="post" action="{% url 'settings' %}" class="settings-add-email-form">
+                {% csrf_token %}
+                <input type="hidden" name="settings_form" value="email_add">
+
+                <div class="settings-field">
+                    <label for="new_email">Add another email</label>
+                    <input
+                        type="email"
+                        name="new_email"
+                        id="new_email"
+                        placeholder="Enter email address"
+                        autocomplete="email"
+                    >
+                </div>
+
+                <button type="submit" class="settings-primary-btn">
+                    Add email
+                </button>
+            </form>
+        </article>
+
+        <!-- PRIVACY -->
+        <article class="heartly-panel settings-card">
+            <div class="settings-card-head">
+                <div class="settings-card-icon">🛡️</div>
+
+                <div>
+                    <h2>Privacy</h2>
+                    <p>Control discovery, visibility, and interaction preferences.</p>
+                </div>
+            </div>
+
+            <form method="post" action="{% url 'settings' %}" class="settings-list">
+                {% csrf_token %}
+                <input type="hidden" name="settings_form" value="privacy">
+
+                <div class="settings-item">
+                    <div class="settings-item-icon">👁️</div>
+
+                    <div class="settings-item-text">
+                        <strong>Profile visibility</strong>
+                        <span>Allow your profile to appear in match discovery.</span>
+                    </div>
+
+                    <label class="settings-switch">
+                        <input
+                            type="checkbox"
+                            name="profile_visible"
+                            {% if profile.profile_visible %}checked{% endif %}
+                        >
+                        <span></span>
+                    </label>
+                </div>
+
+                <div class="settings-item">
+                    <div class="settings-item-icon">🟢</div>
+
+                    <div class="settings-item-text">
+                        <strong>Online status</strong>
+                        <span>Show matches when you are active.</span>
+                    </div>
+
+                    <label class="settings-switch">
+                        <input
+                            type="checkbox"
+                            name="show_online_status"
+                            {% if profile.show_online_status %}checked{% endif %}
+                        >
+                        <span></span>
+                    </label>
+                </div>
+
+                <div class="settings-item">
+                    <div class="settings-item-icon">💬</div>
+
+                    <div class="settings-item-text">
+                        <strong>Message requests</strong>
+                        <span>Allow matched users to start conversations.</span>
+                    </div>
+
+                    <label class="settings-switch">
+                        <input
+                            type="checkbox"
+                            name="allow_message_requests"
+                            {% if profile.allow_message_requests %}checked{% endif %}
+                        >
+                        <span></span>
+                    </label>
+                </div>
+
+                <div class="settings-item">
+                    <div class="settings-item-icon">🚫</div>
+
+                    <div class="settings-item-text">
+                        <strong>Safety filters</strong>
+                        <span>Reduce unsafe or unwanted interactions.</span>
+                    </div>
+
+                    <label class="settings-switch">
+                        <input
+                            type="checkbox"
+                            name="safety_filters_enabled"
+                            {% if profile.safety_filters_enabled %}checked{% endif %}
+                        >
+                        <span></span>
+                    </label>
+                </div>
+
+                <button type="submit" class="settings-primary-btn">
+                    Save privacy settings
+                </button>
+            </form>
+        </article>
+
+        <!-- APPEARANCE -->
+        <section class="settings-card">
+    <div class="settings-card-head">
+        <div>
+            <h2>Appearance</h2>
+            <p>Choose how Heartly looks on this device.</p>
+        </div>
+    </div>
+
+    <div class="appearance-grid">
+        <button
+            type="button"
+            class="appearance-option"
+            data-theme-option="light"
+            onclick="chooseHeartlyAppearance('light')"
+        >
+            <span class="appearance-icon">☀️</span>
+            <strong>Light</strong>
+            <small>Bright clean mode</small>
+        </button>
+
+        <button
+            type="button"
+            class="appearance-option"
+            data-theme-option="dark"
+            onclick="chooseHeartlyAppearance('dark')"
+        >
+            <span class="appearance-icon">🌙</span>
+            <strong>Dark</strong>
+            <small>Deep night mode</small>
+        </button>
+
+        <button
+            type="button"
+            class="appearance-option"
+            data-theme-option="system"
+            onclick="chooseHeartlyAppearance('system')"
+        >
+            <span class="appearance-icon">⚙️</span>
+            <strong>System</strong>
+            <small>Follow device</small>
+        </button>
+    </div>
+</section>
+
+        <!-- SESSION -->
+        <article class="heartly-panel settings-card">
+            <div class="settings-card-head">
+                <div class="settings-card-icon">🚪</div>
+
+                <div>
+                    <h2>Session</h2>
+                    <p>Safely leave your account on this device.</p>
+                </div>
+            </div>
+
+            <a href="{% url 'account_logout' %}" class="settings-logout-btn">
+                Log out
+            </a>
+        </article>
+
+    </section>
+
+</div>
 
 <style>
-    :root {
-        --hl-bg: #f7f7fb;
-        --hl-surface: #ffffff;
-        --hl-surface-2: #f1f2f6;
-        --hl-text: #111827;
-        --hl-soft-text: #6b7280;
-        --hl-border: rgba(17, 24, 39, 0.08);
-        --hl-pink: #ff3f7f;
-        --hl-pink-soft: rgba(255, 63, 127, 0.13);
-        --hl-danger: #ef4444;
-        --hl-shadow: 0 18px 45px rgba(17, 24, 39, 0.08);
-    }
-
-    html[data-heartly-theme="dark"],
-    body[data-heartly-theme="dark"] {
-        --hl-bg: #050509;
-        --hl-surface: #111116;
-        --hl-surface-2: #1b1b22;
-        --hl-text: #f9fafb;
-        --hl-soft-text: #a1a1aa;
-        --hl-border: rgba(255, 255, 255, 0.08);
-        --hl-pink: #ff5f95;
-        --hl-pink-soft: rgba(255, 95, 149, 0.16);
-        --hl-shadow: 0 20px 55px rgba(0, 0, 0, 0.4);
-    }
-
-    body {
-        background: var(--hl-bg) !important;
-        color: var(--hl-text) !important;
-        transition: background 0.25s ease, color 0.25s ease;
-    }
-
-    .settings-screen {
-        min-height: 100vh;
-        background:
-            radial-gradient(circle at top right, var(--hl-pink-soft), transparent 28%),
-            var(--hl-bg);
-        padding: 18px 14px 100px;
-        color: var(--hl-text);
-    }
-
-    .settings-phone {
-        max-width: 460px;
-        margin: 0 auto;
-    }
-
-    .settings-topbar {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 18px;
-    }
-
-    .settings-back {
-        width: 42px;
-        height: 42px;
-        border-radius: 50%;
-        background: var(--hl-surface);
-        border: 1px solid var(--hl-border);
-        color: var(--hl-text);
-        text-decoration: none;
+    .settings-page,
+    .settings-stack,
+    .settings-card,
+    .settings-form,
+    .settings-email-form,
+    .settings-add-email-form {
         display: grid;
-        place-items: center;
-        font-size: 22px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
-    }
-
-    .settings-heading {
-        flex: 1;
-        text-align: center;
-        font-size: 18px;
-        font-weight: 900;
-        letter-spacing: -0.03em;
-        margin-right: 42px;
-    }
-
-    .account-hero {
-        background: var(--hl-surface);
-        border: 1px solid var(--hl-border);
-        border-radius: 34px;
-        padding: 20px;
-        box-shadow: var(--hl-shadow);
-        margin-bottom: 20px;
-    }
-
-    .account-main {
-        display: flex;
-        align-items: center;
         gap: 14px;
     }
 
-    .account-avatar {
-        width: 64px;
-        height: 64px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #ff3f7f, #ff8aae);
+    .settings-messages {
         display: grid;
-        place-items: center;
-        color: white;
-        font-weight: 900;
-        font-size: 25px;
-        flex: 0 0 auto;
-        box-shadow: 0 14px 30px rgba(255, 63, 127, 0.3);
-    }
-
-    .account-info {
-        flex: 1;
-        min-width: 0;
-    }
-
-    .account-name {
-        margin: 0;
-        font-size: 18px;
-        font-weight: 900;
-        letter-spacing: -0.03em;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .account-email {
-        margin: 3px 0 0;
-        font-size: 13px;
-        color: var(--hl-soft-text);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .account-status {
-        margin-top: 14px;
-        display: flex;
         gap: 8px;
-        flex-wrap: wrap;
     }
 
-    .status-pill {
-        padding: 8px 11px;
-        border-radius: 999px;
-        background: var(--hl-surface-2);
-        color: var(--hl-soft-text);
-        font-size: 12px;
-        font-weight: 800;
-    }
-
-    .edit-profile {
-        margin-left: auto;
-        border: none;
-        background: var(--hl-pink);
-        color: white;
-        border-radius: 999px;
-        padding: 10px 14px;
-        font-size: 13px;
+    .settings-message {
+        padding: 12px 14px;
+        border-radius: 18px;
+        color: #ffffff;
+        background: linear-gradient(135deg, var(--heartly-primary), var(--heartly-primary-2));
+        box-shadow: 0 12px 28px rgba(255, 63, 114, 0.18);
+        font-size: 0.85rem;
         font-weight: 900;
-        text-decoration: none;
-        white-space: nowrap;
     }
 
-    .theme-card {
-        background: var(--hl-surface);
-        border: 1px solid var(--hl-border);
-        border-radius: 28px;
-        padding: 14px;
-        margin-bottom: 20px;
-        box-shadow: 0 12px 35px rgba(0, 0, 0, 0.04);
+    .settings-message.error {
+        background: linear-gradient(135deg, #d92f63, #ff5f8e);
     }
 
-    .theme-title {
+    .settings-message.info {
+        background: linear-gradient(135deg, #6f5cff, #9d7bff);
+    }
+
+    .settings-card {
+        gap: 16px;
+    }
+
+    .settings-card-head {
         display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 10px;
-        margin-bottom: 12px;
+        align-items: flex-start;
+        gap: 12px;
     }
 
-    .theme-title strong {
-        font-size: 15px;
-        font-weight: 900;
-    }
-
-    .theme-title span {
-        font-size: 12px;
-        color: var(--hl-soft-text);
-    }
-
-    .theme-switch {
-        background: var(--hl-surface-2);
-        border-radius: 999px;
-        padding: 5px;
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 4px;
-    }
-
-    .theme-option {
-        border: none;
-        border-radius: 999px;
-        background: transparent;
-        color: var(--hl-soft-text);
-        padding: 10px 8px;
-        font-size: 13px;
-        font-weight: 900;
-        cursor: pointer;
-    }
-
-    .theme-option.active {
-        background: var(--hl-surface);
-        color: var(--hl-pink);
-        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.08);
-    }
-
-    .settings-section {
-        margin-bottom: 22px;
-    }
-
-    .section-name {
-        font-size: 12px;
-        font-weight: 900;
-        color: var(--hl-soft-text);
-        text-transform: uppercase;
-        letter-spacing: 0.14em;
-        margin: 0 0 9px 8px;
-    }
-
-    .settings-group {
-        background: var(--hl-surface);
-        border: 1px solid var(--hl-border);
-        border-radius: 28px;
-        overflow: hidden;
-    }
-
-    .setting-row {
-        width: 100%;
-        border: none;
-        border-bottom: 1px solid var(--hl-border);
-        background: transparent;
-        color: var(--hl-text);
-        display: flex;
-        align-items: center;
-        gap: 13px;
-        padding: 16px;
-        text-align: left;
-        text-decoration: none;
-        cursor: pointer;
-    }
-
-    .setting-row:last-child {
-        border-bottom: none;
-    }
-
-    .setting-row:active {
-        background: var(--hl-surface-2);
-    }
-
-    .row-icon {
-        width: 38px;
-        height: 38px;
-        border-radius: 15px;
-        background: var(--hl-pink-soft);
-        color: var(--hl-pink);
+    .settings-card-icon {
+        width: 50px;
+        height: 50px;
+        flex: 0 0 auto;
+        border-radius: 18px;
         display: grid;
         place-items: center;
-        font-size: 16px;
+        color: #ffffff;
+        background: linear-gradient(135deg, var(--heartly-primary), var(--heartly-primary-2));
+        box-shadow: 0 14px 28px rgba(255, 63, 114, 0.24);
+        font-size: 1.25rem;
+    }
+
+    .settings-card-head h2 {
+        margin: 0;
+        color: var(--heartly-text);
+        font-size: 1.25rem;
+        line-height: 1.1;
+        letter-spacing: -0.04em;
+        font-weight: 950;
+    }
+
+    .settings-card-head p {
+        margin: 6px 0 0;
+        color: var(--heartly-muted);
+        font-size: 0.9rem;
+        line-height: 1.45;
+    }
+
+    .settings-form-grid {
+        display: grid;
+        gap: 12px;
+    }
+
+    .settings-field {
+        display: grid;
+        gap: 8px;
+    }
+
+    .settings-field label {
+        color: var(--heartly-text);
+        font-size: 0.86rem;
         font-weight: 900;
-        flex: 0 0 auto;
     }
 
-    .row-copy {
-        flex: 1;
-        min-width: 0;
+    .settings-field input,
+    .settings-field textarea,
+    .settings-field select {
+        width: 100%;
+        min-height: 50px;
+        padding: 12px 14px;
+        border-radius: 18px;
+        color: var(--heartly-text);
+        background: var(--heartly-card-soft);
+        border: 1px solid var(--heartly-border);
+        outline: none;
+        font-size: 0.92rem;
+        font-weight: 750;
     }
 
-    .row-title {
-        display: block;
-        font-size: 15px;
-        font-weight: 900;
-        margin-bottom: 2px;
-    }
-
-    .row-subtitle {
-        display: block;
-        color: var(--hl-soft-text);
-        font-size: 12px;
-        line-height: 1.35;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .row-arrow {
-        color: var(--hl-soft-text);
-        font-size: 21px;
-        transition: transform 0.2s ease;
-    }
-
-    .setting-row.open .row-arrow {
-        transform: rotate(90deg);
-    }
-
-    .mini-panel {
-        display: none;
-        padding: 0 16px 16px 67px;
-        border-bottom: 1px solid var(--hl-border);
-        background: var(--hl-surface);
-    }
-
-    .mini-panel.show {
-        display: block;
-    }
-
-    .mini-panel p {
-        margin: 0 0 12px;
-        color: var(--hl-soft-text);
-        font-size: 13px;
+    .settings-field textarea {
+        min-height: 110px;
+        resize: vertical;
         line-height: 1.5;
     }
 
-    .mini-actions {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
+    .settings-field input:focus,
+    .settings-field textarea:focus,
+    .settings-field select:focus {
+        border-color: rgba(255, 63, 114, 0.55);
+        box-shadow: 0 0 0 4px rgba(255, 63, 114, 0.12);
     }
 
-    .mini-btn {
-        border: 1px solid var(--hl-border);
-        background: var(--hl-surface-2);
-        color: var(--hl-text);
-        border-radius: 999px;
-        padding: 9px 12px;
-        font-size: 12px;
-        font-weight: 900;
-        cursor: pointer;
-        text-decoration: none;
+    .settings-field small {
+        color: var(--heartly-muted);
+        font-size: 0.76rem;
+        line-height: 1.35;
     }
 
-    .logout-wrap {
-        margin-top: 14px;
+    .settings-list {
+        display: grid;
+        gap: 10px;
     }
 
-    .logout-btn {
-        width: 100%;
-        border: 1px solid rgba(239, 68, 68, 0.18);
-        background: rgba(239, 68, 68, 0.08);
-        color: var(--hl-danger);
-        padding: 15px;
-        border-radius: 24px;
-        font-size: 15px;
-        font-weight: 900;
-        text-decoration: none;
+    .settings-item {
+        min-width: 0;
+        padding: 14px;
+        border-radius: 22px;
+        display: grid;
+        grid-template-columns: 44px 1fr auto;
+        align-items: center;
+        gap: 12px;
+        color: var(--heartly-text);
+        background: var(--heartly-card-soft);
+        border: 1px solid var(--heartly-border);
+        text-decoration: none !important;
+    }
+
+    .settings-item:hover {
+        background: rgba(255, 63, 114, 0.08);
+    }
+
+    .settings-item-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 16px;
+        display: grid;
+        place-items: center;
+        background: rgba(255, 63, 114, 0.10);
+        font-size: 1.1rem;
+    }
+
+    .settings-item-text {
+        min-width: 0;
+    }
+
+    .settings-item-text strong {
         display: block;
-        text-align: center;
+        color: var(--heartly-text);
+        font-size: 0.94rem;
+        font-weight: 950;
+        line-height: 1.2;
     }
 
-    .settings-footer {
-        color: var(--hl-soft-text);
-        text-align: center;
-        font-size: 12px;
-        margin-top: 18px;
+    .settings-item-text span {
+        display: block;
+        margin-top: 4px;
+        color: var(--heartly-muted);
+        font-size: 0.8rem;
+        line-height: 1.35;
     }
 
-    @media (max-width: 390px) {
-        .settings-screen {
-            padding-left: 10px;
-            padding-right: 10px;
+    .settings-item-arrow {
+        color: var(--heartly-soft-text);
+        font-size: 1.7rem;
+        line-height: 1;
+        font-weight: 800;
+    }
+
+    .settings-email-list {
+        display: grid;
+        gap: 10px;
+    }
+
+    .settings-email-item {
+        position: relative;
+        min-width: 0;
+        padding: 14px;
+        border-radius: 22px;
+        display: grid;
+        grid-template-columns: 26px 1fr;
+        align-items: center;
+        gap: 12px;
+        color: var(--heartly-text);
+        background: var(--heartly-card-soft);
+        border: 1px solid var(--heartly-border);
+        cursor: pointer;
+    }
+
+    .settings-email-item input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .settings-email-dot {
+        width: 22px;
+        height: 22px;
+        border-radius: 999px;
+        border: 2px solid rgba(255, 63, 114, 0.45);
+        position: relative;
+    }
+
+    .settings-email-dot::after {
+        content: "";
+        position: absolute;
+        width: 10px;
+        height: 10px;
+        inset: 4px;
+        border-radius: 999px;
+        background: linear-gradient(135deg, var(--heartly-primary), var(--heartly-primary-2));
+        opacity: 0;
+        transform: scale(0.5);
+        transition: 0.18s ease;
+    }
+
+    .settings-email-item input:checked + .settings-email-dot::after {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    .settings-email-main {
+        min-width: 0;
+        display: grid;
+        gap: 8px;
+    }
+
+    .settings-email-main strong {
+        min-width: 0;
+        color: var(--heartly-text);
+        font-size: 0.92rem;
+        font-weight: 950;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .settings-email-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .email-badge {
+        min-height: 26px;
+        padding: 0 10px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.72rem;
+        font-weight: 950;
+    }
+
+    .email-badge.primary {
+        color: #ffffff;
+        background: linear-gradient(135deg, var(--heartly-primary), var(--heartly-primary-2));
+    }
+
+    .email-badge.verified {
+        color: #157347;
+        background: rgba(25, 135, 84, 0.13);
+        border: 1px solid rgba(25, 135, 84, 0.2);
+    }
+
+    .email-badge.unverified {
+        color: #b96b00;
+        background: rgba(255, 193, 7, 0.14);
+        border: 1px solid rgba(255, 193, 7, 0.22);
+    }
+
+    .settings-email-actions {
+        display: grid;
+        gap: 10px;
+    }
+
+    .settings-primary-btn,
+    .settings-soft-btn,
+    .settings-danger-btn,
+    .settings-logout-btn {
+        width: 100%;
+        min-height: 50px;
+        border-radius: 18px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none !important;
+        font-weight: 950;
+        cursor: pointer;
+    }
+
+    .settings-primary-btn {
+        border: none;
+        color: #ffffff;
+        background: linear-gradient(135deg, var(--heartly-primary), var(--heartly-primary-2));
+        box-shadow: 0 16px 34px rgba(255, 63, 114, 0.24);
+    }
+
+    .settings-soft-btn {
+        color: var(--heartly-text);
+        background: var(--heartly-card-soft);
+        border: 1px solid var(--heartly-border);
+    }
+
+    .settings-danger-btn,
+    .settings-logout-btn {
+        border: none;
+        color: #ffffff;
+        background: linear-gradient(135deg, #d92f63, #ff5f8e);
+        box-shadow: 0 16px 34px rgba(217, 47, 99, 0.22);
+    }
+
+    .settings-mini-empty {
+        padding: 16px;
+        border-radius: 22px;
+        display: grid;
+        gap: 4px;
+        background: var(--heartly-card-soft);
+        border: 1px dashed var(--heartly-border-strong);
+    }
+
+    .settings-mini-empty strong {
+        color: var(--heartly-text);
+        font-size: 0.95rem;
+        font-weight: 950;
+    }
+
+    .settings-mini-empty span {
+        color: var(--heartly-muted);
+        font-size: 0.84rem;
+        line-height: 1.45;
+    }
+
+    .settings-switch {
+        position: relative;
+        width: 52px;
+        height: 32px;
+        flex: 0 0 auto;
+        cursor: pointer;
+    }
+
+    .settings-switch input {
+        display: none;
+    }
+
+    .settings-switch span {
+        position: absolute;
+        inset: 0;
+        border-radius: 999px;
+        background: rgba(120, 95, 110, 0.28);
+        border: 1px solid var(--heartly-border);
+        transition: 0.18s ease;
+    }
+
+    .settings-switch span::before {
+        content: "";
+        position: absolute;
+        width: 24px;
+        height: 24px;
+        left: 3px;
+        top: 3px;
+        border-radius: 50%;
+        background: #ffffff;
+        box-shadow: 0 8px 18px rgba(44, 15, 28, 0.22);
+        transition: 0.18s ease;
+    }
+
+    .settings-switch input:checked + span {
+        background: linear-gradient(135deg, var(--heartly-primary), var(--heartly-primary-2));
+        border-color: transparent;
+    }
+
+    .settings-switch input:checked + span::before {
+        transform: translateX(20px);
+    }
+
+    .theme-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    .theme-option {
+        min-height: 112px;
+        padding: 14px;
+        border-radius: 24px;
+        display: grid;
+        place-items: center;
+        align-content: center;
+        gap: 5px;
+        color: var(--heartly-text);
+        background: var(--heartly-card-soft);
+        border: 1px solid var(--heartly-border);
+        cursor: pointer;
+    }
+
+    .theme-option:hover {
+        background: rgba(255, 63, 114, 0.08);
+    }
+
+    .theme-option span {
+        font-size: 1.45rem;
+    }
+
+    .theme-option strong {
+        color: var(--heartly-text);
+        font-size: 0.95rem;
+        font-weight: 950;
+    }
+
+    .theme-option small {
+        color: var(--heartly-muted);
+        font-size: 0.76rem;
+    }
+
+    .settings-error-box {
+        padding: 12px 14px;
+        border-radius: 16px;
+        color: #ffffff;
+        background: linear-gradient(135deg, #d92f63, #ff5f8e);
+        font-size: 0.82rem;
+        font-weight: 800;
+        line-height: 1.4;
+    }
+
+    @media (min-width: 520px) {
+        .settings-email-actions {
+            grid-template-columns: 1fr 1fr;
         }
 
-        .account-hero {
-            padding: 16px;
+        .settings-danger-btn {
+            grid-column: span 2;
+        }
+    }
+
+    @media (max-width: 430px) {
+        .settings-item {
+            grid-template-columns: 40px 1fr auto;
+            gap: 10px;
+            padding: 12px;
         }
 
-        .edit-profile {
-            padding: 9px 11px;
+        .settings-item-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 14px;
         }
 
-        .mini-panel {
-            padding-left: 16px;
+        .theme-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 350px) {
+        .settings-item {
+            grid-template-columns: 1fr auto;
+        }
+
+        .settings-item-icon {
+            display: none;
         }
     }
 </style>
-
-<div class="settings-screen">
-    <div class="settings-phone">
-
-        <div class="settings-topbar">
-            {% url 'feed_home' as feed_home_url %}
-            {% url 'feed' as feed_url %}
-
-            <a class="settings-back"
-               href="{% if feed_home_url %}{{ feed_home_url }}{% elif feed_url %}{{ feed_url }}{% else %}/{% endif %}">
-                ‹
-            </a>
-
-            <div class="settings-heading">Settings</div>
-        </div>
-
-        <div class="account-hero">
-            <div class="account-main">
-                <div class="account-avatar">
-                    {% if user.first_name %}
-                        {{ user.first_name|first|upper }}
-                    {% elif user.username %}
-                        {{ user.username|first|upper }}
-                    {% else %}
-                        H
-                    {% endif %}
-                </div>
-
-                <div class="account-info">
-                    <p class="account-name">
-                        {% if user.get_full_name %}
-                            {{ user.get_full_name }}
-                        {% elif user.username %}
-                            {{ user.username }}
-                        {% else %}
-                            Heartly User
-                        {% endif %}
-                    </p>
-
-                    <p class="account-email">
-                        {% if user.email %}
-                            {{ user.email }}
-                        {% else %}
-                            No email connected
-                        {% endif %}
-                    </p>
-                </div>
-
-                {% url 'profile' as profile_url %}
-                {% url 'profile_home' as profile_home_url %}
-                {% url 'account_email' as account_email_url %}
-
-                <a class="edit-profile"
-                   href="{% if profile_url %}{{ profile_url }}{% elif profile_home_url %}{{ profile_home_url }}{% elif account_email_url %}{{ account_email_url }}{% else %}#{% endif %}">
-                    Edit
-                </a>
-            </div>
-
-            <div class="account-status">
-                <span class="status-pill">Signed in</span>
-                <span class="status-pill">Heartly account</span>
-            </div>
-        </div>
-
-        <div class="theme-card">
-            <div class="theme-title">
-                <strong>App appearance</strong>
-                <span>Saved on this device</span>
-            </div>
-
-            <div class="theme-switch">
-                <button type="button" class="theme-option" data-theme-choice="light">Light</button>
-                <button type="button" class="theme-option" data-theme-choice="dark">Dark</button>
-                <button type="button" class="theme-option" data-theme-choice="system">System</button>
-            </div>
-        </div>
-
-        <div class="settings-section">
-            <p class="section-name">Account</p>
-
-            <div class="settings-group">
-
-                {% url 'account_email' as email_url %}
-                <a class="setting-row" href="{% if email_url %}{{ email_url }}{% else %}#{% endif %}">
-                    <span class="row-icon">@</span>
-                    <span class="row-copy">
-                        <span class="row-title">Email</span>
-                        <span class="row-subtitle">Manage your email address</span>
-                    </span>
-                    <span class="row-arrow">›</span>
-                </a>
-
-                {% url 'account_change_password' as password_url %}
-                <a class="setting-row" href="{% if password_url %}{{ password_url }}{% else %}#{% endif %}">
-                    <span class="row-icon">✦</span>
-                    <span class="row-copy">
-                        <span class="row-title">Password</span>
-                        <span class="row-subtitle">Change your login password</span>
-                    </span>
-                    <span class="row-arrow">›</span>
-                </a>
-
-                <button type="button" class="setting-row" data-open-panel="privacy-panel">
-                    <span class="row-icon">◉</span>
-                    <span class="row-copy">
-                        <span class="row-title">Privacy</span>
-                        <span class="row-subtitle">Control profile visibility</span>
-                    </span>
-                    <span class="row-arrow">›</span>
-                </button>
-
-                <div class="mini-panel" id="privacy-panel">
-                    <p>
-                        Privacy controls are ready visually. To save these permanently, add privacy fields to your profile model.
-                    </p>
-                    <div class="mini-actions">
-                        <button type="button" class="mini-btn" data-demo-toggle>Profile visible: On</button>
-                        <button type="button" class="mini-btn" data-demo-toggle>Show activity: On</button>
-                    </div>
-                </div>
-
-            </div>
-        </div>
-
-        <div class="settings-section">
-            <p class="section-name">Preferences</p>
-
-            <div class="settings-group">
-
-                <button type="button" class="setting-row" data-open-panel="notifications-panel">
-                    <span class="row-icon">⌁</span>
-                    <span class="row-copy">
-                        <span class="row-title">Notifications</span>
-                        <span class="row-subtitle">Likes, chats, matches, and alerts</span>
-                    </span>
-                    <span class="row-arrow">›</span>
-                </button>
-
-                <div class="mini-panel" id="notifications-panel">
-                    <p>
-                        These switches work on the frontend. Backend saving needs a NotificationPreference model.
-                    </p>
-                    <div class="mini-actions">
-                        <button type="button" class="mini-btn" data-demo-toggle>Likes: On</button>
-                        <button type="button" class="mini-btn" data-demo-toggle>Chats: On</button>
-                        <button type="button" class="mini-btn" data-demo-toggle>Matches: On</button>
-                    </div>
-                </div>
-
-                <button type="button" class="setting-row" data-open-panel="safety-panel">
-                    <span class="row-icon">!</span>
-                    <span class="row-copy">
-                        <span class="row-title">Safety</span>
-                        <span class="row-subtitle">Reports, blocking, and account safety</span>
-                    </span>
-                    <span class="row-arrow">›</span>
-                </button>
-
-                <div class="mini-panel" id="safety-panel">
-                    <p>
-                        Connect this to your report/blocking views after the safety backend is finalized.
-                    </p>
-
-                    <div class="mini-actions">
-                        {% url 'report_issue' as report_issue_url %}
-                        {% url 'safety_home' as safety_home_url %}
-
-                        <a class="mini-btn"
-                           href="{% if report_issue_url %}{{ report_issue_url }}{% elif safety_home_url %}{{ safety_home_url }}{% else %}#{% endif %}">
-                            Open safety
-                        </a>
-                    </div>
-                </div>
-
-            </div>
-        </div>
-
-        <div class="settings-section">
-            <p class="section-name">Heartly</p>
-
-            <div class="settings-group">
-
-                <button type="button" class="setting-row" data-open-panel="about-panel">
-                    <span class="row-icon">♡</span>
-                    <span class="row-copy">
-                        <span class="row-title">About Heartly</span>
-                        <span class="row-subtitle">Version, support, and app info</span>
-                    </span>
-                    <span class="row-arrow">›</span>
-                </button>
-
-                <div class="mini-panel" id="about-panel">
-                    <p>
-                        Heartly is a social connection app. Keep this section simple until support, terms, and privacy pages are ready.
-                    </p>
-
-                    <div class="mini-actions">
-                        {% url 'welcome' as welcome_url %}
-                        <a class="mini-btn" href="{% if welcome_url %}{{ welcome_url }}{% else %}/{% endif %}">
-                            Welcome page
-                        </a>
-                    </div>
-                </div>
-
-            </div>
-
-            <div class="logout-wrap">
-                {% url 'account_logout' as logout_url %}
-                <a class="logout-btn" href="{% if logout_url %}{{ logout_url }}{% else %}/accounts/logout/{% endif %}">
-                    Log out
-                </a>
-            </div>
-        </div>
-
-        <p class="settings-footer">
-            Theme changes apply instantly.
-        </p>
-
-    </div>
-</div>
-
-<script>
-    (function () {
-        const THEME_KEY = "heartly-theme";
-        const html = document.documentElement;
-        const body = document.body;
-        const themeButtons = document.querySelectorAll("[data-theme-choice]");
-        const panelButtons = document.querySelectorAll("[data-open-panel]");
-        const demoButtons = document.querySelectorAll("[data-demo-toggle]");
-
-        function systemTheme() {
-            if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
-                return "dark";
-            }
-            return "light";
-        }
-
-        function applyTheme(choice) {
-            const finalTheme = choice === "system" ? systemTheme() : choice;
-
-            html.setAttribute("data-heartly-theme", finalTheme);
-            body.setAttribute("data-heartly-theme", finalTheme);
-
-            body.classList.remove("light-mode", "dark-mode");
-            body.classList.add(finalTheme + "-mode");
-
-            localStorage.setItem(THEME_KEY, choice);
-
-            themeButtons.forEach(function (button) {
-                button.classList.toggle(
-                    "active",
-                    button.getAttribute("data-theme-choice") === choice
-                );
-            });
-        }
-
-        const savedTheme = localStorage.getItem(THEME_KEY) || "light";
-        applyTheme(savedTheme);
-
-        themeButtons.forEach(function (button) {
-            button.addEventListener("click", function () {
-                applyTheme(button.getAttribute("data-theme-choice"));
-            });
-        });
-
-        if (window.matchMedia) {
-            window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function () {
-                if (localStorage.getItem(THEME_KEY) === "system") {
-                    applyTheme("system");
-                }
-            });
-        }
-
-        panelButtons.forEach(function (button) {
-            button.addEventListener("click", function () {
-                const panelId = button.getAttribute("data-open-panel");
-                const panel = document.getElementById(panelId);
-
-                if (!panel) return;
-
-                const alreadyOpen = panel.classList.contains("show");
-
-                document.querySelectorAll(".mini-panel").forEach(function (item) {
-                    item.classList.remove("show");
-                });
-
-                panelButtons.forEach(function (item) {
-                    item.classList.remove("open");
-                });
-
-                if (!alreadyOpen) {
-                    panel.classList.add("show");
-                    button.classList.add("open");
-                }
-            });
-        });
-
-        demoButtons.forEach(function (button) {
-            button.addEventListener("click", function () {
-                const text = button.textContent.trim();
-
-                if (text.endsWith("On")) {
-                    button.textContent = text.replace("On", "Off");
-                } else {
-                    button.textContent = text.replace("Off", "On");
-                }
-            });
-        });
-    })();
-</script>
-
 {% endblock %}

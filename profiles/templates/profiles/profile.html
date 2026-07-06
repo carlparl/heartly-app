@@ -1,93 +1,1152 @@
 {% extends "heartly/base.html" %}
+{% load static %}
 
-{% block title %}Profile - Heartly{% endblock %}
+{% block title %}{{ display_name|default:"Profile" }} - Heartly{% endblock %}
 
 {% block content %}
+<div class="profile-page">
 
-<section class="profile-v2-screen">
-
-  <section class="profile-v2-card heartly-card">
-
-    <div class="profile-v2-top">
-      <h1>My Profile</h1>
-      <a href="/settings/" class="profile-v2-icon">⚙</a>
-    </div>
-
-    <div class="profile-v2-photo-card">
-      {% if profile.profile_picture %}
-        <img src="{{ profile.profile_picture.url }}" alt="{{ profile.name }}">
-      {% else %}
-        <div class="profile-v2-fallback">
-          {{ profile.name|first|upper }}
+    <div class="profile-header">
+        <div>
+            <h1 class="profile-title">
+                {% if is_owner %}
+                    Profile
+                {% else %}
+                    {{ display_name|default:"Profile" }}
+                {% endif %}
+            </h1>
+            <p class="profile-subtitle">
+                {% if is_owner %}
+                    Your Heartly account and activity.
+                {% else %}
+                    View profile details safely.
+                {% endif %}
+            </p>
         </div>
-      {% endif %}
 
-      <a href="{% url 'profiles:edit_profile' %}" class="profile-v2-camera">📷</a>
+        {% if is_owner %}
+            <a href="{% url 'settings' %}" class="top-icon-btn" title="Settings" aria-label="Open settings">
+                ⚙️
+            </a>
+        {% else %}
+            <a href="{% url 'matches:discover' %}" class="top-icon-btn" title="Back" aria-label="Back to Discover">
+                ‹
+            </a>
+        {% endif %}
     </div>
 
-    <div class="profile-v2-info">
-      <h2>{{ profile.name }}</h2>
+    <section class="profile-section">
+        <div class="profile-card profile-main-card">
 
-      <p>
-        {% if profile.age %}{{ profile.age }}{% endif %}
-        {% if profile.location %} · 📍 {{ profile.location }}{% else %}📍 Add location{% endif %}
-      </p>
-    </div>
+            <div class="profile-identity">
+                {% if viewed_profile.profile_picture %}
+                    <img src="{{ viewed_profile.profile_picture.url }}" alt="Profile picture" class="profile-avatar">
+                {% else %}
+                    <div class="profile-avatar-fallback">
+                        {{ display_name|default:viewed_user.username|first|upper }}
+                    </div>
+                {% endif %}
 
-    <div class="profile-v2-stats">
-      <div>
-        <strong>{{ request.user.heartly_posts.count|default:"0" }}</strong>
-        <span>Posts</span>
-      </div>
+                <div>
+                    <h2 class="profile-name">{{ display_name|default:"Heartly User" }}</h2>
+                    <p class="profile-username">@{{ viewed_user.username }}</p>
+                </div>
+            </div>
 
-      <div>
-        <strong>{{ request.user.heartly_post_likes.count|default:"0" }}</strong>
-        <span>Likes</span>
-      </div>
+            <p class="profile-bio">
+                {% if viewed_profile.bio %}
+                    {{ viewed_profile.bio }}
+                {% else %}
+                    {% if is_owner %}
+                        No bio added yet. Add a short intro so people know more about you.
+                    {% else %}
+                        No bio added yet.
+                    {% endif %}
+                {% endif %}
+            </p>
 
-      <div>
-        <strong>0</strong>
-        <span>Matches</span>
-      </div>
-    </div>
+            <div class="profile-meta">
+                {% if viewed_profile.age %}
+                    <span class="profile-pill">🎂 {{ viewed_profile.age }} years</span>
+                {% endif %}
 
-    <div class="profile-v2-actions">
-      <a href="{% url 'profiles:edit_profile' %}" class="heartly-btn heartly-btn-primary">Edit</a>
-      <a href="/ai/" class="heartly-btn heartly-btn-ghost">AI Coach</a>
-    </div>
+                {% if viewed_profile.location %}
+                    <span class="profile-pill">📍 {{ viewed_profile.location }}</span>
+                {% endif %}
 
-  </section>
+                {% if viewed_profile.email_verified %}
+                    <span class="profile-pill">✅ Verified</span>
+                {% endif %}
 
-  <section class="profile-v2-section heartly-card">
-    <div class="profile-v2-heading">
-      <h3>About me</h3>
-      <a href="{% url 'profiles:edit_profile' %}">Edit</a>
-    </div>
+                {% if is_owner %}
+                    {% if viewed_profile.profile_visible %}
+                        <span class="profile-pill">👁️ Visible</span>
+                    {% else %}
+                        <span class="profile-pill">🙈 Hidden</span>
+                    {% endif %}
+                {% endif %}
 
-    {% if profile.bio %}
-      <p>{{ profile.bio }}</p>
-    {% else %}
-      <p>Add a short bio.</p>
+                <span class="profile-pill">💗 Heartly member</span>
+            </div>
+
+            <div class="profile-actions">
+                {% if is_owner %}
+                    <a href="{% url 'profiles:edit_profile' %}" class="primary-action">Edit profile</a>
+                    <a href="{% url 'profiles:edit_interests' %}" class="secondary-action">Edit interests</a>
+                {% else %}
+                    <a href="{% url 'chat:start_chat' viewed_user.id %}" class="primary-action">Message</a>
+
+                    <button type="button" class="secondary-action danger-action" onclick="openReportProfileModal()">
+                        Report
+                    </button>
+                {% endif %}
+            </div>
+
+            {% if not is_owner %}
+                <form method="post" action="{% url 'profiles:block_user' viewed_user.id %}" class="profile-block-form">
+                    {% csrf_token %}
+                    <button type="submit" onclick="return confirm('Block this user?')">
+                        Block this user
+                    </button>
+                </form>
+            {% endif %}
+
+            <div class="profile-stats">
+                <div class="profile-stat">
+                    <span class="profile-stat-number">{{ posts_count|default:"0" }}</span>
+                    <span class="profile-stat-label">Posts</span>
+                </div>
+
+                <div class="profile-stat">
+                    <span class="profile-stat-number">{{ likes_count|default:"0" }}</span>
+                    <span class="profile-stat-label">Likes</span>
+                </div>
+
+                <div class="profile-stat">
+                    <span class="profile-stat-number">{{ viewed_profile.interests.count|default:"0" }}</span>
+                    <span class="profile-stat-label">Interests</span>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    {% if is_owner %}
+        <section class="profile-section">
+            <h2 class="profile-section-title">Quick access</h2>
+
+            <div class="profile-card">
+
+                <a href="{% url 'settings' %}" class="profile-row">
+                    <div class="profile-left">
+                        <div class="profile-icon">⚙️</div>
+                        <div>
+                            <p class="profile-label">Settings</p>
+                            <p class="profile-desc">Theme, privacy, notifications, and account options.</p>
+                        </div>
+                    </div>
+                    <span class="profile-chevron">›</span>
+                </a>
+
+                <a href="{% url 'feed:feed_home' %}" class="profile-row">
+                    <div class="profile-left">
+                        <div class="profile-icon">🏠</div>
+                        <div>
+                            <p class="profile-label">Feed</p>
+                            <p class="profile-desc">Go back to the Heartly social feed.</p>
+                        </div>
+                    </div>
+                    <span class="profile-chevron">›</span>
+                </a>
+
+                <a href="{% url 'matches:discover' %}" class="profile-row">
+                    <div class="profile-left">
+                        <div class="profile-icon">💞</div>
+                        <div>
+                            <p class="profile-label">Discover</p>
+                            <p class="profile-desc">Find visible profiles and possible matches.</p>
+                        </div>
+                    </div>
+                    <span class="profile-chevron">›</span>
+                </a>
+
+                <a href="{% url 'matches:your_matches' %}" class="profile-row">
+                    <div class="profile-left">
+                        <div class="profile-icon">💗</div>
+                        <div>
+                            <p class="profile-label">Your matches</p>
+                            <p class="profile-desc">View people who liked you back.</p>
+                        </div>
+                    </div>
+                    <span class="profile-chevron">›</span>
+                </a>
+
+                <a href="{% url 'chat:chat_home' %}" class="profile-row">
+                    <div class="profile-left">
+                        <div class="profile-icon">💬</div>
+                        <div>
+                            <p class="profile-label">Messages</p>
+                            <p class="profile-desc">Open your conversations.</p>
+                        </div>
+                    </div>
+                    <span class="profile-chevron">›</span>
+                </a>
+
+                <a href="{% url 'ai_features:ai_home' %}" class="profile-row">
+                    <div class="profile-left">
+                        <div class="profile-icon">🤖</div>
+                        <div>
+                            <p class="profile-label">Heartly AI</p>
+                            <p class="profile-desc">Open your AI coach.</p>
+                        </div>
+                    </div>
+                    <span class="profile-chevron">›</span>
+                </a>
+
+            </div>
+        </section>
+
+        <section class="profile-section">
+            <h2 class="profile-section-title">Account</h2>
+
+            <div class="profile-card">
+
+                <a href="{% url 'profiles:edit_profile' %}" class="profile-row">
+                    <div class="profile-left">
+                        <div class="profile-icon">👤</div>
+                        <div>
+                            <p class="profile-label">Edit profile</p>
+                            <p class="profile-desc">Change your photo, name, bio, age, and location.</p>
+                        </div>
+                    </div>
+                    <span class="profile-chevron">›</span>
+                </a>
+
+                <a href="{% url 'profiles:edit_interests' %}" class="profile-row">
+                    <div class="profile-left">
+                        <div class="profile-icon">✨</div>
+                        <div>
+                            <p class="profile-label">Interests</p>
+                            <p class="profile-desc">Update interests used for Discover and matching.</p>
+                        </div>
+                    </div>
+                    <span class="profile-chevron">›</span>
+                </a>
+
+                <a href="{% url 'account_change_password' %}" class="profile-row">
+                    <div class="profile-left">
+                        <div class="profile-icon">🔐</div>
+                        <div>
+                            <p class="profile-label">Password & security</p>
+                            <p class="profile-desc">Change your password and protect your account.</p>
+                        </div>
+                    </div>
+                    <span class="profile-chevron">›</span>
+                </a>
+
+            </div>
+        </section>
+
+        <section class="profile-section">
+            <h2 class="profile-section-title">Privacy</h2>
+
+            <div class="profile-card">
+
+                <form method="post" action="{% url 'profiles:toggle_profile_visibility' %}" class="profile-form-row">
+                    {% csrf_token %}
+                    <button type="submit" class="profile-row-button">
+                        <div class="profile-left">
+                            <div class="profile-icon">👁️</div>
+                            <div>
+                                <p class="profile-label">Profile visibility</p>
+                                <p class="profile-desc">
+                                    {% if viewed_profile.profile_visible %}
+                                        People can see you in Discover.
+                                    {% else %}
+                                        Your profile is hidden from Discover.
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                        <span class="profile-status-pill">
+                            {% if viewed_profile.profile_visible %}On{% else %}Off{% endif %}
+                        </span>
+                    </button>
+                </form>
+
+                <form method="post" action="{% url 'profiles:toggle_online_status' %}" class="profile-form-row">
+                    {% csrf_token %}
+                    <button type="submit" class="profile-row-button">
+                        <div class="profile-left">
+                            <div class="profile-icon">🟢</div>
+                            <div>
+                                <p class="profile-label">Online status</p>
+                                <p class="profile-desc">
+                                    {% if viewed_profile.show_online_status %}
+                                        Others may see when you are active.
+                                    {% else %}
+                                        Your online status is hidden.
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                        <span class="profile-status-pill">
+                            {% if viewed_profile.show_online_status %}On{% else %}Off{% endif %}
+                        </span>
+                    </button>
+                </form>
+
+                <form method="post" action="{% url 'profiles:toggle_message_requests' %}" class="profile-form-row">
+                    {% csrf_token %}
+                    <button type="submit" class="profile-row-button">
+                        <div class="profile-left">
+                            <div class="profile-icon">💬</div>
+                            <div>
+                                <p class="profile-label">Message requests</p>
+                                <p class="profile-desc">
+                                    {% if viewed_profile.allow_message_requests %}
+                                        People can start chats with you.
+                                    {% else %}
+                                        New message requests are blocked.
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                        <span class="profile-status-pill">
+                            {% if viewed_profile.allow_message_requests %}On{% else %}Off{% endif %}
+                        </span>
+                    </button>
+                </form>
+
+                <form method="post" action="{% url 'profiles:toggle_safety_filters' %}" class="profile-form-row">
+                    {% csrf_token %}
+                    <button type="submit" class="profile-row-button">
+                        <div class="profile-left">
+                            <div class="profile-icon">🛡️</div>
+                            <div>
+                                <p class="profile-label">Safety filters</p>
+                                <p class="profile-desc">
+                                    {% if viewed_profile.safety_filters_enabled %}
+                                        Extra safety filtering is enabled.
+                                    {% else %}
+                                        Extra safety filtering is disabled.
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                        <span class="profile-status-pill">
+                            {% if viewed_profile.safety_filters_enabled %}On{% else %}Off{% endif %}
+                        </span>
+                    </button>
+                </form>
+
+            </div>
+        </section>
     {% endif %}
-  </section>
 
-  <section class="profile-v2-section heartly-card">
-    <div class="profile-v2-heading">
-      <h3>Interests</h3>
-      <a href="{% url 'profiles:edit_interests' %}">Manage</a>
+    <section class="profile-section">
+        <h2 class="profile-section-title">Activity</h2>
+
+        <div class="profile-tabs">
+            <button class="profile-tab active" type="button" data-tab="posts">Posts</button>
+            <button class="profile-tab" type="button" data-tab="about">About</button>
+            <button class="profile-tab" type="button" data-tab="interests">Interests</button>
+        </div>
+
+        <div class="profile-card profile-content">
+
+            <div class="profile-tab-panel" id="tab-posts">
+                {% if posts %}
+                    {% for post in posts %}
+                        <div class="profile-post">
+                            {% if post.content %}
+                                <p class="profile-post-text">{{ post.content }}</p>
+                            {% else %}
+                                <p class="profile-post-text">Post has no text.</p>
+                            {% endif %}
+
+                            {% if post.image %}
+                                <img src="{{ post.image.url }}" alt="" class="profile-post-media">
+                            {% endif %}
+
+                            {% if post.video %}
+                                <video src="{{ post.video.url }}" controls class="profile-post-media"></video>
+                            {% endif %}
+
+                            {% if post.created_at %}
+                                <div class="profile-post-date">
+                                    {{ post.created_at|date:"M d, Y" }}
+                                    {% if post.edited_at %} · Edited{% endif %}
+                                    {% if is_owner %}
+                                        · <a href="{% url 'feed:edit_post' post.id %}">Edit</a>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="profile-empty">
+                        <div class="profile-empty-icon">📝</div>
+                        <h3 class="profile-empty-title">
+                            {% if is_owner %}
+                                No posts yet
+                            {% else %}
+                                No visible posts
+                            {% endif %}
+                        </h3>
+                        <p class="profile-empty-text">
+                            {% if is_owner %}
+                                Your posts will appear here after you publish them.
+                            {% else %}
+                                This user has no visible posts right now.
+                            {% endif %}
+                        </p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="profile-tab-panel" id="tab-about" style="display: none;">
+                <div class="profile-empty">
+                    <div class="profile-empty-icon">👤</div>
+                    <h3 class="profile-empty-title">About {{ display_name|default:"this user" }}</h3>
+                    <p class="profile-empty-text">
+                        {% if viewed_profile.bio %}
+                            {{ viewed_profile.bio }}
+                        {% else %}
+                            {% if is_owner %}
+                                Add your profile bio so this section feels complete.
+                            {% else %}
+                                No bio added yet.
+                            {% endif %}
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+
+            <div class="profile-tab-panel" id="tab-interests" style="display: none;">
+                {% if viewed_profile.interests.all %}
+                    <div class="profile-interest-list">
+                        {% for interest in viewed_profile.interests.all %}
+                            <span>{{ interest.name }}</span>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="profile-empty">
+                        <div class="profile-empty-icon">✨</div>
+                        <h3 class="profile-empty-title">No interests yet</h3>
+                        <p class="profile-empty-text">
+                            {% if is_owner %}
+                                Add interests to improve your Discover experience.
+                            {% else %}
+                                This user has not added interests yet.
+                            {% endif %}
+                        </p>
+                    </div>
+                {% endif %}
+            </div>
+
+        </div>
+    </section>
+
+    {% if is_owner %}
+        <section class="profile-section">
+            <h2 class="profile-section-title">Blocked users</h2>
+
+            <div class="profile-card">
+                {% for block in block_list %}
+                    <div class="profile-row">
+                        <div class="profile-left">
+                            <div class="profile-icon">🚫</div>
+                            <div>
+                                <p class="profile-label">
+                                    {% if block.blocked.profile.display_name %}
+                                        {{ block.blocked.profile.display_name }}
+                                    {% else %}
+                                        {{ block.blocked.username }}
+                                    {% endif %}
+                                </p>
+                                <p class="profile-desc">Blocked {{ block.created_at|timesince }} ago</p>
+                            </div>
+                        </div>
+
+                        <form method="post" action="{% url 'profiles:unblock_user' block.blocked.id %}" class="profile-inline-form">
+                            {% csrf_token %}
+                            <button type="submit" class="profile-small-btn">Unblock</button>
+                        </form>
+                    </div>
+                {% empty %}
+                    <div class="profile-empty compact">
+                        <div class="profile-empty-icon">✅</div>
+                        <h3 class="profile-empty-title">No blocked users</h3>
+                        <p class="profile-empty-text">Blocked accounts will appear here.</p>
+                    </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="profile-section">
+            <div class="profile-card">
+                <form method="post" action="{% url 'account_logout' %}" class="profile-form-row">
+                    {% csrf_token %}
+                    <button type="submit" class="profile-row-button danger-row">
+                        <div class="profile-left">
+                            <div class="profile-icon">🚪</div>
+                            <div>
+                                <p class="profile-label">Log out</p>
+                                <p class="profile-desc">Sign out of your Heartly account.</p>
+                            </div>
+                        </div>
+                        <span class="profile-chevron">›</span>
+                    </button>
+                </form>
+            </div>
+        </section>
+    {% endif %}
+
+    <p class="profile-footer">Heartly v1.0</p>
+
+</div>
+
+{% if not is_owner %}
+    <div class="profile-modal-backdrop" id="reportProfileModal">
+        <div class="profile-modal-card">
+            <header>
+                <h3>Report profile</h3>
+                <button type="button" onclick="closeReportProfileModal()">×</button>
+            </header>
+
+            <form method="post" action="{% url 'profiles:report_profile' viewed_user.id %}">
+                {% csrf_token %}
+
+                <label>
+                    <span>Reason</span>
+                    <select name="reason" required>
+                        <option value="harassment">Harassment</option>
+                        <option value="fake_profile">Fake profile</option>
+                        <option value="unsafe_behavior">Unsafe behavior</option>
+                        <option value="spam">Spam</option>
+                        <option value="other">Other</option>
+                    </select>
+                </label>
+
+                <label>
+                    <span>Details</span>
+                    <textarea name="details" rows="4" maxlength="600" placeholder="Explain what happened."></textarea>
+                </label>
+
+                <button type="submit">Submit report</button>
+            </form>
+        </div>
     </div>
+{% endif %}
+{% endblock %}
 
-    <div class="profile-v2-chips">
-      {% for interest in profile.interests.all %}
-        <span>{{ interest.name }}</span>
-      {% empty %}
-        <span>Music</span>
-        <span>Travel</span>
-        <span>Movies</span>
-      {% endfor %}
-    </div>
-  </section>
+{% block extra_css %}
+:root {
+    --profile-bg: #f8fafc;
+    --profile-card: #ffffff;
+    --profile-text: #111827;
+    --profile-muted: #6b7280;
+    --profile-border: #e5e7eb;
+    --profile-pink: #ec4899;
+    --profile-pink-soft: #fce7f3;
+    --profile-red: #ef4444;
+    --profile-shadow: 0 14px 35px rgba(15, 23, 42, 0.08);
+}
 
-</section>
+:root[data-heartly-theme="dark"] {
+    --profile-bg: #080b12;
+    --profile-card: #111827;
+    --profile-text: #f9fafb;
+    --profile-muted: #9ca3af;
+    --profile-border: #263244;
+    --profile-pink: #f472b6;
+    --profile-pink-soft: rgba(244, 114, 182, 0.14);
+    --profile-shadow: 0 14px 35px rgba(0, 0, 0, 0.38);
+}
 
+.profile-page {
+    min-height: 100vh;
+    color: var(--profile-text);
+    padding: 18px 16px 92px;
+    max-width: 520px;
+    margin: 0 auto;
+}
+
+.profile-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 22px;
+}
+
+.profile-title {
+    font-size: 28px;
+    font-weight: 900;
+    margin: 0;
+    letter-spacing: -0.04em;
+}
+
+.profile-subtitle {
+    color: var(--profile-muted);
+    font-size: 14px;
+    margin-top: 4px;
+}
+
+.top-icon-btn {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--profile-card);
+    color: var(--profile-text);
+    text-decoration: none;
+    border: 1px solid var(--profile-border);
+    box-shadow: var(--profile-shadow);
+    font-size: 24px;
+    font-weight: 900;
+}
+
+.profile-section {
+    margin-bottom: 24px;
+}
+
+.profile-section-title {
+    color: var(--profile-muted);
+    font-size: 13px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 0 0 10px;
+    padding-left: 4px;
+}
+
+.profile-card {
+    background: var(--profile-card);
+    border: 1px solid var(--profile-border);
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: var(--profile-shadow);
+}
+
+.profile-main-card {
+    padding: 18px;
+}
+
+.profile-identity {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+}
+
+.profile-avatar {
+    width: 82px;
+    height: 82px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 4px solid var(--profile-pink-soft);
+    background: var(--profile-pink-soft);
+    flex-shrink: 0;
+}
+
+.profile-avatar-fallback {
+    width: 82px;
+    height: 82px;
+    border-radius: 50%;
+    background: var(--profile-pink-soft);
+    color: var(--profile-pink);
+    display: grid;
+    place-items: center;
+    font-size: 32px;
+    font-weight: 900;
+    border: 4px solid var(--profile-pink-soft);
+    flex-shrink: 0;
+    text-transform: uppercase;
+}
+
+.profile-name {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 900;
+    letter-spacing: -0.04em;
+}
+
+.profile-username {
+    margin: 4px 0 0;
+    color: var(--profile-muted);
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.profile-bio {
+    margin: 16px 0 0;
+    color: var(--profile-text);
+    font-size: 15px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+}
+
+.profile-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+    margin-top: 14px;
+}
+
+.profile-pill,
+.profile-status-pill {
+    background: var(--profile-pink-soft);
+    color: var(--profile-pink);
+    border-radius: 999px;
+    padding: 8px 12px;
+    font-size: 13px;
+    font-weight: 900;
+}
+
+.profile-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.primary-action,
+.secondary-action {
+    border: none;
+    border-radius: 999px;
+    padding: 12px 14px;
+    text-align: center;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.primary-action {
+    background: var(--profile-pink);
+    color: #ffffff;
+}
+
+.secondary-action {
+    background: var(--profile-pink-soft);
+    color: var(--profile-pink);
+}
+
+.danger-action {
+    color: var(--profile-red);
+    background: rgba(239, 68, 68, 0.12);
+}
+
+.profile-block-form {
+    margin: 12px 0 0;
+}
+
+.profile-block-form button {
+    width: 100%;
+    border: none;
+    border-radius: 999px;
+    padding: 12px 14px;
+    background: rgba(239, 68, 68, 0.12);
+    color: var(--profile-red);
+    font-size: 14px;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.profile-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border-top: 1px solid var(--profile-border);
+    margin-top: 18px;
+}
+
+.profile-stat {
+    text-align: center;
+    padding: 15px 8px 4px;
+}
+
+.profile-stat-number {
+    display: block;
+    font-size: 20px;
+    font-weight: 900;
+    color: var(--profile-text);
+}
+
+.profile-stat-label {
+    display: block;
+    margin-top: 3px;
+    color: var(--profile-muted);
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.profile-row,
+.profile-row-button {
+    width: 100%;
+    border: none;
+    background: transparent;
+    color: var(--profile-text);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 16px;
+    text-decoration: none;
+    cursor: pointer;
+    font: inherit;
+    text-align: left;
+}
+
+.profile-row + .profile-row,
+.profile-form-row + .profile-row,
+.profile-row + .profile-form-row,
+.profile-form-row + .profile-form-row {
+    border-top: 1px solid var(--profile-border);
+}
+
+.profile-form-row {
+    margin: 0;
+}
+
+.profile-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+}
+
+.profile-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 16px;
+    background: var(--profile-pink-soft);
+    color: var(--profile-pink);
+    display: grid;
+    place-items: center;
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.profile-label {
+    font-weight: 900;
+    font-size: 15px;
+    margin: 0;
+}
+
+.profile-desc {
+    color: var(--profile-muted);
+    font-size: 13px;
+    margin: 3px 0 0;
+    line-height: 1.35;
+}
+
+.profile-chevron {
+    color: var(--profile-muted);
+    font-size: 22px;
+    flex-shrink: 0;
+}
+
+.danger-row .profile-icon {
+    background: rgba(239, 68, 68, 0.12);
+    color: var(--profile-red);
+}
+
+.danger-row .profile-label {
+    color: var(--profile-red);
+}
+
+.profile-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.profile-tab {
+    border: 1px solid var(--profile-border);
+    background: var(--profile-card);
+    color: var(--profile-muted);
+    border-radius: 999px;
+    padding: 10px;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.profile-tab.active {
+    background: var(--profile-pink);
+    color: #ffffff;
+    border-color: var(--profile-pink);
+}
+
+.profile-content {
+    padding: 18px;
+}
+
+.profile-empty {
+    text-align: center;
+    padding: 16px 8px;
+}
+
+.profile-empty.compact {
+    padding: 22px 14px;
+}
+
+.profile-empty-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 20px;
+    background: var(--profile-pink-soft);
+    color: var(--profile-pink);
+    display: grid;
+    place-items: center;
+    margin: 0 auto 12px;
+    font-size: 24px;
+}
+
+.profile-empty-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 900;
+}
+
+.profile-empty-text {
+    margin: 6px 0 0;
+    color: var(--profile-muted);
+    font-size: 14px;
+    line-height: 1.45;
+}
+
+.profile-post {
+    padding: 14px 0;
+}
+
+.profile-post + .profile-post {
+    border-top: 1px solid var(--profile-border);
+}
+
+.profile-post-text {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+}
+
+.profile-post-media {
+    width: 100%;
+    max-height: 420px;
+    object-fit: cover;
+    border-radius: 18px;
+    margin-top: 10px;
+    background: #000000;
+}
+
+.profile-post-date {
+    margin-top: 8px;
+    color: var(--profile-muted);
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.profile-post-date a {
+    color: var(--profile-pink);
+    text-decoration: none;
+}
+
+.profile-interest-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.profile-interest-list span {
+    border-radius: 999px;
+    padding: 9px 12px;
+    background: var(--profile-pink-soft);
+    color: var(--profile-pink);
+    font-size: 13px;
+    font-weight: 900;
+}
+
+.profile-inline-form {
+    margin: 0;
+}
+
+.profile-small-btn {
+    border: none;
+    border-radius: 999px;
+    padding: 9px 12px;
+    background: var(--profile-pink-soft);
+    color: var(--profile-pink);
+    font-size: 12px;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.profile-footer {
+    text-align: center;
+    color: var(--profile-muted);
+    font-size: 12px;
+    margin-top: 28px;
+}
+
+.profile-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: none;
+    place-items: center;
+    padding: 18px;
+    background: rgba(15, 23, 42, 0.48);
+    backdrop-filter: blur(10px);
+}
+
+.profile-modal-backdrop.active {
+    display: grid;
+}
+
+.profile-modal-card {
+    width: min(100%, 430px);
+    padding: 16px;
+    border-radius: 26px;
+    background: var(--profile-card);
+    border: 1px solid var(--profile-border);
+    box-shadow: var(--profile-shadow);
+}
+
+.profile-modal-card header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+}
+
+.profile-modal-card h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 900;
+}
+
+.profile-modal-card header button {
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 14px;
+    background: var(--profile-pink-soft);
+    color: var(--profile-pink);
+    font-size: 20px;
+    cursor: pointer;
+}
+
+.profile-modal-card form {
+    display: grid;
+    gap: 12px;
+}
+
+.profile-modal-card label {
+    display: grid;
+    gap: 7px;
+}
+
+.profile-modal-card label span {
+    color: var(--profile-muted);
+    font-size: 13px;
+    font-weight: 900;
+}
+
+.profile-modal-card select,
+.profile-modal-card textarea {
+    width: 100%;
+    border: 1px solid var(--profile-border);
+    border-radius: 18px;
+    padding: 12px;
+    background: var(--profile-bg);
+    color: var(--profile-text);
+    outline: none;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.profile-modal-card textarea {
+    resize: vertical;
+}
+
+.profile-modal-card form button {
+    border: none;
+    border-radius: 999px;
+    padding: 13px;
+    background: var(--profile-pink);
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+@media (max-width: 380px) {
+    .profile-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .profile-name {
+        font-size: 20px;
+    }
+}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const tabs = document.querySelectorAll(".profile-tab");
+
+        const panels = {
+            posts: document.getElementById("tab-posts"),
+            about: document.getElementById("tab-about"),
+            interests: document.getElementById("tab-interests")
+        };
+
+        tabs.forEach(function (tab) {
+            tab.addEventListener("click", function () {
+                const selectedTab = tab.dataset.tab;
+
+                tabs.forEach(function (item) {
+                    item.classList.remove("active");
+                });
+
+                tab.classList.add("active");
+
+                Object.keys(panels).forEach(function (key) {
+                    if (panels[key]) {
+                        panels[key].style.display = key === selectedTab ? "block" : "none";
+                    }
+                });
+            });
+        });
+    });
+
+    function openReportProfileModal() {
+        const modal = document.getElementById("reportProfileModal");
+
+        if (modal) {
+            modal.classList.add("active");
+        }
+    }
+
+    function closeReportProfileModal() {
+        const modal = document.getElementById("reportProfileModal");
+
+        if (modal) {
+            modal.classList.remove("active");
+        }
+    }
+
+    const reportProfileModal = document.getElementById("reportProfileModal");
+
+    if (reportProfileModal) {
+        reportProfileModal.addEventListener("click", function (event) {
+            if (event.target === reportProfileModal) {
+                closeReportProfileModal();
+            }
+        });
+    }
+</script>
 {% endblock %}

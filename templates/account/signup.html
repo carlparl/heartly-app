@@ -1,84 +1,296 @@
-{% extends "heartly/base.html" %}
+{% extends "account/auth_base.html" %}
+{% load static %}
 
-{% block title %}Sign Up - Heartly{% endblock %}
+{% block title %}Sign up - Heartly{% endblock %}
 
-{% block outer_content %}
+{% block content %}
+<div class="heartly-signup-card">
 
-<main class="heartly-outer-page signup-smooth-page">
-
-  <section class="signup-smooth-card heartly-card heartly-glow-card">
-
-    <div class="signup-smooth-header">
-      <div class="signup-smooth-logo">
-        ♥
-      </div>
-
-      <div>
-        <p class="signup-smooth-kicker">Start your Heartly journey</p>
-
-        <h1>Create account</h1>
-
-        <p>
-          Join Heartly to connect, share, chat, match, and use your AI coach.
-        </p>
-      </div>
+    <div style="
+        text-align: center;
+        margin-bottom: 32px;
+    ">
+        <img src="{% static 'heartly-logo.png' %}" alt="Heartly" style="
+            width: 72px;
+            height: auto;
+            margin: 0 auto;
+            display: block;
+        ">
     </div>
 
-    <form method="post" action="{% url 'account_signup' %}" class="signup-smooth-form">
-      {% csrf_token %}
+    <div class="heartly-signup-header">
+        <p class="heartly-kicker">Join Heartly</p>
+        <h1>Create account</h1>
+        <p>Start your Heartly journey and connect with meaning.</p>
+    </div>
 
-      {% if form.non_field_errors %}
-        <div class="auth-error-box">
-          {{ form.non_field_errors }}
-        </div>
-      {% endif %}
+    <form method="post" action="{% url 'account_signup' %}" class="heartly-signup-form">
+        {% csrf_token %}
 
-      <div class="signup-smooth-fields">
-        {% for field in form %}
-          {% if field.name != "remember" %}
-            <div class="signup-smooth-field">
-              <label for="{{ field.id_for_label }}">
-                {{ field.label }}
-              </label>
-
-              {{ field }}
-
-              {% if field.errors %}
-                <div class="auth-field-error">
-                  {{ field.errors }}
-                </div>
-              {% endif %}
+        {% if form.non_field_errors %}
+            <div class="heartly-form-errors">
+                {{ form.non_field_errors }}
             </div>
-          {% endif %}
+        {% endif %}
+
+        {% for field in form %}
+            {% if field.is_hidden %}
+                {{ field }}
+            {% else %}
+                {% if field.field.widget.input_type == "checkbox" %}
+                    <label class="heartly-check-field">
+                        {{ field }}
+                        <span>{{ field.label }}</span>
+                    </label>
+
+                    {% if field.errors %}
+                        <div class="heartly-field-error">
+                            {{ field.errors }}
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <div class="heartly-field">
+                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+
+                        {% if field.help_text %}
+                            <small>{{ field.help_text }}</small>
+                        {% endif %}
+
+                        {% if field.errors %}
+                            <div class="heartly-field-error">
+                                {{ field.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            {% endif %}
         {% endfor %}
-      </div>
 
-      {% if redirect_field_value %}
-        <input
-          type="hidden"
-          name="{{ redirect_field_name }}"
-          value="{{ redirect_field_value }}"
-        >
-      {% endif %}
+        {% if redirect_field_value %}
+            <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">
+        {% endif %}
 
-      <button type="submit" class="heartly-btn heartly-btn-primary signup-smooth-submit">
-        Create Account
-      </button>
+        <button type="submit" class="heartly-submit">
+            Create account
+        </button>
     </form>
 
-    <div class="signup-smooth-bottom">
-      <p>
-        Already have an account?
-        <a href="{% url 'account_login' %}">Log in</a>
-      </p>
-
-      <span>
-        Use Heartly respectfully and safely.
-      </span>
+    <div class="heartly-signup-footer">
+        <p>
+            Already have an account?
+            <a href="{% url 'account_login' %}">Log in</a>
+        </p>
     </div>
 
-  </section>
+</div>
 
-</main>
+<style>
+    .heartly-signup-card {
+        box-sizing: border-box;
+        width: 100%;
+        max-width: 480px;
+        padding: 44px 40px;
+        border-radius: 28px;
+        background: var(--heartly-card, #ffffff);
+        border: 1px solid var(--heartly-border, rgba(0, 0, 0, 0.06));
+        box-shadow: 
+            0 4px 24px rgba(0, 0, 0, 0.01),
+            0 24px 64px rgba(0, 0, 0, 0.04);
+        margin: 20px auto;
+    }
 
+    .heartly-signup-header {
+        margin-bottom: 32px;
+        text-align: left;
+    }
+
+    .heartly-kicker {
+        margin: 0 0 8px;
+        color: var(--heartly-primary, #ff4f7b);
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+    }
+
+    .heartly-signup-header h1 {
+        margin: 0;
+        color: var(--heartly-text, #1f1f1f);
+        font-size: clamp(2.2rem, 8vw, 2.8rem);
+        line-height: 1.1;
+        letter-spacing: -0.03em;
+        font-weight: 800;
+    }
+
+    .heartly-signup-header p {
+        margin: 10px 0 0;
+        color: var(--heartly-muted, #666666);
+        font-size: 0.95rem;
+        line-height: 1.5;
+    }
+
+    .heartly-signup-form {
+        display: grid;
+        gap: 20px;
+    }
+
+    .heartly-field {
+        box-sizing: border-box;
+        display: grid;
+        gap: 8px;
+    }
+
+    .heartly-field label {
+        color: var(--heartly-text, #1f1f1f);
+        font-size: 0.88rem;
+        font-weight: 600;
+    }
+
+    /* Standardizes inputs, selects, and textareas parsed inside the template wrapper */
+    .heartly-field input,
+    .heartly-field select,
+    .heartly-field textarea {
+        box-sizing: border-box;
+        width: 100%;
+        min-height: 52px;
+        padding: 0 16px;
+        border-radius: 12px;
+        color: var(--heartly-text, #1f1f1f);
+        background: var(--heartly-card-soft, #f9f9f9);
+        border: 1px solid var(--heartly-border, rgba(0, 0, 0, 0.08));
+        outline: none;
+        font-size: 0.95rem;
+        font-weight: 450;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .heartly-field textarea {
+        min-height: 110px;
+        padding-top: 14px;
+        padding-bottom: 14px;
+        resize: vertical;
+    }
+
+    .heartly-field input:focus,
+    .heartly-field select:focus,
+    .heartly-field textarea:focus {
+        border-color: var(--heartly-primary, #ff4f7b);
+        background: #ffffff;
+        box-shadow: 0 0 0 4px rgba(var(--heartly-primary-rgb, 255, 79, 123), 0.12);
+    }
+
+    .heartly-field input::placeholder,
+    .heartly-field textarea::placeholder {
+        color: var(--heartly-muted, #999999);
+    }
+
+    .heartly-field small {
+        color: var(--heartly-muted, #666666);
+        font-size: 0.82rem;
+        line-height: 1.4;
+        font-weight: 400;
+        margin-top: 2px;
+    }
+
+    .heartly-check-field {
+        box-sizing: border-box;
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        color: var(--heartly-muted, #444444);
+        font-size: 0.9rem;
+        line-height: 1.5;
+        cursor: pointer;
+        padding: 2px 0;
+    }
+
+    .heartly-check-field input {
+        width: 18px;
+        height: 18px;
+        margin-top: 2px;
+        accent-color: var(--heartly-primary, #ff4f7b);
+        flex: 0 0 auto;
+        cursor: pointer;
+    }
+
+    .heartly-submit {
+        box-sizing: border-box;
+        width: 100%;
+        min-height: 52px;
+        margin-top: 10px;
+        border: none;
+        border-radius: 12px;
+        color: #ffffff;
+        background: linear-gradient(135deg, var(--heartly-primary, #ff4f7b), #e0355f);
+        box-shadow: 0 8px 20px -6px rgba(var(--heartly-primary-rgb, 255, 79, 123), 0.3);
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .heartly-submit:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 12px 24px -4px rgba(var(--heartly-primary-rgb, 255, 79, 123), 0.4);
+    }
+
+    .heartly-submit:active {
+        transform: translateY(0) scale(0.99);
+    }
+
+    .heartly-signup-footer {
+        margin-top: 32px;
+        text-align: center;
+    }
+
+    .heartly-signup-footer,
+    .heartly-signup-footer p {
+        color: var(--heartly-muted, #666666);
+        font-size: 0.92rem;
+    }
+
+    .heartly-signup-footer p {
+        margin: 0;
+    }
+
+    .heartly-signup-footer a {
+        color: var(--heartly-primary, #ff4f7b);
+        font-weight: 600;
+        text-decoration: none;
+        transition: color 0.2s ease;
+    }
+
+    .heartly-signup-footer a:hover {
+        color: #e0355f;
+        text-decoration: underline;
+    }
+
+    .heartly-form-errors,
+    .heartly-field-error {
+        box-sizing: border-box;
+        padding: 14px 16px;
+        border-radius: 12px;
+        color: #c52249;
+        background: #fdf2f4;
+        border: 1px solid rgba(255, 79, 123, 0.15);
+        font-size: 0.88rem;
+        font-weight: 500;
+        line-height: 1.4;
+    }
+
+    .heartly-form-errors ul,
+    .heartly-field-error ul {
+        margin: 0;
+        padding-left: 20px;
+    }
+
+    @media (max-width: 480px) {
+        .heartly-signup-card {
+            padding: 32px 24px;
+            border-radius: 24px;
+            margin: 10px auto;
+        }
+    }
+</style>
 {% endblock %}

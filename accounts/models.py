@@ -1,5 +1,5 @@
 from datetime import date
-
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils.text import slugify
@@ -114,3 +114,67 @@ class CustomUser(AbstractUser):
 
     def __str__(self):
         return self.get_display_name()
+    
+class EmailVerificationCode(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="email_verification_codes"
+    )
+
+    email = models.EmailField()
+    code_hash = models.CharField(max_length=128)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+
+    used_at = models.DateTimeField(blank=True, null=True)
+    attempts = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user} - {self.email}"
+
+    @classmethod
+    def generate_code(cls):
+        return f"{secrets.randbelow(1_000_000):06d}"
+
+    @classmethod
+    def create_for_user(cls, user):
+        raw_code = cls.generate_code()
+
+        cls.objects.filter(
+            user=user,
+            email=user.email,
+            used_at__isnull=True
+        ).update(used_at=timezone.now())
+
+        verification = cls.objects.create(
+            user=user,
+            email=user.email,
+            code_hash=make_password(raw_code),
+            expires_at=timezone.now() + timedelta(minutes=10),
+        )
+
+        return verification, raw_code
+
+    def is_expired(self):
+        return timezone.now() > self.expires_at
+
+    def can_attempt(self):
+        return self.attempts < 5 and not self.used_at and not self.is_expired()
+
+    def check_code(self, raw_code):
+        if not self.can_attempt():
+            return False
+
+        self.attempts += 1
+        self.save(update_fields=["attempts"])
+
+        return check_password(raw_code, self.code_hash)
+
+    def mark_used(self):
+        self.used_at = timezone.now()
+        self.save(update_fields=["used_at"])

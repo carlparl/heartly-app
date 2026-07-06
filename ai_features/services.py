@@ -1,150 +1,123 @@
 from django.conf import settings
-from groq import Groq
 
-from .models import GropConversation, GropMessage, GropUserMemory
-
-
-HEARTLY_SYSTEM_PROMPT = """
-You are Heartly, the friendly AI coach inside the Heartly dating app.
-
-Your role:
-- Help users improve their dating profiles.
-- Help users write first messages.
-- Help users reply naturally.
-- Help users build confidence.
-- Help users think through safe, respectful dating choices.
-
-Personality:
-- Friendly, casual, warm, and welcoming.
-- Sound like a supportive coach, not a robot.
-- Keep replies short and useful.
-- Ask at most one follow-up question.
-- Use simple language.
-- Never be creepy, pushy, or judgmental.
-- Never pretend to be human.
-- Never claim you remember something unless stored context is provided.
-
-Safety:
-- Encourage respectful communication.
-- Encourage public first meetings, telling someone trusted, and avoiding pressure.
-- If a user describes danger, harassment, abuse, coercion, or threats, encourage them to seek trusted local help and prioritize safety.
-"""
+try:
+    from groq import Groq
+except ImportError:
+    Groq = None
 
 
-def get_active_conversation(user):
-    conversation, _ = GropConversation.objects.get_or_create(
-        user=user,
-        is_active=True,
-        defaults={"title": "Chat with Heartly"},
-    )
-    return conversation
+def build_history_messages(history):
+    """
+    Convert stored HeartlyMessage objects into AI chat messages.
 
+    These are hidden from the page, but sent to the AI so it remembers context.
+    """
+    messages = []
 
-def get_user_memory(user):
-    memory, _ = GropUserMemory.objects.get_or_create(user=user)
-    return memory
-
-
-def build_messages_for_groq(user, conversation):
-    memory = get_user_memory(user)
-
-    recent_messages = conversation.messages.order_by("-created_at")[:12]
-    recent_messages = list(reversed(recent_messages))
-
-    messages = [
-        {
-            "role": "system",
-            "content": HEARTLY_SYSTEM_PROMPT,
-        }
-    ]
-
-    if memory.memory_enabled:
-        messages.append({
-            "role": "system",
-            "content": (
-                "Stored user context:\n"
-                f"Preferences: {memory.preference_notes or 'None yet'}\n"
-                f"Previous chat summary: {memory.last_context_summary or conversation.summary or 'None yet'}"
-            ),
-        })
-
-    for message in recent_messages:
-        if message.role in ["user", "assistant"]:
+    for item in history:
+        if item.role == "user":
             messages.append({
-                "role": message.role,
-                "content": message.content,
+                "role": "user",
+                "content": item.text,
+            })
+
+        if item.role == "ai":
+            messages.append({
+                "role": "assistant",
+                "content": item.text,
             })
 
     return messages
 
 
-def generate_heartly_reply(user, conversation):
+def generate_fallback_reply(user_message: str, history=None) -> str:
+    message = user_message.strip().lower()
+
+    if not message:
+        return "I am here. Type something first."
+
+    if history:
+        last_topic = None
+
+        for item in reversed(history):
+            if item.role == "user":
+                last_topic = item.text
+                break
+
+        if last_topic and any(word in message for word in ["yes", "yeah", "continue", "go on", "more", "explain"]):
+            return (
+                f"Right, we were talking about: “{last_topic}”. "
+                "Tell me what part you want to continue, and I’ll stay on that track."
+            )
+
+    if any(word in message for word in ["hello", "hi", "hey", "yo"]):
+        return "Hey. I’m Heartly — friendly, useful, and only slightly dramatic. What are we doing?"
+
+    if any(word in message for word in ["joke", "funny", "laugh"]):
+        return "Why did the Django developer go outside? To get some fresh imports."
+
+    if any(word in message for word in ["code", "django", "python", "html", "css", "bug", "error"]):
+        return "Send me the error or file. I’ll help you debug it without panic-clicking everything."
+
+    return (
+        "I can help with that. Give me one more detail and tell me what you want: "
+        "an explanation, advice, a plan, a rewrite, or a funny answer."
+    )
+
+
+def generate_heartly_reply(user_message: str, history=None) -> str:
+    user_message = user_message.strip()
+    history = history or []
+
+    if not user_message:
+        return "I am here. Type something first."
+
+    if Groq is None:
+        return generate_fallback_reply(user_message, history)
+
     if not getattr(settings, "GROQ_API_KEY", ""):
-        return (
-            "Hey, I’m Heartly 👋 I’m ready to help, but the Groq API key is not configured yet. "
-            "Add GROQ_API_KEY and restart the server."
+        return generate_fallback_reply(user_message, history)
+
+    try:
+        client = Groq(api_key=settings.GROQ_API_KEY)
+
+        messages = [
+            {
+                "role": "system",
+                "content": (
+                    "You are Heartly AI, a friendly, funny, helpful in-app assistant. "
+                    "You can help with general questions, coding, school, app ideas, writing, feelings, "
+                    "daily planning, and casual conversation. "
+                    "You should remember the conversation context from the previous messages provided. "
+                    "Do not restart the conversation unless the user clearly changes topic. "
+                    "Keep replies clear, natural, friendly, practical, and lightly funny when appropriate. "
+                    "Do not act like you only give dating advice. "
+                    "If the user asks a follow-up like 'continue', 'what about that', 'explain more', "
+                    "or 'yes', infer the topic from the previous messages."
+                ),
+            }
+        ]
+
+        messages.extend(build_history_messages(history))
+
+        messages.append({
+            "role": "user",
+            "content": user_message,
+        })
+
+        completion = client.chat.completions.create(
+            model=getattr(settings, "GROQ_MODEL", "openai/gpt-oss-20b"),
+            messages=messages,
+            temperature=0.75,
+            max_tokens=450,
         )
 
-    client = Groq(api_key=settings.GROQ_API_KEY)
+        return completion.choices[0].message.content.strip()
 
-    response = client.chat.completions.create(
-        model=getattr(settings, "GROQ_MODEL", "llama-3.1-8b-instant"),
-        messages=build_messages_for_groq(user, conversation),
-        temperature=getattr(settings, "HEARTLY_AI_TEMPERATURE", 0.7),
-        max_completion_tokens=getattr(settings, "HEARTLY_AI_MAX_TOKENS", 350),
-    )
+    except Exception as error:
+        print("Groq error:", error)
 
-    return response.choices[0].message.content.strip()
-
-
-def update_memory(user, conversation):
-    memory = get_user_memory(user)
-
-    if not memory.memory_enabled:
-        return
-
-    last_messages = conversation.messages.order_by("-created_at")[:10]
-    last_messages = list(reversed(last_messages))
-
-    summary_parts = []
-
-    for message in last_messages:
-        text = message.content.strip()
-
-        if not text:
-            continue
-
-        if len(text) > 150:
-            text = text[:150] + "..."
-
-        label = "User" if message.role == "user" else "Heartly"
-        summary_parts.append(f"{label}: {text}")
-
-    memory.last_context_summary = "\n".join(summary_parts)
-    memory.save(update_fields=["last_context_summary", "updated_at"])
-
-
-def run_ai_coach_chat(user, message):
-    conversation = get_active_conversation(user)
-
-    GropMessage.objects.create(
-        conversation=conversation,
-        role=GropMessage.ROLE_USER,
-        content=message,
-    )
-
-    reply = generate_heartly_reply(user, conversation)
-
-    GropMessage.objects.create(
-        conversation=conversation,
-        role=GropMessage.ROLE_ASSISTANT,
-        content=reply,
-    )
-
-    update_memory(user, conversation)
-
-    return reply
-
-
-def run_ai_tool(user, prompt):
-    return run_ai_coach_chat(user, prompt)
+        return (
+            "My big AI brain tripped over a cable for a second. "
+            "Try again — I’m still here."
+        )

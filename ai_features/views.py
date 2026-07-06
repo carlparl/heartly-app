@@ -1,31 +1,78 @@
 from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
 from django.shortcuts import render
+from django.views.decorators.http import require_POST
+
+from .models import HeartlyMessage
+from .services import generate_heartly_reply
 
 
 @login_required
 def ai_coach_page(request):
-    user_message = ""
-    ai_response = ""
+    """
+    Open clean every time.
 
-    if request.method == "POST":
-        user_message = request.POST.get("message", "").strip()
+    We do NOT display stored messages.
+    Stored messages are only used as hidden context for the AI.
+    """
+    return render(request, "ai_features/ai_coach.html")
 
-        if user_message:
-            ai_response = (
-                "I hear you. Here is a stronger way to approach this:\n\n"
-                "1. Be clear about what you want to say.\n"
-                "2. Keep the message respectful and simple.\n"
-                "3. Do not force the conversation.\n"
-                "4. Ask one open question so the other person can respond naturally.\n\n"
-                "Example:\n"
-                "“Hey, I liked your profile. You seem interesting. What’s something you enjoy doing when you’re free?”"
-            )
 
-    return render(
-        request,
-        "ai_features/ai_coach.html",
-        {
-            "user_message": user_message,
-            "ai_response": ai_response,
-        },
+@login_required
+@require_POST
+def ai_coach_send(request):
+    user_text = request.POST.get("message", "").strip()
+
+    if not user_text:
+        return JsonResponse({
+            "ok": False,
+            "reply": "Type something first."
+        })
+
+    # Get recent memory BEFORE saving the new message.
+    recent_messages = list(
+        HeartlyMessage.objects
+        .filter(user=request.user)
+        .order_by("-created_at")[:12]
     )
+
+    recent_messages.reverse()
+
+    # Store user's new message.
+    HeartlyMessage.objects.create(
+        user=request.user,
+        role="user",
+        text=user_text,
+    )
+
+    # Generate reply using hidden memory.
+    ai_reply = generate_heartly_reply(
+        user_message=user_text,
+        history=recent_messages,
+    )
+
+    # Store Heartly's reply.
+    HeartlyMessage.objects.create(
+        user=request.user,
+        role="ai",
+        text=ai_reply,
+    )
+
+    return JsonResponse({
+        "ok": True,
+        "reply": ai_reply,
+    })
+
+
+@login_required
+@require_POST
+def ai_coach_end_chat(request):
+    """
+    Clear only the visible frontend chat.
+
+    Stored messages remain in database so Heartly can still remember context.
+    """
+    return JsonResponse({
+        "ok": True,
+        "reply": "New chat started. What do you want to talk about?",
+    })

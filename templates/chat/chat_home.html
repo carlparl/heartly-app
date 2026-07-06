@@ -1,0 +1,408 @@
+{% extends "heartly/base.html" %}
+{% load static %}
+
+{% block title %}Messages - Heartly{% endblock %}
+
+{% block content %}
+<div class="ig-chat-page">
+
+    <header class="ig-chat-header">
+        <div>
+            <h1>Messages</h1>
+            <p>Your Heartly conversations</p>
+        </div>
+
+        
+        </a>
+    </header>
+
+    <section class="ig-chat-search-card">
+        <div class="ig-search-row">
+            <span>🔎</span>
+            <input type="text" id="chatSearchInput" placeholder="Search messages..." autocomplete="off">
+        </div>
+    </section>
+
+    <section class="ig-chat-section">
+        <div class="ig-section-head">
+            <h2>Chats</h2>
+            <a href="{% url 'matches:your_matches' %}">Matches</a>
+        </div>
+
+        <div class="ig-chat-list" id="chatList">
+            {% for card in thread_cards %}
+                <a href="{% url 'chat:chat_room' card.thread.id %}" class="ig-chat-row" data-chat-name="{{ card.name|lower }}">
+
+                    <div class="ig-avatar-wrap">
+                        <div class="ig-avatar-ring">
+                            <div class="ig-avatar">
+                                {% if card.photo %}
+                                    <img src="{{ card.photo }}" alt="">
+                                {% else %}
+                                    <span>{{ card.name|default:"U"|first|upper }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        {% if card.unread_count %}
+                            <span class="ig-unread-dot"></span>
+                        {% endif %}
+                    </div>
+
+                    <div class="ig-chat-copy">
+                        <div class="ig-chat-topline">
+                            <strong>{{ card.name|default:"Heartly User" }}</strong>
+
+                            {% if card.latest_message %}
+                                <small>{{ card.latest_message.created_at|timesince }} ago</small>
+                            {% endif %}
+                        </div>
+
+                        <p>
+                            {% if card.latest_preview %}
+                                {{ card.latest_preview|truncatechars:82 }}
+                            {% elif card.latest_message %}
+                                {{ card.latest_message.text|truncatechars:82 }}
+                            {% else %}
+                                Start the conversation.
+                            {% endif %}
+                        </p>
+                    </div>
+
+                    {% if card.unread_count %}
+                        <span class="ig-unread-count">
+                            {% if card.unread_count > 9 %}
+                                9+
+                            {% else %}
+                                {{ card.unread_count }}
+                            {% endif %}
+                        </span>
+                    {% endif %}
+
+                </a>
+            {% empty %}
+                <div class="ig-empty-card">
+                    <div class="ig-empty-icon">💬</div>
+                    <h3>No chats yet</h3>
+                    <p>
+                        Start from Your Matches. Conversations will appear here once you message someone.
+                    </p>
+
+                    <a href="{% url 'matches:your_matches' %}">
+                        View matches
+                    </a>
+                </div>
+            {% endfor %}
+        </div>
+    </section>
+
+</div>
+{% endblock %}
+
+{% block extra_css %}
+.ig-chat-page {
+    min-height: 100vh;
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 16px 12px 96px;
+    color: var(--heartly-text, #111827);
+}
+
+.ig-chat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 14px;
+}
+
+.ig-chat-header h1 {
+    margin: 0;
+    font-size: 30px;
+    line-height: 1;
+    font-weight: 950;
+    letter-spacing: -0.05em;
+    color: var(--heartly-text, #111827);
+}
+
+.ig-chat-header p {
+    margin: 5px 0 0;
+    color: var(--heartly-muted, #6b7280);
+    font-size: 13px;
+    font-weight: 750;
+}
+
+.ig-icon-btn {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    text-decoration: none;
+    background: var(--heartly-card, #ffffff);
+    color: var(--heartly-text, #111827);
+    border: 1px solid var(--heartly-border, #e5e7eb);
+    box-shadow: var(--heartly-shadow-soft, 0 12px 30px rgba(15, 23, 42, 0.08));
+    font-size: 20px;
+}
+
+.ig-chat-search-card {
+    margin-bottom: 16px;
+}
+
+.ig-search-row {
+    min-height: 46px;
+    padding: 0 14px;
+    border-radius: 999px;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 10px;
+    background: var(--heartly-card-soft, rgba(236, 72, 153, 0.08));
+    border: 1px solid var(--heartly-border, #e5e7eb);
+}
+
+.ig-search-row input {
+    width: 100%;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: var(--heartly-text, #111827);
+    font-size: 14px;
+    font-weight: 750;
+}
+
+.ig-search-row input::placeholder {
+    color: var(--heartly-muted, #6b7280);
+}
+
+.ig-chat-section {
+    display: grid;
+    gap: 10px;
+}
+
+.ig-section-head {
+    padding: 0 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.ig-section-head h2 {
+    margin: 0;
+    color: var(--heartly-muted, #6b7280);
+    font-size: 12px;
+    font-weight: 950;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.ig-section-head a {
+    color: var(--heartly-primary, #ec4899);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 950;
+}
+
+.ig-chat-list {
+    border-radius: 26px;
+    overflow: hidden;
+    background: var(--heartly-card, #ffffff);
+    border: 1px solid var(--heartly-border, #e5e7eb);
+    box-shadow: var(--heartly-shadow-soft, 0 12px 30px rgba(15, 23, 42, 0.08));
+}
+
+.ig-chat-row {
+    min-height: 78px;
+    padding: 11px 12px;
+    display: grid;
+    grid-template-columns: 58px 1fr auto;
+    align-items: center;
+    gap: 12px;
+    color: inherit;
+    text-decoration: none;
+    border-top: 1px solid var(--heartly-border, #e5e7eb);
+}
+
+.ig-chat-row:first-child {
+    border-top: none;
+}
+
+.ig-avatar-wrap {
+    position: relative;
+    width: 58px;
+    height: 58px;
+}
+
+.ig-avatar-ring {
+    width: 58px;
+    height: 58px;
+    padding: 2px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--heartly-primary, #ec4899), var(--heartly-accent, #ef4444));
+}
+
+.ig-avatar {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    background: var(--heartly-card, #ffffff);
+    color: var(--heartly-primary, #ec4899);
+    font-weight: 950;
+    font-size: 20px;
+}
+
+.ig-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.ig-unread-dot {
+    position: absolute;
+    right: 1px;
+    bottom: 3px;
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    background: var(--heartly-primary, #ec4899);
+    border: 2px solid var(--heartly-card, #ffffff);
+}
+
+.ig-chat-copy {
+    min-width: 0;
+}
+
+.ig-chat-topline {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.ig-chat-topline strong {
+    min-width: 0;
+    color: var(--heartly-text, #111827);
+    font-size: 15px;
+    font-weight: 950;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ig-chat-topline small {
+    color: var(--heartly-muted, #6b7280);
+    font-size: 11px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.ig-chat-copy p {
+    margin: 4px 0 0;
+    color: var(--heartly-muted, #6b7280);
+    font-size: 13px;
+    line-height: 1.35;
+    font-weight: 750;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ig-unread-count {
+    min-width: 24px;
+    height: 24px;
+    padding: 0 7px;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    background: var(--heartly-primary, #ec4899);
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 950;
+}
+
+.ig-empty-card {
+    padding: 34px 18px;
+    text-align: center;
+}
+
+.ig-empty-icon {
+    width: 58px;
+    height: 58px;
+    border-radius: 22px;
+    display: grid;
+    place-items: center;
+    margin: 0 auto 12px;
+    background: var(--heartly-card-soft, rgba(236, 72, 153, 0.08));
+    color: var(--heartly-primary, #ec4899);
+    font-size: 25px;
+}
+
+.ig-empty-card h3 {
+    margin: 0;
+    color: var(--heartly-text, #111827);
+    font-size: 16px;
+    font-weight: 950;
+}
+
+.ig-empty-card p {
+    max-width: 310px;
+    margin: 7px auto 16px;
+    color: var(--heartly-muted, #6b7280);
+    font-size: 13px;
+    line-height: 1.45;
+    font-weight: 750;
+}
+
+.ig-empty-card a {
+    display: inline-flex;
+    min-height: 42px;
+    padding: 0 16px;
+    border-radius: 999px;
+    align-items: center;
+    justify-content: center;
+    background: var(--heartly-primary, #ec4899);
+    color: #ffffff;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 950;
+}
+
+@media (max-width: 390px) {
+    .ig-chat-page {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    .ig-chat-row {
+        grid-template-columns: 54px 1fr auto;
+    }
+
+    .ig-avatar-wrap,
+    .ig-avatar-ring {
+        width: 54px;
+        height: 54px;
+    }
+}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const chatSearchInput = document.getElementById("chatSearchInput");
+    const chatRows = document.querySelectorAll(".ig-chat-row");
+
+    if (chatSearchInput) {
+        chatSearchInput.addEventListener("input", function () {
+            const term = chatSearchInput.value.trim().toLowerCase();
+
+            chatRows.forEach(function (row) {
+                const name = row.dataset.chatName || "";
+                row.style.display = name.includes(term) ? "grid" : "none";
+            });
+        });
+    }
+</script>
+{% endblock %}

@@ -1,42 +1,277 @@
 {% extends "heartly/base.html" %}
+{% load static %}
 
 {% block title %}Interests - Heartly{% endblock %}
 
-{% block topbar %}
-<header class="settings-mobile-topbar">
-  <a href="{% url 'profiles:profile_home' %}" class="heartly-icon-btn">‹</a>
-  <h1>Interests</h1>
-  <span class="settings-topbar-spacer"></span>
-</header>
-{% endblock %}
-
 {% block content %}
+<div class="heartly-page interests-page">
 
-<section class="profile-v2-screen">
+    <section class="heartly-hero-card">
+        <span class="heartly-kicker">Personalize</span>
+        <h1 class="heartly-page-title">Your interests</h1>
+        <p class="heartly-page-subtitle">
+            Pick what describes you. These choices help Heartly improve your profile and match suggestions.
+        </p>
+    </section>
 
-  <section class="profile-v2-section heartly-card">
-    <div class="profile-v2-heading">
-      <h3>Choose interests</h3>
-    </div>
+    <section class="heartly-panel interests-card">
 
-    <form method="post" class="profile-interest-form">
-      {% csrf_token %}
+        <form method="post" class="interests-form">
+            {% csrf_token %}
 
-      <div class="profile-interest-grid">
-        {% for checkbox in form.interests %}
-          <label>
-            {{ checkbox.tag }}
-            <span>{{ checkbox.choice_label }}</span>
-          </label>
-        {% endfor %}
-      </div>
+            {% if form.non_field_errors %}
+                <div class="form-error-box">
+                    {{ form.non_field_errors }}
+                </div>
+            {% endif %}
 
-      <button type="submit" class="heartly-btn heartly-btn-primary" style="width:100%; margin-top:16px;">
-        Save Interests
-      </button>
-    </form>
-  </section>
+            {% if form.interests.errors %}
+                <div class="form-error-box">
+                    {{ form.interests.errors }}
+                </div>
+            {% endif %}
 
-</section>
+            <div class="interest-toolbar">
+                <div>
+                    <strong>Select interests</strong>
+                    <span>Tap chips to select or remove them.</span>
+                </div>
 
+                <span class="interest-count" id="interestCount">0 selected</span>
+            </div>
+
+            <div class="interest-chip-grid">
+                {% for checkbox in form.interests %}
+                    <label class="interest-chip" for="{{ checkbox.id_for_label }}">
+                        {{ checkbox.tag }}
+                        <span>{{ checkbox.choice_label }}</span>
+                    </label>
+                {% endfor %}
+            </div>
+
+            <div class="interests-actions">
+                <a href="{% url 'profiles:profile_home' %}" class="interests-cancel-btn">
+                    Cancel
+                </a>
+
+                <button type="submit" class="save-interests-btn">
+                    Save interests
+                </button>
+            </div>
+
+        </form>
+
+    </section>
+
+</div>
+
+<style>
+    .interests-card {
+        display: grid;
+        gap: 16px;
+    }
+
+    .interests-form {
+        display: grid;
+        gap: 18px;
+    }
+
+    .interest-toolbar {
+        padding: 14px;
+        border-radius: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        background: var(--heartly-card-soft);
+        border: 1px solid var(--heartly-border);
+    }
+
+    .interest-toolbar strong {
+        display: block;
+        color: var(--heartly-text);
+        font-size: 0.95rem;
+        font-weight: 950;
+    }
+
+    .interest-toolbar span {
+        display: block;
+        margin-top: 4px;
+        color: var(--heartly-muted);
+        font-size: 0.8rem;
+        line-height: 1.35;
+    }
+
+    .interest-count {
+        flex: 0 0 auto;
+        min-height: 34px;
+        padding: 0 12px;
+        border-radius: 999px;
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+        color: #ffffff !important;
+        background: linear-gradient(135deg, var(--heartly-primary), var(--heartly-primary-2));
+        font-size: 0.78rem !important;
+        font-weight: 900;
+        margin: 0 !important;
+    }
+
+    .interest-chip-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .interest-chip {
+        position: relative;
+        min-height: 44px;
+        padding: 0 16px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--heartly-text);
+        background: var(--heartly-card-soft);
+        border: 1px solid var(--heartly-border);
+        cursor: pointer;
+        user-select: none;
+        font-size: 0.9rem;
+        font-weight: 850;
+        transition: 0.18s ease;
+    }
+
+    .interest-chip input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .interest-chip span {
+        position: relative;
+        z-index: 1;
+    }
+
+    .interest-chip.selected {
+        color: #ffffff;
+        background: linear-gradient(135deg, var(--heartly-primary), var(--heartly-primary-2));
+        border-color: transparent;
+        box-shadow: 0 14px 30px rgba(255, 63, 114, 0.24);
+    }
+
+    .interest-chip:hover {
+        transform: translateY(-1px);
+        background: rgba(255, 63, 114, 0.10);
+    }
+
+    .interest-chip.selected:hover {
+        background: linear-gradient(135deg, var(--heartly-primary), var(--heartly-primary-2));
+    }
+
+    .interests-actions {
+        display: grid;
+        grid-template-columns: 0.8fr 1.2fr;
+        gap: 10px;
+    }
+
+    .interests-cancel-btn,
+    .save-interests-btn {
+        min-height: 52px;
+        border-radius: 18px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        font-weight: 950;
+        cursor: pointer;
+    }
+
+    .interests-cancel-btn {
+        color: var(--heartly-text);
+        background: var(--heartly-card-soft);
+        border: 1px solid var(--heartly-border);
+    }
+
+    .save-interests-btn {
+        width: 100%;
+        border: none;
+        color: #ffffff;
+        background: linear-gradient(135deg, var(--heartly-primary), var(--heartly-primary-2));
+        box-shadow: 0 18px 38px rgba(255, 63, 114, 0.28);
+    }
+
+    .form-error-box {
+        padding: 12px 14px;
+        border-radius: 16px;
+        color: #ffffff;
+        background: linear-gradient(135deg, #d92f63, #ff5f8e);
+        font-size: 0.85rem;
+        font-weight: 800;
+    }
+
+    @media (max-width: 430px) {
+        .interest-toolbar {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .interest-chip-grid {
+            gap: 8px;
+        }
+
+        .interest-chip {
+            min-height: 42px;
+            padding: 0 13px;
+            font-size: 0.84rem;
+        }
+
+        .interests-actions {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const chips = document.querySelectorAll(".interest-chip");
+        const countLabel = document.getElementById("interestCount");
+
+        function syncAll() {
+            let selectedCount = 0;
+
+            chips.forEach(function (chip) {
+                const input = chip.querySelector("input");
+
+                if (!input) return;
+
+                if (input.checked) {
+                    chip.classList.add("selected");
+                    selectedCount += 1;
+                } else {
+                    chip.classList.remove("selected");
+                }
+            });
+
+            if (countLabel) {
+                countLabel.textContent = selectedCount === 1
+                    ? "1 selected"
+                    : selectedCount + " selected";
+            }
+        }
+
+        chips.forEach(function (chip) {
+            const input = chip.querySelector("input");
+
+            if (!input) return;
+
+            chip.addEventListener("click", function () {
+                setTimeout(syncAll, 0);
+            });
+
+            input.addEventListener("change", syncAll);
+        });
+
+        syncAll();
+    });
+</script>
 {% endblock %}

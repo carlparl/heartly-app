@@ -1,6 +1,4 @@
-{% extends "heartly/base.html" %}
 {% load static %}
-{% block outer_content %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -10,101 +8,73 @@
 
     <title>{% block title %}Heartly{% endblock %}</title>
 
-    <meta name="color-scheme" content="light dark">
-    {% load static %}
-<link rel="stylesheet" href="{% static 'css/heartly-theme.css' %}">
-    <script>
-        tailwind = {
-            config: {
-                darkMode: "media"
-            }
-        }
-    </script>
-
-    <script src="https://cdn.tailwindcss.com"></script>
-
-    <link
-        rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
-    >
-
-    <script
-        defer
-        src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js">
-    </script>
-    <script>
-    /* Prevent theme flash before body renders: Detects system mode automatically if no user preference is stored */
-    (function () {
-        const KEYS = ["heartly-theme", "heartly_theme", "theme", "appTheme"];
-        let savedTheme = null;
-        for (const key of KEYS) {
-            const val = localStorage.getItem(key);
-            if (val === "light" || val === "dark") {
-                savedTheme = val;
-                break;
-            }
-        }
-        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-        const theme = savedTheme || (prefersDark ? "dark" : "light");
-
-        document.documentElement.setAttribute("data-theme", theme);
-    })();
-    </script>
     <style>
         :root {
-            --app-bg: #f3f4f6;
-            --app-surface: #ffffff;
-            --app-surface-soft: #f8fafc;
-
-            --app-text: #111827;
-            --app-text-strong: #0f172a;
-            --app-muted: #475569;
-
-            --app-border: #d1d5db;
-
-            --app-primary: #ec4899;
-            --app-primary-dark: #7c3aed;
-            --app-danger: #ef4444;
-
-            --app-shadow: 0 12px 32px rgba(15, 23, 42, 0.10);
+            --heartly-bg: #fff6fa;
+            --heartly-bg-2: #ffeaf2;
+            --heartly-card: rgba(255, 255, 255, 0.86);
+            --heartly-card-solid: #ffffff;
+            --heartly-card-soft: rgba(255, 255, 255, 0.64);
+            --heartly-text: #2d1020;
+            --heartly-muted: #8b6071;
+            --heartly-soft-text: #b18a9a;
+            --heartly-primary: #ff3f72;
+            --heartly-primary-2: #ff7aa2;
+            --heartly-primary-dark: #d92f63;
+            --heartly-border: rgba(255, 63, 114, 0.13);
+            --heartly-border-strong: rgba(255, 63, 114, 0.24);
+            --heartly-shadow: 0 18px 45px rgba(111, 36, 69, 0.13);
+            --heartly-shadow-soft: 0 12px 30px rgba(111, 36, 69, 0.09);
+            --heartly-radius-xl: 32px;
+            --heartly-radius-lg: 24px;
+            --heartly-radius-md: 18px;
+            --heartly-shell-width: 480px;
+            --heartly-topbar-height: 74px;
+            --heartly-bottomnav-height: 82px;
         }
 
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --app-bg: #050507;
-                --app-surface: #151519;
-                --app-surface-soft: #23232a;
-
-                --app-text: #f8fafc;
-                --app-text-strong: #ffffff;
-                --app-muted: #d4d4d8;
-
-                --app-border: rgba(255, 255, 255, 0.12);
-
-                --app-primary: #f472b6;
-                --app-primary-dark: #a855f7;
-                --app-danger: #f87171;
-
-                --app-shadow: 0 14px 38px rgba(0, 0, 0, 0.38);
-            }
+        body.dark {
+            --heartly-bg: #160912;
+            --heartly-bg-2: #24101c;
+            --heartly-card: rgba(39, 18, 31, 0.88);
+            --heartly-card-solid: #24101c;
+            --heartly-card-soft: rgba(255, 255, 255, 0.055);
+            --heartly-text: #fff3f7;
+            --heartly-muted: #c49aaa;
+            --heartly-soft-text: #a77d8d;
+            --heartly-primary: #ff4f80;
+            --heartly-primary-2: #ff8aac;
+            --heartly-primary-dark: #e03a6b;
+            --heartly-border: rgba(255, 255, 255, 0.09);
+            --heartly-border-strong: rgba(255, 255, 255, 0.16);
+            --heartly-shadow: 0 18px 45px rgba(0, 0, 0, 0.36);
+            --heartly-shadow-soft: 0 12px 30px rgba(0, 0, 0, 0.24);
         }
 
-        html,
-        body {
-            margin: 0;
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
             min-height: 100%;
-            background: var(--app-bg);
-            color: var(--app-text);
+            background: var(--heartly-bg);
         }
 
         body {
-            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            transition: background-color 0.25s ease, color 0.25s ease;
+            min-height: 100vh;
+            margin: 0;
+            color: var(--heartly-text);
+            background:
+                radial-gradient(circle at top left, rgba(255, 63, 114, 0.17), transparent 34%),
+                radial-gradient(circle at top right, rgba(255, 122, 162, 0.18), transparent 30%),
+                linear-gradient(180deg, var(--heartly-bg), var(--heartly-bg-2));
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            -webkit-font-smoothing: antialiased;
+            text-rendering: geometricPrecision;
         }
 
         a {
             color: inherit;
-            text-decoration: none;
         }
 
         button,
@@ -114,814 +84,574 @@
             font: inherit;
         }
 
-        button {
-            cursor: pointer;
+        img,
+        video {
+            max-width: 100%;
         }
 
-        .app-screen {
+        .heartly-shell {
+            width: 100%;
+            max-width: var(--heartly-shell-width);
             min-height: 100vh;
-            background: var(--app-bg);
-            color: var(--app-text);
+            margin: 0 auto;
+            position: relative;
         }
 
-        .app-container {
-            width: 100%;
-            max-width: 28rem;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        .app-card {
-            background: var(--app-surface);
-            border: 1px solid var(--app-border);
-            color: var(--app-text);
-            box-shadow: var(--app-shadow);
-        }
-
-        .app-soft {
-            background: var(--app-surface-soft);
-            color: var(--app-text);
-        }
-
-        .app-muted {
-            color: var(--app-muted);
-        }
-
-        .app-text-strong {
-            color: var(--app-text-strong);
-        }
-
-        .app-border {
-            border-color: var(--app-border);
-        }
-
-        .app-danger {
-            color: var(--app-danger);
-        }
-
-        .app-page-title {
-            color: var(--app-text-strong);
-            font-size: 1.875rem;
-            line-height: 2.25rem;
-            font-weight: 950;
-            letter-spacing: -0.04em;
-        }
-
-        .app-page-subtitle {
-            color: var(--app-muted);
-            margin-top: 0.25rem;
-            font-size: 0.875rem;
-        }
-
-        .app-section-title {
-            color: var(--app-muted);
-            font-size: 0.78rem;
-            font-weight: 900;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-        }
-
-        .app-input {
-            width: 100%;
-            border-radius: 1rem;
-            border: 1px solid var(--app-border);
-            background: var(--app-surface);
-            color: var(--app-text-strong);
-            padding: 0.75rem 1rem;
-            outline: none;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .app-input::placeholder {
-            color: var(--app-muted);
-        }
-
-        .app-input:focus {
-            border-color: var(--app-primary);
-            box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.18);
-        }
-
-        .app-textarea {
-            width: 100%;
-            min-height: 7rem;
-            border-radius: 1rem;
-            border: 1px solid var(--app-border);
-            background: var(--app-surface);
-            color: var(--app-text-strong);
-            padding: 0.75rem 1rem;
-            outline: none;
-            resize: vertical;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .app-textarea::placeholder {
-            color: var(--app-muted);
-        }
-
-        .app-textarea:focus {
-            border-color: var(--app-primary);
-            box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.18);
-        }
-
-        .app-btn-primary {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.45rem;
-            width: 100%;
-            border-radius: 9999px;
-            background: linear-gradient(135deg, var(--app-primary), var(--app-primary-dark));
-            color: #ffffff;
-            padding: 0.78rem 1.25rem;
-            font-size: 0.875rem;
-            font-weight: 900;
-            transition: transform 0.18s ease, filter 0.18s ease;
-            box-shadow: 0 14px 30px rgba(124, 58, 237, 0.22);
-        }
-
-        .app-btn-primary:hover {
-            filter: brightness(1.04);
-        }
-
-        .app-btn-primary:active {
-            transform: scale(0.98);
-        }
-
-        .app-btn-secondary {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.45rem;
-            width: 100%;
-            border-radius: 9999px;
-            border: 1px solid var(--app-border);
-            background: transparent;
-            color: var(--app-text-strong);
-            padding: 0.78rem 1.25rem;
-            font-size: 0.875rem;
-            font-weight: 900;
-            transition: background-color 0.2s ease, transform 0.2s ease;
-        }
-
-        .app-btn-secondary:hover {
-            background: var(--app-surface-soft);
-        }
-
-        .app-btn-secondary:active {
-            transform: scale(0.98);
-        }
-
-        .app-list-row {
+        .heartly-topbar {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            min-height: var(--heartly-topbar-height);
+            padding: 12px 14px 10px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 1rem;
-            padding: 1.1rem 1rem;
-            color: var(--app-text-strong);
+            gap: 12px;
+            background: linear-gradient(
+                180deg,
+                rgba(255, 246, 250, 0.92),
+                rgba(255, 246, 250, 0.72)
+            );
+            backdrop-filter: blur(22px);
+            -webkit-backdrop-filter: blur(22px);
+            border-bottom: 1px solid var(--heartly-border);
         }
 
-        .app-list-row + .app-list-row {
-            border-top: 1px solid var(--app-border);
+        body.dark .heartly-topbar {
+            background: linear-gradient(
+                180deg,
+                rgba(22, 9, 18, 0.92),
+                rgba(22, 9, 18, 0.72)
+            );
         }
 
-        .app-list-label {
+        .heartly-brand {
+            min-width: 0;
             display: flex;
             align-items: center;
-            gap: 0.85rem;
-            font-size: 0.95rem;
-            font-weight: 800;
-            color: var(--app-text-strong);
+            gap: 10px;
+            text-decoration: none;
         }
 
-        .app-list-icon {
-            color: #14b8a6;
-            font-size: 1.05rem;
-            width: 1.25rem;
+        .heartly-brand-mark {
+            width: 46px;
+            height: 46px;
+            flex: 0 0 auto;
+            border-radius: 18px;
+            display: grid;
+            place-items: center;
+            color: #ffffff;
+            background:
+                radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.42), transparent 31%),
+                linear-gradient(135deg, var(--heartly-primary), var(--heartly-primary-2));
+            box-shadow: 0 16px 34px rgba(255, 63, 114, 0.28);
+            font-size: 1.3rem;
+            font-weight: 950;
+        }
+
+        .heartly-brand-text {
+            min-width: 0;
+            display: grid;
+            gap: 2px;
+        }
+
+        .heartly-brand-text strong {
+            color: var(--heartly-text);
+            font-size: 1.08rem;
+            line-height: 1;
+            font-weight: 950;
+            letter-spacing: -0.05em;
+        }
+
+        .heartly-brand-text span {
+            color: var(--heartly-muted);
+            font-size: 0.74rem;
+            line-height: 1.2;
+            font-weight: 800;
+        }
+
+        .heartly-top-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .heartly-top-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 16px;
+            display: grid;
+            place-items: center;
+            color: var(--heartly-text);
+            background: var(--heartly-card);
+            border: 1px solid var(--heartly-border);
+            box-shadow: var(--heartly-shadow-soft);
+            text-decoration: none;
+            font-size: 1.1rem;
+            cursor: pointer;
+        }
+
+        .heartly-top-icon:hover {
+            background: rgba(255, 63, 114, 0.09);
+        }
+
+        .heartly-notification-bell {
+            position: relative;
+        }
+
+        .heartly-notification-bell em {
+            position: absolute;
+            min-width: 19px;
+            height: 19px;
+            padding: 0 5px;
+            top: -5px;
+            right: -5px;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            background: linear-gradient(135deg, #d92f63, #ff5f8e);
+            border: 2px solid var(--heartly-bg);
+            box-shadow: 0 8px 18px rgba(217, 47, 99, 0.28);
+            font-size: 0.66rem;
+            line-height: 1;
+            font-style: normal;
+            font-weight: 950;
+        }
+
+        body.dark .heartly-notification-bell em {
+            border-color: var(--heartly-bg);
+        }
+
+        .heartly-content {
+            padding: 14px 14px calc(var(--heartly-bottomnav-height) + 22px);
+        }
+
+        .heartly-page {
+            display: grid;
+            gap: 14px;
+        }
+
+        .heartly-hero-card,
+        .heartly-panel,
+        .heartly-card,
+        .heartly-empty-state,
+        .heartly-soft-card {
+            background: var(--heartly-card);
+            border: 1px solid var(--heartly-border);
+            box-shadow: var(--heartly-shadow);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+        }
+
+        .heartly-hero-card {
+            padding: 22px;
+            border-radius: var(--heartly-radius-xl);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .heartly-hero-card::before {
+            content: "";
+            position: absolute;
+            width: 170px;
+            height: 170px;
+            right: -72px;
+            top: -86px;
+            border-radius: 999px;
+            background: radial-gradient(circle, rgba(255, 63, 114, 0.22), transparent 68%);
+            pointer-events: none;
+        }
+
+        .heartly-panel {
+            padding: 18px;
+            border-radius: var(--heartly-radius-xl);
+        }
+
+        .heartly-card {
+            padding: 16px;
+            border-radius: var(--heartly-radius-lg);
+        }
+
+        .heartly-soft-card {
+            padding: 14px;
+            border-radius: var(--heartly-radius-lg);
+        }
+
+        .heartly-kicker {
+            display: inline-flex;
+            align-items: center;
+            width: fit-content;
+            min-height: 28px;
+            padding: 0 11px;
+            border-radius: 999px;
+            color: var(--heartly-primary-dark);
+            background: rgba(255, 63, 114, 0.1);
+            border: 1px solid rgba(255, 63, 114, 0.12);
+            font-size: 0.73rem;
+            font-weight: 950;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+        }
+
+        body.dark .heartly-kicker {
+            color: #ffb5ca;
+        }
+
+        .heartly-page-title {
+            margin: 10px 0 0;
+            color: var(--heartly-text);
+            font-size: clamp(1.75rem, 8vw, 2.35rem);
+            line-height: 0.96;
+            letter-spacing: -0.075em;
+            font-weight: 1000;
+        }
+
+        .heartly-page-subtitle {
+            max-width: 34rem;
+            margin: 10px 0 0;
+            color: var(--heartly-muted);
+            font-size: 0.94rem;
+            line-height: 1.48;
+            font-weight: 650;
+        }
+
+        .heartly-primary-btn,
+        .heartly-secondary-btn {
+            min-height: 50px;
+            padding: 0 16px;
+            border-radius: 18px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            font-size: 0.92rem;
+            font-weight: 950;
+            cursor: pointer;
+        }
+
+        .heartly-primary-btn {
+            color: #ffffff;
+            background: linear-gradient(135deg, var(--heartly-primary), var(--heartly-primary-2));
+            box-shadow: 0 16px 34px rgba(255, 63, 114, 0.24);
+            border: none;
+        }
+
+        .heartly-secondary-btn {
+            color: var(--heartly-text);
+            background: var(--heartly-card-soft);
+            border: 1px solid var(--heartly-border);
+        }
+
+        .heartly-empty-state {
+            padding: 28px 18px;
+            border-radius: var(--heartly-radius-xl);
+            display: grid;
+            place-items: center;
+            gap: 10px;
             text-align: center;
         }
 
-        .app-chevron {
-            color: var(--app-muted);
-            font-size: 1rem;
+        .heartly-empty-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 24px;
+            display: grid;
+            place-items: center;
+            color: #ffffff;
+            background: linear-gradient(135deg, var(--heartly-primary), var(--heartly-primary-2));
+            box-shadow: 0 16px 34px rgba(255, 63, 114, 0.24);
+            font-size: 1.55rem;
         }
 
-        /* =========================
-           BOTTOM NAVIGATION
-        ========================= */
+        .heartly-empty-title {
+            margin: 0;
+            color: var(--heartly-text);
+            font-size: 1.08rem;
+            line-height: 1.2;
+            font-weight: 950;
+        }
 
-        .app-nav {
+        .heartly-empty-text {
+            max-width: 22rem;
+            margin: 0;
+            color: var(--heartly-muted);
+            font-size: 0.86rem;
+            line-height: 1.45;
+            font-weight: 650;
+        }
+
+        .heartly-messages {
+            display: grid;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .heartly-message {
+            padding: 12px 14px;
+            border-radius: 18px;
+            color: #ffffff;
+            background: linear-gradient(135deg, var(--heartly-primary), var(--heartly-primary-2));
+            box-shadow: 0 12px 28px rgba(255, 63, 114, 0.18);
+            font-size: 0.84rem;
+            line-height: 1.4;
+            font-weight: 850;
+        }
+
+        .heartly-message.error {
+            background: linear-gradient(135deg, #d92f63, #ff5f8e);
+        }
+
+        .heartly-message.warning {
+            background: linear-gradient(135deg, #e67e22, #ffb347);
+        }
+
+        .heartly-message.info {
+            background: linear-gradient(135deg, #6f5cff, #9d7bff);
+        }
+
+        .heartly-bottomnav {
             position: fixed;
             left: 50%;
-            bottom: 0.75rem;
-            z-index: 50;
-            width: calc(100% - 1.5rem);
-            max-width: 26rem;
+            bottom: 0;
+            z-index: 120;
+            width: 100%;
+            max-width: var(--heartly-shell-width);
+            min-height: var(--heartly-bottomnav-height);
+            padding: 10px 12px 12px;
             transform: translateX(-50%);
-            border: 1px solid var(--app-border);
-            border-radius: 2rem;
-            background: var(--app-surface);
-            box-shadow: var(--app-shadow);
-            padding: 0.55rem;
-            padding-bottom: calc(0.55rem + env(safe-area-inset-bottom));
+            background: linear-gradient(
+                180deg,
+                rgba(255, 246, 250, 0.72),
+                rgba(255, 246, 250, 0.96)
+            );
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-top: 1px solid var(--heartly-border);
         }
 
-        @supports (backdrop-filter: blur(22px)) {
-            .app-nav {
-                background: color-mix(in srgb, var(--app-surface) 88%, transparent);
-                backdrop-filter: blur(22px);
-            }
+        body.dark .heartly-bottomnav {
+            background: linear-gradient(
+                180deg,
+                rgba(22, 9, 18, 0.72),
+                rgba(22, 9, 18, 0.96)
+            );
         }
 
-        .app-nav-inner {
+        .heartly-bottomnav-inner {
+            min-height: 60px;
+            padding: 6px;
+            border-radius: 28px;
             display: grid;
             grid-template-columns: repeat(5, 1fr);
-            align-items: center;
-            gap: 0.25rem;
+            gap: 5px;
+            background: var(--heartly-card);
+            border: 1px solid var(--heartly-border);
+            box-shadow: var(--heartly-shadow);
         }
 
-        .app-nav-item {
-            position: relative;
-            display: flex;
-            min-height: 3.6rem;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 0.22rem;
-            border-radius: 1.45rem;
-            color: var(--app-muted);
-            font-size: 0.68rem;
-            font-weight: 900;
-            line-height: 1;
-            transition:
-                background-color 0.2s ease,
-                color 0.2s ease,
-                transform 0.2s ease;
-        }
-
-        .app-nav-item i {
-            font-size: 1.08rem;
-        }
-
-        .app-nav-item:hover {
-            background: var(--app-surface-soft);
-            color: var(--app-primary);
-        }
-
-        .app-nav-item:active {
-            transform: scale(0.94);
-        }
-
-        .app-nav-item.is-active {
-            background: color-mix(in srgb, var(--app-primary) 15%, transparent);
-            color: var(--app-primary);
-        }
-
-        .app-nav-item.is-active::before {
-            display: none !important;
-            content: none !important;
-        }
-
-        .app-nav-label {
-            margin-top: 0.1rem;
-        }
-
-        .app-nav-badge {
-            position: absolute;
-            top: 0.45rem;
-            right: 1.05rem;
-            min-width: 1rem;
-            height: 1rem;
-            border-radius: 9999px;
-            background: var(--app-danger);
-            color: white;
-            font-size: 0.62rem;
-            font-weight: 950;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0 0.25rem;
-        }
-
-        /* =========================
-           AI NAV BUTTON
-           Best version: icon only, no text logo.
-        ========================= */
-
-        .app-nav-ai {
-            background: transparent !important;
-            color: var(--app-primary);
-            transform: translateY(-0.22rem);
-        }
-
-        .app-nav-ai:hover,
-        .app-nav-ai.is-active {
-            background: transparent !important;
-            color: var(--app-primary);
-        }
-
-        .app-nav-ai-circle {
-            width: 3.25rem;
-            height: 3.25rem;
-            border-radius: 9999px;
-            overflow: hidden;
-            background: #ffffff;
-            border: 2px solid color-mix(in srgb, var(--app-primary) 65%, white);
-            box-shadow:
-                0 12px 28px rgba(236, 72, 153, 0.34),
-                0 0 0 5px color-mix(in srgb, var(--app-primary) 12%, transparent);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: transform 0.18s ease, box-shadow 0.18s ease;
-        }
-
-        .app-nav-ai:hover .app-nav-ai-circle {
-            transform: scale(1.045);
-            box-shadow:
-                0 15px 34px rgba(124, 58, 237, 0.38),
-                0 0 0 6px color-mix(in srgb, var(--app-primary) 15%, transparent);
-        }
-
-        .app-nav-ai-img {
-            width: 72%;
-            height: 72%;
-            object-fit: contain;
-            display: block;
-        }
-
-        .app-nav-ai .app-nav-label {
-            margin-top: 0.18rem;
-            color: var(--app-primary);
-            font-weight: 950;
-        }
-
-        /* =========================
-           MESSAGES
-        ========================= */
-
-        .app-message-stack {
-            position: fixed;
-            top: 1rem;
-            left: 50%;
-            z-index: 60;
-            width: 90%;
-            max-width: 28rem;
-            transform: translateX(-50%);
+        .heartly-nav-item {
+            min-width: 0;
+            min-height: 48px;
+            border-radius: 21px;
             display: grid;
-            gap: 0.5rem;
+            place-items: center;
+            align-content: center;
+            gap: 3px;
+            color: var(--heartly-muted);
+            text-decoration: none;
+            font-size: 0.68rem;
+            line-height: 1;
+            font-weight: 850;
         }
 
-        .app-message {
-            border-radius: 1.25rem;
-            padding: 0.8rem 1rem;
-            font-size: 0.875rem;
-            font-weight: 800;
-            box-shadow: var(--app-shadow);
+        .heartly-nav-item .nav-icon {
+            font-size: 1.05rem;
+            line-height: 1;
         }
 
-        .app-message-success {
-            background: #10b981;
-            color: white;
+        .heartly-nav-item:hover {
+            background: rgba(255, 63, 114, 0.08);
+            color: var(--heartly-text);
         }
 
-        .app-message-error {
-            background: #ef4444;
-            color: white;
+        .heartly-nav-item.active {
+            color: #ffffff;
+            background: linear-gradient(135deg, var(--heartly-primary), var(--heartly-primary-2));
+            box-shadow: 0 12px 28px rgba(255, 63, 114, 0.22);
         }
 
-        .app-message-warning {
-            background: #facc15;
-            color: #111827;
-        }
-
-        .app-message-info {
-            background: var(--app-surface);
-            border: 1px solid var(--app-border);
-            color: var(--app-text-strong);
-        }
-
-        /* =========================
-           DARK MODE PATCHES
-        ========================= */
-
-        @media (prefers-color-scheme: dark) {
-            .bg-white,
-            .bg-gray-50,
-            .bg-gray-100,
-            .bg-slate-50,
-            .bg-slate-100,
-            .bg-zinc-50,
-            .bg-zinc-100 {
-                background-color: var(--app-surface) !important;
-                color: var(--app-text) !important;
+        @media (min-width: 700px) {
+            :root {
+                --heartly-shell-width: 540px;
             }
 
-            .text-black,
-            .text-gray-950,
-            .text-gray-900,
-            .text-gray-800,
-            .text-gray-700,
-            .text-slate-950,
-            .text-slate-900,
-            .text-slate-800,
-            .text-zinc-950,
-            .text-zinc-900,
-            .text-zinc-800 {
-                color: var(--app-text-strong) !important;
+            .heartly-content {
+                padding-left: 18px;
+                padding-right: 18px;
             }
 
-            .text-gray-600,
-            .text-gray-500,
-            .text-gray-400,
-            .text-slate-600,
-            .text-slate-500,
-            .text-slate-400,
-            .text-zinc-600,
-            .text-zinc-500,
-            .text-zinc-400 {
-                color: var(--app-muted) !important;
+            .heartly-topbar {
+                border-radius: 0 0 28px 28px;
+            }
+        }
+
+        @media (max-width: 380px) {
+            .heartly-brand-text span {
+                display: none;
             }
 
-            .border-gray-50,
-            .border-gray-100,
-            .border-gray-200,
-            .border-slate-100,
-            .border-slate-200,
-            .border-zinc-100,
-            .border-zinc-200 {
-                border-color: var(--app-border) !important;
+            .heartly-top-icon {
+                width: 42px;
+                height: 42px;
             }
 
-            input,
-            textarea,
-            select {
-                background-color: var(--app-surface) !important;
-                color: var(--app-text-strong) !important;
-                border-color: var(--app-border) !important;
+            .heartly-content {
+                padding-left: 12px;
+                padding-right: 12px;
             }
 
-            input::placeholder,
-            textarea::placeholder {
-                color: var(--app-muted) !important;
+            .heartly-nav-item {
+                font-size: 0.62rem;
             }
         }
     </style>
 
-    <style>
-:root {
-    --heartly-bg: #fff7fb;
-    --heartly-bg-soft: #fffafd;
-    --heartly-surface: #ffffff;
-    --heartly-surface-2: #fff5f8;
-    --heartly-text: #24141b;
-    --heartly-muted: #7a5c67;
-    --heartly-border: #ffe0eb;
-    --heartly-input: #ffffff;
-
-    --heartly-brand: #ff4f8b;
-    --heartly-brand-2: #ff78a7;
-    --heartly-brand-soft: rgba(255, 79, 139, 0.12);
-    --heartly-brand-gradient: linear-gradient(135deg, #ff4f8b, #ff78a7);
-
-    --heartly-on-brand: #ffffff;
-    --heartly-danger: #ef4444;
-    --heartly-success: #22c55e;
-
-    --heartly-shadow: 0 22px 60px rgba(255, 79, 139, 0.14);
-    --heartly-radius-lg: 28px;
-    --heartly-radius-md: 18px;
-    --heartly-radius-pill: 999px;
-}
-
-html[data-theme="dark"] {
-    --heartly-bg: #130b10;
-    --heartly-bg-soft: #1a1017;
-    --heartly-surface: #21141d;
-    --heartly-surface-2: #2b1a25;
-    --heartly-text: #fff3f7;
-    --heartly-muted: #c7aebb;
-    --heartly-border: rgba(255, 255, 255, 0.12);
-    --heartly-input: #180f15;
-
-    --heartly-brand: #ff5f98;
-    --heartly-brand-2: #ff86b2;
-    --heartly-brand-soft: rgba(255, 95, 152, 0.16);
-    --heartly-brand-gradient: linear-gradient(135deg, #ff5f98, #ff86b2);
-
-    --heartly-on-brand: #ffffff;
-    --heartly-shadow: 0 22px 60px rgba(0, 0, 0, 0.35);
-}
-
-html,
-body {
-    background: var(--heartly-bg) !important;
-    color: var(--heartly-text) !important;
-}
-</style>
-
-    {% block extra_head %}{% endblock %}
+    {% block extra_css %}{% endblock %}
 </head>
 
 <body>
+    {% url 'feed:feed_home' as feed_url %}
+    {% url 'matches:discover' as matches_url %}
+    {% url 'ai_features:ai_coach' as ai_url %}
+    {% url 'chat:chat_home' as chat_url %}
+    {% url 'profiles:profile_home' as profile_url %}
+    {% url 'notifications:notifications_home' as notifications_url %}
+    {% url 'settings' as settings_url %}
 
-    <main class="{% block main_class %}{% if user.is_authenticated %}pb-32{% endif %}{% endblock %}">
-        {% block content %}{% endblock %}
-    </main>
+    <div class="heartly-shell">
 
-    {% if user.is_authenticated %}
-        {% block app_nav %}
-        <nav class="app-nav" aria-label="Main navigation">
-            <div class="app-nav-inner">
+        <header class="heartly-topbar">
+            <a href="{{ feed_url }}" class="heartly-brand" aria-label="Heartly home">
+                <div class="heartly-brand-mark">❤</div>
 
-                <a href="{% url 'matches:discover' %}"
-                   class="app-nav-item {% if request.path == '/discover/' %}is-active{% endif %}">
-                    <i class="fa-solid fa-compass"></i>
-                    <span class="app-nav-label">Discover</span>
-                </a>
+                <div class="heartly-brand-text">
+                    <strong>Heartly</strong>
+                    <span>Your social companion</span>
+                </div>
+            </a>
 
-                <a href="{% url 'feed:feed_home' %}"
-                   class="app-nav-item {% if request.path == '/feed/' %}is-active{% endif %}">
-                    <i class="fa-solid fa-house"></i>
-                    <span class="app-nav-label">Feed</span>
-                </a>
+            <div class="heartly-top-actions">
+                <a href="{{ notifications_url }}" class="heartly-top-icon heartly-notification-bell" aria-label="Notifications">
+                    <span>🔔</span>
 
-                <a href="{% url 'ai_features:ai_coach_page' %}"
-                   class="app-nav-item app-nav-ai {% if request.path|slice:':4' == '/ai/' %}is-active{% endif %}">
-                    <span class="app-nav-ai-circle">
-                        <img
-                            src="{% static 'images/heartly_logo_icon_transparent.png' %}"
-                            alt="Heartly AI"
-                            class="app-nav-ai-img"
-                        >
-                    </span>
-                    <span class="app-nav-label">AI</span>
-                </a>
-
-                <a href="{% url 'chat:chat_home' %}"
-                   class="app-nav-item {% if request.path|slice:':6' == '/chat/' %}is-active{% endif %}">
-                    <i class="fa-solid fa-comment"></i>
-                    <span class="app-nav-label">Chat</span>
-
-                    {% if unread_chat_count %}
-                        <span class="app-nav-badge">{{ unread_chat_count }}</span>
+                    {% if unread_notifications_count %}
+                        <em>
+                            {% if unread_notifications_count > 9 %}
+                                9+
+                            {% else %}
+                                {{ unread_notifications_count }}
+                            {% endif %}
+                        </em>
                     {% endif %}
                 </a>
 
-                <a href="{% url 'settings' %}"
-                   class="app-nav-item {% if request.path|slice:':10' == '/settings/' %}is-active{% endif %}">
-                    <i class="fa-solid fa-user"></i>
-                    <span class="app-nav-label">Settings</span>
+                <a href="{{ settings_url }}" class="heartly-top-icon" aria-label="Settings">
+                    ⚙️
+                </a>
+            </div>
+        </header>
+
+        <main class="heartly-content">
+
+            {% if messages %}
+                <section class="heartly-messages">
+                    {% for message in messages %}
+                        <div class="heartly-message {{ message.tags }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </section>
+            {% endif %}
+
+            {% block content %}{% endblock %}
+
+        </main>
+
+        <nav class="heartly-bottomnav" aria-label="Main navigation">
+            <div class="heartly-bottomnav-inner">
+
+                <a href="{{ feed_url }}"
+                   class="heartly-nav-item {% if request.resolver_match.namespace == 'feed' %}active{% endif %}">
+                    <span class="nav-icon">🏠</span>
+                    <span>Feed</span>
+                </a>
+
+                <a href="{{ matches_url }}"
+                   class="heartly-nav-item {% if request.resolver_match.namespace == 'matches' %}active{% endif %}">
+                    <span class="nav-icon">💞</span>
+                    <span>Matches</span>
+                </a>
+
+                <a href="{{ ai_url }}"
+                   class="heartly-nav-item {% if request.resolver_match.namespace == 'ai_features' %}active{% endif %}">
+                    <span class="nav-icon">🤖</span>
+                    <span>AI</span>
+                </a>
+
+                <a href="{{ chat_url }}"
+                   class="heartly-nav-item {% if request.resolver_match.namespace == 'chat' %}active{% endif %}">
+                    <span class="nav-icon">💬</span>
+                    <span>Chat</span>
+                </a>
+
+                <a href="{{ profile_url }}"
+                   class="heartly-nav-item {% if request.resolver_match.namespace == 'profiles' %}active{% endif %}">
+                    <span class="nav-icon">👤</span>
+                    <span>Profile</span>
                 </a>
 
             </div>
         </nav>
-        {% endblock %}
-    {% endif %}
 
-    {% if messages %}
-        <div class="app-message-stack">
-            {% for message in messages %}
-                <div class="
-                    app-message
-                    {% if message.tags == 'success' %}
-                        app-message-success
-                    {% elif message.tags == 'error' %}
-                        app-message-error
-                    {% elif message.tags == 'warning' %}
-                        app-message-warning
-                    {% else %}
-                        app-message-info
-                    {% endif %}
-                ">
-                    {{ message }}
-                </div>
-            {% endfor %}
-        </div>
-    {% endif %}
+    </div>
 
-    <style id="heartly-theme-force">
-/* FORCE FEED + AI TO OBEY HEARTLY THEME */
+    <script>
+        (function () {
+            const storageKey = "heartlyTheme";
+            const body = document.body;
 
-.feed-page,
-.feed-container,
-.feed-shell,
-.heartly-ai-page,
-.grop-page {
-    background:
-        radial-gradient(circle at top left, var(--heartly-brand-soft), transparent 34%),
-        var(--heartly-bg) !important;
-    color: var(--heartly-text) !important;
-}
-
-.feed-card,
-.feed-post,
-.post-card,
-.composer-card,
-.create-post-card,
-.heartly-ai-shell,
-.grop-shell,
-.card,
-.modal-content {
-    background: var(--heartly-surface) !important;
-    color: var(--heartly-text) !important;
-    border-color: var(--heartly-border) !important;
-    box-shadow: var(--heartly-shadow) !important;
-}
-
-.feed-header,
-.feed-topbar,
-.heartly-ai-header,
-.grop-header {
-    background: var(--heartly-brand-gradient) !important;
-    color: var(--heartly-on-brand) !important;
-}
-
-.feed-card *,
-.feed-post *,
-.post-card *,
-.composer-card *,
-.create-post-card *,
-.heartly-ai-shell *,
-.grop-shell * {
-    border-color: var(--heartly-border);
-}
-
-.feed-muted,
-.text-muted,
-.app-muted,
-.heartly-ai-intro span,
-.heartly-ai-title p,
-.grop-heading p {
-    color: var(--heartly-muted) !important;
-}
-
-input,
-textarea,
-select,
-.form-control,
-.heartly-ai-input,
-.grop-input {
-    background: var(--heartly-input) !important;
-    color: var(--heartly-text) !important;
-    border-color: var(--heartly-border) !important;
-}
-
-input::placeholder,
-textarea::placeholder {
-    color: var(--heartly-muted) !important;
-}
-
-button,
-.btn,
-.heartly-ai-send-btn,
-.heartly-ai-reset-btn,
-.grop-send-btn,
-.grop-reset-btn {
-    border-color: var(--heartly-border);
-}
-
-.btn-primary,
-.heartly-ai-send-btn,
-.grop-send-btn,
-.feed-primary-btn,
-.post-action-primary {
-    background: var(--heartly-brand) !important;
-    color: var(--heartly-on-brand) !important;
-}
-
-.heartly-ai-chip,
-.grop-suggestion,
-.feed-chip,
-.post-action,
-.feed-action-btn {
-    background: var(--heartly-surface-2) !important;
-    color: var(--heartly-brand) !important;
-    border-color: var(--heartly-border) !important;
-}
-
-.heartly-ai-messages,
-.grop-messages,
-.feed-list,
-.feed-scroll-area {
-    background: var(--heartly-bg-soft) !important;
-}
-
-.heartly-ai-row.is-assistant .heartly-ai-bubble,
-.grop-row.assistant .grop-bubble,
-.bot-row .chat-bubble {
-    background: var(--heartly-surface) !important;
-    color: var(--heartly-text) !important;
-    border-color: var(--heartly-border) !important;
-}
-
-.heartly-ai-row.is-user .heartly-ai-bubble,
-.grop-row.user .grop-bubble,
-.user-row .chat-bubble {
-    background: var(--heartly-brand) !important;
-    color: var(--heartly-on-brand) !important;
-}
-
-a {
-    color: var(--heartly-brand);
-}
-
-hr {
-    border-color: var(--heartly-border) !important;
-}
-</style>
-
-<script>
-(function () {
-    const KEYS = [
-        "heartly-theme",
-        "heartly_theme",
-        "theme",
-        "appTheme"
-    ];
-
-    function getSavedTheme() {
-        // 1. First look for manual user override in localStorage
-        for (const key of KEYS) {
-            const value = localStorage.getItem(key);
-            if (value === "light" || value === "dark") {
-                return value;
+            function applyTheme(theme) {
+                if (theme === "dark") {
+                    body.classList.add("dark");
+                } else {
+                    body.classList.remove("dark");
+                }
             }
-        }
 
-        // 2. Next check hardcoded body styling triggers
-        const body = document.body;
-        if (body && (body.classList.contains("theme-dark") || body.classList.contains("dark-mode"))) {
-            return "dark";
-        }
-        if (body && (body.classList.contains("theme-light") || body.classList.contains("light-mode"))) {
-            return "light";
-        }
+            const savedTheme = localStorage.getItem(storageKey) || "light";
+            applyTheme(savedTheme);
 
-        // 3. Fallback: Automatically track standard system preference
-        return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-    }
+            document.addEventListener("click", function (event) {
+                const themeButton = event.target.closest("[data-theme-choice]");
 
-    function applyTheme(theme) {
-        const cleanTheme = theme === "dark" ? "dark" : "light";
+                if (!themeButton) {
+                    return;
+                }
 
-        document.documentElement.setAttribute("data-theme", cleanTheme);
-        document.body.setAttribute("data-theme", cleanTheme);
+                const selectedTheme = themeButton.getAttribute("data-theme-choice");
 
-        document.body.classList.toggle("theme-dark", cleanTheme === "dark");
-        document.body.classList.toggle("theme-light", cleanTheme === "light");
-    }
+                if (selectedTheme !== "light" && selectedTheme !== "dark") {
+                    return;
+                }
 
-    window.HeartlyTheme = {
-        apply: applyTheme,
-        current: getSavedTheme
-    };
-
-    document.addEventListener("DOMContentLoaded", function () {
-        applyTheme(getSavedTheme());
-
-        document.querySelectorAll("[data-theme-value]").forEach(function (button) {
-            button.addEventListener("click", function () {
-                const theme = button.getAttribute("data-theme-value");
-                localStorage.setItem("heartly-theme", theme);
-                applyTheme(theme);
+                localStorage.setItem(storageKey, selectedTheme);
+                applyTheme(selectedTheme);
             });
-        });
-
-        const themeSwitch = document.querySelector("#themeSwitch, #theme-toggle, .theme-switch input");
-
-        if (themeSwitch) {
-            themeSwitch.addEventListener("change", function () {
-                const theme = themeSwitch.checked ? "dark" : "light";
-                localStorage.setItem("heartly-theme", theme);
-                applyTheme(theme);
-            });
-        }
-    });
-
-    // Automatically change appearance when the operating system triggers a preference shift
-    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function () {
-        // Only switch automatically if the user hasn't explicitly saved a choice over it
-        let customSelectionExists = false;
-        for (const key of KEYS) {
-            if (localStorage.getItem(key)) {
-                customSelectionExists = true;
-                break;
-            }
-        }
-        if (!customSelectionExists) {
-            applyTheme(getSavedTheme());
-        }
-    });
-
-    window.addEventListener("storage", function (event) {
-        if (KEYS.includes(event.key)) {
-            applyTheme(getSavedTheme());
-        }
-    });
-})();
-</script>
+        })();
+    </script>
 
     {% block extra_js %}{% endblock %}
-    
 </body>
 </html>

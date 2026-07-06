@@ -1,0 +1,62 @@
+{% extends "heartly/base.html" %}
+
+{% block title %}Account - Heartly{% endblock %}
+
+{% block topbar %}
+<header class="settings-mobile-topbar">
+  <a href="{% url 'settings' %}" class="heartly-icon-btn" aria-label="Back">‹</a>
+  <h1>Account</h1>
+  <span class="settings-topbar-spacer"></span>
+</header>
+{% endblock %}
+
+{% block content %}
+<section class="settings-screen">
+
+  <div class="settings-card">
+    <h2>Profile</h2>
+    <p>Manage your public Heartly identity.</p>
+
+    <div class="settings-info-list">
+      <div>
+        <span>Username</span>
+        <strong>{{ request.user.username }}</strong>
+      </div>
+
+      <div>
+        <span>Email</span>
+        <strong>{{ request.user.email|default:"No email added" }}</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="settings-card settings-menu-card">
+    <a href="/profile/" class="settings-menu-item">
+      <span class="settings-menu-left">
+        <span class="settings-menu-icon">👤</span>
+        <span>Edit Profile</span>
+      </span>
+      <span class="settings-chevron">›</span>
+    </a>
+
+    <a href="/accounts/password/change/" class="settings-menu-item">
+      <span class="settings-menu-left">
+        <span class="settings-menu-icon">🔐</span>
+        <span>Change Password</span>
+      </span>
+      <span class="settings-chevron">›</span>
+    </a>
+
+    <a href="/accounts/logout/" class="settings-menu-item danger-link">
+      <span class="settings-menu-left">
+        <span class="settings-menu-icon">🚪</span>
+        <span>Log Out</span>
+      </span>
+      <span class="settings-chevron">›</span>
+    </a>
+  </div>
+
+</section>
+
+{% include "accounts/settings_shared_styles.html" %}
+{% endblock %}

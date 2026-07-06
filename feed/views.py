@@ -1,148 +1,265 @@
+from asgiref.sync import async_to_sync
+
+from channels.layers import get_channel_layer
 from django.contrib import messages
+from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from django.db.models import Q
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.templatetags.static import static
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from .models import Comment, Post, PostLike, PostMedia
+from profiles.models import Profile
+
+from .models import Comment, Post, PostLike, PostReport
+
+try:
+    from profiles.blocking import hidden_user_ids_for
+except Exception:
+    hidden_user_ids_for = None
+
+try:
+    from notifications.models import Notification
+except Exception:
+    Notification = None
 
 
-ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"]
-ALLOWED_VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"]
+User = get_user_model()
 
-MAX_IMAGES_PER_POST = 4
 
-MAX_IMAGE_SIZE = 5 * 1024 * 1024
-MAX_VIDEO_SIZE = 50 * 1024 * 1024
+def is_ajax(request):
+    return request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
+
+def back_to_feed(request):
+    return request.META.get("HTTP_REFERER") or reverse("feed:feed_home")
+
+
+def model_has_field(model, field_name):
+    return any(field.name == field_name for field in model._meta.fields)
+
+
+def get_profile(user):
+    profile, created = Profile.objects.get_or_create(user=user)
+    return profile
+
+
+def get_display_name(user):
+    profile = get_profile(user)
+
+    return (
+        getattr(profile, "display_name", "")
+        or getattr(profile, "name", "")
+        or user.get_full_name()
+        or user.username
+    )
 
 
 def get_profile_photo_url(user):
+    profile = get_profile(user)
+
+    for field_name in ["profile_picture", "photo", "avatar", "image"]:
+        image_field = getattr(profile, field_name, None)
+
+        if image_field:
+            try:
+                return image_field.url
+            except Exception:
+                pass
+
+    return ""
+
+
+def feed_post_url(post):
+    return reverse("feed:feed_home") + f"?post={post.id}#post-{post.id}"
+
+
+def create_notification_safe(
+    *,
+    recipient,
+    actor,
+    notification_type,
+    title,
+    message,
+    url,
+    related_object_type,
+    related_object_id,
+):
+    if Notification is None:
+        return None
+
+    if recipient == actor:
+        return None
+
+    data = {
+        "recipient": recipient,
+        "actor": actor,
+        "notification_type": notification_type,
+        "title": title,
+        "message": message,
+        "url": url,
+        "related_object_type": related_object_type,
+        "related_object_id": related_object_id,
+    }
+
+    allowed_data = {
+        key: value
+        for key, value in data.items()
+        if model_has_field(Notification, key)
+    }
+
     try:
-        profile = getattr(user, "profile", None)
-
-        if profile and getattr(profile, "profile_picture", None):
-            return profile.profile_picture.url
+        return Notification.objects.create(**allowed_data)
     except Exception:
-        pass
-
-    return static("images/default-avatar.png")
+        return None
 
 
-def get_uploaded_images(request):
-    """
-    X-style image uploads:
-    - Main field: images
-    - Fallback field: image, for older templates
-    """
+def send_live_feed_notification(
+    *,
+    recipient,
+    actor,
+    notification_type,
+    title,
+    message,
+    url,
+    post_id,
+):
+    channel_layer = get_channel_layer()
 
-    images = request.FILES.getlist("images")
+    if not channel_layer:
+        return
 
-    if not images:
-        single_image = request.FILES.get("image")
-        if single_image:
-            images = [single_image]
-
-    return images
-
-
-def get_uploaded_video(request):
-    """
-    X-style video upload:
-    - Only one video per post.
-    """
-
-    return request.FILES.get("video")
-
-
-def validate_media_upload(images, video):
-    """
-    X-style rules:
-    - Max 4 images.
-    - OR 1 video.
-    - Images and video cannot be mixed.
-    """
-
-    if images and video:
-        return False, "Upload either images or one video, not both."
-
-    if len(images) > MAX_IMAGES_PER_POST:
-        return False, "You can upload up to 4 images."
-
-    for image in images:
-        if image.content_type not in ALLOWED_IMAGE_TYPES:
-            return False, "Only JPG, PNG, and WEBP images are allowed."
-
-        if image.size > MAX_IMAGE_SIZE:
-            return False, "Each image must be 5MB or smaller."
-
-    if video:
-        if video.content_type not in ALLOWED_VIDEO_TYPES:
-            return False, "Only MP4, WEBM, and MOV videos are allowed."
-
-        if video.size > MAX_VIDEO_SIZE:
-            return False, "Video must be 50MB or smaller."
-
-    return True, None
+    try:
+        async_to_sync(channel_layer.group_send)(
+            f"heartly_user_{recipient.id}",
+            {
+                "type": "notification.event",
+                "payload": {
+                    "type": "feed_notification",
+                    "notification_type": notification_type,
+                    "title": title,
+                    "message": message,
+                    "actor_id": actor.id,
+                    "actor_name": get_display_name(actor),
+                    "actor_photo": get_profile_photo_url(actor),
+                    "url": url,
+                    "post_id": post_id,
+                },
+            },
+        )
+    except Exception:
+        return
 
 
-def create_post_media(post, images, video, alt_texts=None):
-    alt_texts = alt_texts or []
+def notify_post_owner(post, actor, notification_type, title, message):
+    if post.user == actor:
+        return
 
-    if images:
-        for index, image in enumerate(images):
-            alt_text = ""
+    url = feed_post_url(post)
 
-            if index < len(alt_texts):
-                alt_text = alt_texts[index].strip()
+    notification = create_notification_safe(
+        recipient=post.user,
+        actor=actor,
+        notification_type=notification_type,
+        title=title,
+        message=message,
+        url=url,
+        related_object_type="feed.post",
+        related_object_id=post.id,
+    )
 
-            PostMedia.objects.create(
-                post=post,
-                media_type=PostMedia.IMAGE,
-                image=image,
-                alt_text=alt_text,
-                order=index,
+    if notification:
+        send_live_feed_notification(
+            recipient=post.user,
+            actor=actor,
+            notification_type=notification_type,
+            title=title,
+            message=message,
+            url=url,
+            post_id=post.id,
+        )
+
+
+def notify_staff_about_report(post, reporter, report):
+    staff_users = User.objects.filter(is_staff=True, is_active=True).exclude(id=reporter.id)
+
+    for staff_user in staff_users:
+        url = reverse("feed:feed_home") + f"?report={report.id}#post-{post.id}"
+
+        notification = create_notification_safe(
+            recipient=staff_user,
+            actor=reporter,
+            notification_type=getattr(Notification, "TYPE_REPORT", "report") if Notification else "report",
+            title="Post report",
+            message=f"{get_display_name(reporter)} reported a post.",
+            url=url,
+            related_object_type="feed.postreport",
+            related_object_id=report.id,
+        )
+
+        if notification:
+            send_live_feed_notification(
+                recipient=staff_user,
+                actor=reporter,
+                notification_type=getattr(Notification, "TYPE_REPORT", "report") if Notification else "report",
+                title="Post report",
+                message=f"{get_display_name(reporter)} reported a post.",
+                url=url,
+                post_id=post.id,
             )
 
-    if video:
-        PostMedia.objects.create(
-            post=post,
-            media_type=PostMedia.VIDEO,
-            video=video,
-            order=0,
-        )
+
+def attach_feed_display_data(posts, request_user):
+    for post in posts:
+        liked = post.likes.filter(user=request_user).exists()
+        post.is_liked = liked
+        post.is_liked_by_user = liked
+        post.author_name = get_display_name(post.user)
+        post.author_photo = get_profile_photo_url(post.user)
+
+        for comment in post.comments.all():
+            comment.author_name = get_display_name(comment.user)
+            comment.author_photo = get_profile_photo_url(comment.user)
+
+    return posts
 
 
 @login_required
 def feed_home(request):
+    query = request.GET.get("q", "").strip()
+    hidden_ids = hidden_user_ids_for(request.user) if hidden_user_ids_for else set()
+
     posts = (
         Post.objects
         .select_related("user")
-        .prefetch_related("media", "likes", "comments__user")
-        .all()[:50]
+        .prefetch_related("likes", "comments__user")
+        .order_by("-created_at")
     )
 
-    posts_data = []
+    if hidden_ids:
+        posts = posts.exclude(user_id__in=hidden_ids)
 
-    for post in posts:
-        posts_data.append(
-            {
-                "post": post,
-                "author_name": post.user.get_full_name() or post.user.username,
-                "author_photo": get_profile_photo_url(post.user),
-                "media": post.media.all(),
-                "likes_count": post.likes.count(),
-                "comments_count": post.comments.count(),
-                "is_liked": post.likes.filter(user=request.user).exists(),
-                "comments": post.comments.select_related("user").all()[:3],
-            }
+    if query:
+        posts = posts.filter(
+            Q(content__icontains=query)
+            | Q(user__username__icontains=query)
+            | Q(user__first_name__icontains=query)
+            | Q(user__last_name__icontains=query)
         )
+
+    attach_feed_display_data(posts, request.user)
 
     return render(
         request,
         "feed/feed.html",
         {
-            "posts_data": posts_data,
+            "posts": posts,
+            "request_user_name": get_display_name(request.user),
+            "request_user_photo": get_profile_photo_url(request.user),
+            "focus_post_id": request.GET.get("post"),
+            "search_query": query,
         },
     )
 
@@ -151,33 +268,32 @@ def feed_home(request):
 @require_POST
 def create_post(request):
     content = request.POST.get("content", "").strip()
+    image = request.FILES.get("image")
+    video = request.FILES.get("video")
 
-    images = get_uploaded_images(request)
-    video = get_uploaded_video(request)
+    if image and video:
+        if is_ajax(request):
+            return JsonResponse({"success": False, "error": "Choose either a photo or a video, not both."}, status=400)
 
-    alt_texts = request.POST.getlist("image_alt_texts")
-
-    is_valid, error_message = validate_media_upload(images, video)
-
-    if not is_valid:
-        messages.error(request, error_message)
+        messages.error(request, "Choose either a photo or a video, not both.")
         return redirect("feed:feed_home")
 
-    if not content and not images and not video:
+    if not content and not image and not video:
+        if is_ajax(request):
+            return JsonResponse({"success": False, "error": "Write something or add media before posting."}, status=400)
+
         messages.error(request, "Write something or add media before posting.")
         return redirect("feed:feed_home")
 
     post = Post.objects.create(
         user=request.user,
         content=content,
+        image=image,
+        video=video,
     )
 
-    create_post_media(
-        post=post,
-        images=images,
-        video=video,
-        alt_texts=alt_texts,
-    )
+    if is_ajax(request):
+        return JsonResponse({"success": True, "post_id": post.id})
 
     messages.success(request, "Post created.")
     return redirect("feed:feed_home")
@@ -189,44 +305,66 @@ def edit_post(request, post_id):
     post = get_object_or_404(Post, id=post_id, user=request.user)
 
     content = request.POST.get("content", "").strip()
-
-    images = get_uploaded_images(request)
-    video = get_uploaded_video(request)
-
-    alt_texts = request.POST.getlist("image_alt_texts")
-
+    image = request.FILES.get("image")
+    video = request.FILES.get("video")
     remove_media = request.POST.get("remove_media") == "on"
-    replace_media = bool(images or video)
 
-    is_valid, error_message = validate_media_upload(images, video)
+    if image and video:
+        if is_ajax(request):
+            return JsonResponse({"success": False, "error": "Choose either a photo or video, not both."}, status=400)
 
-    if not is_valid:
-        messages.error(request, error_message)
-        return redirect("feed:feed_home")
-
-    has_existing_media = post.media.exists()
-
-    if not content and not has_existing_media and not replace_media:
-        messages.error(request, "A post cannot be empty.")
-        return redirect("feed:feed_home")
-
-    if not content and remove_media and not replace_media:
-        messages.error(request, "A post cannot be empty.")
+        messages.error(request, "Choose either a photo or video, not both.")
         return redirect("feed:feed_home")
 
     post.content = content
+
+    if remove_media:
+        if post.image:
+            post.image.delete(save=False)
+
+        if post.video:
+            post.video.delete(save=False)
+
+        post.image = None
+        post.video = None
+
+    if image:
+        if post.image:
+            post.image.delete(save=False)
+
+        if post.video:
+            post.video.delete(save=False)
+
+        post.image = image
+        post.video = None
+
+    if video:
+        if post.image:
+            post.image.delete(save=False)
+
+        if post.video:
+            post.video.delete(save=False)
+
+        post.video = video
+        post.image = None
+
+    if not post.content and not post.image and not post.video:
+        if is_ajax(request):
+            return JsonResponse({"success": False, "error": "A post cannot be empty."}, status=400)
+
+        messages.error(request, "A post cannot be empty.")
+        return redirect("feed:feed_home")
+
     post.edited_at = timezone.now()
     post.save()
 
-    if remove_media or replace_media:
-        post.media.all().delete()
-
-    if replace_media:
-        create_post_media(
-            post=post,
-            images=images,
-            video=video,
-            alt_texts=alt_texts,
+    if is_ajax(request):
+        return JsonResponse(
+            {
+                "success": True,
+                "post_id": post.id,
+                "content": post.content,
+            }
         )
 
     messages.success(request, "Post updated.")
@@ -237,7 +375,17 @@ def edit_post(request, post_id):
 @require_POST
 def delete_post(request, post_id):
     post = get_object_or_404(Post, id=post_id, user=request.user)
+
+    if post.image:
+        post.image.delete(save=False)
+
+    if post.video:
+        post.video.delete(save=False)
+
     post.delete()
+
+    if is_ajax(request):
+        return JsonResponse({"success": True, "post_id": post_id})
 
     messages.success(request, "Post deleted.")
     return redirect("feed:feed_home")
@@ -245,7 +393,7 @@ def delete_post(request, post_id):
 
 @login_required
 @require_POST
-def like_post(request, post_id):
+def toggle_like(request, post_id):
     post = get_object_or_404(Post, id=post_id)
 
     like, created = PostLike.objects.get_or_create(
@@ -253,26 +401,139 @@ def like_post(request, post_id):
         user=request.user,
     )
 
-    if not created:
-        like.delete()
+    if created:
+        liked = True
 
-    return redirect("feed:feed_home")
+        notify_post_owner(
+            post=post,
+            actor=request.user,
+            notification_type=getattr(Notification, "TYPE_LIKE", "like") if Notification else "like",
+            title="New like",
+            message=f"{get_display_name(request.user)} liked your post.",
+        )
+    else:
+        like.delete()
+        liked = False
+
+    likes_count = post.likes.count()
+
+    if is_ajax(request):
+        return JsonResponse(
+            {
+                "success": True,
+                "liked": liked,
+                "likes_count": likes_count,
+                "total_likes": likes_count,
+            }
+        )
+
+    return redirect(back_to_feed(request))
+
+
+@login_required
+@require_POST
+def like_post(request, post_id):
+    return toggle_like(request, post_id)
 
 
 @login_required
 @require_POST
 def add_comment(request, post_id):
     post = get_object_or_404(Post, id=post_id)
-    text = request.POST.get("text", "").strip()
 
-    if not text:
-        messages.error(request, "Comment cannot be empty.")
-        return redirect("feed:feed_home")
-
-    Comment.objects.create(
-        post=post,
-        user=request.user,
-        text=text,
+    content = (
+        request.POST.get("content", "").strip()
+        or request.POST.get("text", "").strip()
     )
 
+    if not content:
+        if is_ajax(request):
+            return JsonResponse({"success": False, "error": "Comment cannot be empty."}, status=400)
+
+        messages.error(request, "Comment cannot be empty.")
+        return redirect(back_to_feed(request))
+
+    comment = Comment.objects.create(
+        post=post,
+        user=request.user,
+        content=content,
+    )
+
+    notify_post_owner(
+        post=post,
+        actor=request.user,
+        notification_type=getattr(Notification, "TYPE_COMMENT", "comment") if Notification else "comment",
+        title="New comment",
+        message=f"{get_display_name(request.user)} commented on your post.",
+    )
+
+    comments_count = post.comments.count()
+
+    if is_ajax(request):
+        return JsonResponse(
+            {
+                "success": True,
+                "comment_id": comment.id,
+                "comment": {
+                    "id": comment.id,
+                    "user": get_display_name(request.user),
+                    "content": comment.content,
+                    "text": comment.content,
+                    "photo_url": get_profile_photo_url(request.user),
+                    "photo_version": int(timezone.now().timestamp()),
+                },
+                "comments_count": comments_count,
+                "total_comments": comments_count,
+            }
+        )
+
+    messages.success(request, "Comment added.")
+    return redirect(back_to_feed(request))
+
+
+@login_required
+@require_POST
+def report_post(request, post_id):
+    post = get_object_or_404(Post, id=post_id)
+
+    if post.user == request.user:
+        if is_ajax(request):
+            return JsonResponse({"success": False, "error": "You cannot report your own post."}, status=400)
+
+        messages.error(request, "You cannot report your own post.")
+        return redirect("feed:feed_home")
+
+    reason = request.POST.get("reason", "other").strip() or "other"
+    details = request.POST.get("details", "").strip()
+
+    valid_reasons = [choice[0] for choice in PostReport.REASON_CHOICES]
+
+    if reason not in valid_reasons:
+        reason = "other"
+
+    report, created = PostReport.objects.get_or_create(
+        post=post,
+        reporter=request.user,
+        defaults={
+            "reason": reason,
+            "details": details,
+        },
+    )
+
+    if not created:
+        report.reason = reason
+        report.details = details
+        report.reviewed = False
+        report.save(update_fields=["reason", "details", "reviewed"])
+
+    notify_staff_about_report(
+        post=post,
+        reporter=request.user,
+        report=report,
+    )
+
+    if is_ajax(request):
+        return JsonResponse({"success": True, "message": "Post reported."})
+
+    messages.success(request, "Post reported.")
     return redirect("feed:feed_home")

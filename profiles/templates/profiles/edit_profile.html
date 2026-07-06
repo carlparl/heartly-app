@@ -1,49 +1,554 @@
 {% extends "heartly/base.html" %}
+{% load static %}
 
 {% block title %}Edit Profile - Heartly{% endblock %}
 
-{% block topbar %}
-<header class="settings-mobile-topbar">
-  <a href="{% url 'profiles:profile_home' %}" class="heartly-icon-btn">‹</a>
-  <h1>Edit Profile</h1>
-  <span class="settings-topbar-spacer"></span>
-</header>
-{% endblock %}
-
 {% block content %}
+<div class="profile-page">
 
-<section class="profile-v2-screen">
+    <div class="profile-header">
+        <div>
+            <h1 class="profile-title">Edit profile</h1>
+            <p class="profile-subtitle">Update your Heartly identity and public details.</p>
+        </div>
 
-  <section class="profile-v2-section heartly-card">
-    <div class="profile-v2-heading">
-      <h3>Profile details</h3>
+        <a href="{% url 'settings' %}" class="top-icon-btn" title="Settings" aria-label="Open settings">
+            ⚙️
+        </a>
     </div>
 
     <form method="post" enctype="multipart/form-data" class="profile-edit-form">
-      {% csrf_token %}
+        {% csrf_token %}
 
-      {% for field in form %}
-        <div class="heartly-field">
-          <label class="heartly-label" for="{{ field.id_for_label }}">
-            {{ field.label }}
-          </label>
-
-          {{ field }}
-
-          {% if field.errors %}
-            <div class="heartly-form-error">
-              {{ field.errors }}
+        {% if form.non_field_errors %}
+            <div class="profile-error-card">
+                {{ form.non_field_errors }}
             </div>
-          {% endif %}
-        </div>
-      {% endfor %}
+        {% endif %}
 
-      <button type="submit" class="heartly-btn heartly-btn-primary" style="width:100%;">
-        Save Profile
-      </button>
+        <section class="profile-section">
+            <div class="profile-card profile-main-card">
+
+                <div class="profile-identity">
+                    <div class="profile-avatar-wrap">
+                        {% if profile.profile_picture %}
+                            <img src="{{ profile.profile_picture.url }}" alt="Profile picture" class="profile-avatar" id="profilePhotoPreview">
+                        {% else %}
+                            <div class="profile-avatar-fallback" id="profileAvatarFallback">
+                                {% if profile.display_name %}
+                                    {{ profile.display_name|first|upper }}
+                                {% else %}
+                                    {{ request.user.username|first|upper }}
+                                {% endif %}
+                            </div>
+                            <img src="" alt="Profile picture preview" class="profile-avatar hidden" id="profilePhotoPreview">
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <h2 class="profile-name">
+                            {% if profile.display_name %}
+                                {{ profile.display_name }}
+                            {% else %}
+                                Heartly User
+                            {% endif %}
+                        </h2>
+                        <p class="profile-username">@{{ request.user.username }}</p>
+                    </div>
+                </div>
+
+                <div class="profile-photo-field">
+                    <label for="{{ form.profile_picture.id_for_label }}" class="secondary-action">
+                        Change photo
+                    </label>
+                    {{ form.profile_picture }}
+
+                    {% if form.profile_picture.errors %}
+                        <p class="profile-field-error">{{ form.profile_picture.errors|striptags }}</p>
+                    {% endif %}
+                </div>
+
+                <p class="profile-bio">
+                    Keep your profile friendly. Do not add private details like your exact address, school schedule, or phone number.
+                </p>
+
+                <div class="profile-meta">
+                    <span class="profile-pill">💗 Heartly member</span>
+                    <span class="profile-pill">🛡️ Safety first</span>
+                </div>
+
+            </div>
+        </section>
+
+        <section class="profile-section">
+            <h2 class="profile-section-title">Basic details</h2>
+
+            <div class="profile-card">
+
+                <label class="profile-form-row-block">
+                    <div class="profile-left">
+                        <div class="profile-icon">👤</div>
+                        <div>
+                            <p class="profile-label">Display name</p>
+                            <p class="profile-desc">This is the name people see on Heartly.</p>
+                        </div>
+                    </div>
+
+                    {{ form.display_name }}
+
+                    {% if form.display_name.errors %}
+                        <p class="profile-field-error">{{ form.display_name.errors|striptags }}</p>
+                    {% endif %}
+                </label>
+
+                <label class="profile-form-row-block">
+                    <div class="profile-left">
+                        <div class="profile-icon">🎂</div>
+                        <div>
+                            <p class="profile-label">Age</p>
+                            <p class="profile-desc">Used for safer profile filtering.</p>
+                        </div>
+                    </div>
+
+                    {{ form.age }}
+
+                    {% if form.age.errors %}
+                        <p class="profile-field-error">{{ form.age.errors|striptags }}</p>
+                    {% endif %}
+                </label>
+
+                <label class="profile-form-row-block">
+                    <div class="profile-left">
+                        <div class="profile-icon">📍</div>
+                        <div>
+                            <p class="profile-label">Location</p>
+                            <p class="profile-desc">Use a general city or area, not your exact address.</p>
+                        </div>
+                    </div>
+
+                    {{ form.location }}
+
+                    {% if form.location.errors %}
+                        <p class="profile-field-error">{{ form.location.errors|striptags }}</p>
+                    {% endif %}
+                </label>
+
+            </div>
+        </section>
+
+        <section class="profile-section">
+            <h2 class="profile-section-title">About you</h2>
+
+            <div class="profile-card profile-content">
+                <label class="profile-bio-label">
+                    <div class="profile-left bio-left">
+                        <div class="profile-icon">📝</div>
+                        <div>
+                            <p class="profile-label">Bio</p>
+                            <p class="profile-desc">Write a short intro that feels natural and safe.</p>
+                        </div>
+                    </div>
+
+                    {{ form.bio }}
+
+                    {% if form.bio.errors %}
+                        <p class="profile-field-error">{{ form.bio.errors|striptags }}</p>
+                    {% endif %}
+                </label>
+            </div>
+        </section>
+
+        <section class="profile-section">
+            <div class="profile-card">
+                <button type="submit" class="profile-save-btn">
+                    Save profile
+                </button>
+
+                <a href="{% url 'profiles:profile_home' %}" class="profile-row">
+                    <div class="profile-left">
+                        <div class="profile-icon">←</div>
+                        <div>
+                            <p class="profile-label">Cancel</p>
+                            <p class="profile-desc">Return to your profile without saving.</p>
+                        </div>
+                    </div>
+                    <span class="profile-chevron">›</span>
+                </a>
+
+                <a href="{% url 'profiles:edit_interests' %}" class="profile-row">
+                    <div class="profile-left">
+                        <div class="profile-icon">✨</div>
+                        <div>
+                            <p class="profile-label">Edit interests</p>
+                            <p class="profile-desc">Choose interests for Discover and matching.</p>
+                        </div>
+                    </div>
+                    <span class="profile-chevron">›</span>
+                </a>
+            </div>
+        </section>
     </form>
-  </section>
 
-</section>
+    <p class="profile-footer">Heartly v1.0</p>
 
+</div>
+{% endblock %}
+
+{% block extra_css %}
+:root {
+    --profile-bg: #f8fafc;
+    --profile-card: #ffffff;
+    --profile-text: #111827;
+    --profile-muted: #6b7280;
+    --profile-border: #e5e7eb;
+    --profile-pink: #ec4899;
+    --profile-pink-soft: #fce7f3;
+    --profile-red: #ef4444;
+    --profile-shadow: 0 14px 35px rgba(15, 23, 42, 0.08);
+}
+
+:root[data-heartly-theme="dark"] {
+    --profile-bg: #080b12;
+    --profile-card: #111827;
+    --profile-text: #f9fafb;
+    --profile-muted: #9ca3af;
+    --profile-border: #263244;
+    --profile-pink: #f472b6;
+    --profile-pink-soft: rgba(244, 114, 182, 0.14);
+    --profile-shadow: 0 14px 35px rgba(0, 0, 0, 0.38);
+}
+
+.profile-page {
+    min-height: 100vh;
+    color: var(--profile-text);
+    padding: 18px 16px 92px;
+    max-width: 520px;
+    margin: 0 auto;
+}
+
+.profile-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 22px;
+}
+
+.profile-title {
+    font-size: 28px;
+    font-weight: 900;
+    margin: 0;
+    letter-spacing: -0.04em;
+}
+
+.profile-subtitle {
+    color: var(--profile-muted);
+    font-size: 14px;
+    margin-top: 4px;
+}
+
+.top-icon-btn {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--profile-card);
+    color: var(--profile-text);
+    text-decoration: none;
+    border: 1px solid var(--profile-border);
+    box-shadow: var(--profile-shadow);
+    font-size: 20px;
+}
+
+.profile-section {
+    margin-bottom: 24px;
+}
+
+.profile-section-title {
+    color: var(--profile-muted);
+    font-size: 13px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 0 0 10px;
+    padding-left: 4px;
+}
+
+.profile-card {
+    background: var(--profile-card);
+    border: 1px solid var(--profile-border);
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: var(--profile-shadow);
+}
+
+.profile-main-card {
+    padding: 18px;
+}
+
+.profile-identity {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+}
+
+.profile-avatar-wrap {
+    width: 82px;
+    height: 82px;
+    flex-shrink: 0;
+}
+
+.profile-avatar,
+.profile-avatar-fallback {
+    width: 82px;
+    height: 82px;
+    border-radius: 50%;
+    border: 4px solid var(--profile-pink-soft);
+    background: var(--profile-pink-soft);
+    flex-shrink: 0;
+}
+
+.profile-avatar {
+    object-fit: cover;
+}
+
+.profile-avatar-fallback {
+    color: var(--profile-pink);
+    display: grid;
+    place-items: center;
+    font-size: 32px;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.hidden {
+    display: none;
+}
+
+.profile-name {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 900;
+    letter-spacing: -0.04em;
+}
+
+.profile-username {
+    margin: 4px 0 0;
+    color: var(--profile-muted);
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.profile-bio {
+    margin: 16px 0 0;
+    color: var(--profile-text);
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+.profile-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+    margin-top: 14px;
+}
+
+.profile-pill {
+    background: var(--profile-pink-soft);
+    color: var(--profile-pink);
+    border-radius: 999px;
+    padding: 8px 12px;
+    font-size: 13px;
+    font-weight: 900;
+}
+
+.profile-photo-field {
+    margin-top: 16px;
+}
+
+.profile-photo-field input[type="file"] {
+    display: none;
+}
+
+.secondary-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    padding: 12px 14px;
+    text-align: center;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 900;
+    background: var(--profile-pink-soft);
+    color: var(--profile-pink);
+    cursor: pointer;
+}
+
+.profile-form-row-block {
+    width: 100%;
+    display: grid;
+    gap: 12px;
+    padding: 16px;
+}
+
+.profile-form-row-block + .profile-form-row-block,
+.profile-row + .profile-row,
+.profile-save-btn + .profile-row {
+    border-top: 1px solid var(--profile-border);
+}
+
+.profile-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+}
+
+.bio-left {
+    margin-bottom: 12px;
+}
+
+.profile-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 16px;
+    background: var(--profile-pink-soft);
+    color: var(--profile-pink);
+    display: grid;
+    place-items: center;
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.profile-label {
+    font-weight: 900;
+    font-size: 15px;
+    margin: 0;
+}
+
+.profile-desc {
+    color: var(--profile-muted);
+    font-size: 13px;
+    margin: 3px 0 0;
+    line-height: 1.35;
+}
+
+.profile-form-row-block input,
+.profile-bio-label textarea {
+    width: 100%;
+    border: 1px solid var(--profile-border);
+    background: var(--profile-bg);
+    color: var(--profile-text);
+    border-radius: 18px;
+    padding: 13px 14px;
+    outline: none;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.profile-bio-label textarea {
+    min-height: 130px;
+    resize: vertical;
+    line-height: 1.5;
+}
+
+.profile-content {
+    padding: 18px;
+}
+
+.profile-error-card,
+.profile-field-error {
+    color: var(--profile-red);
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.profile-error-card {
+    padding: 12px 14px;
+    border-radius: 18px;
+    margin-bottom: 18px;
+    font-size: 14px;
+    font-weight: 800;
+}
+
+.profile-field-error {
+    margin: 0;
+    padding: 9px 11px;
+    border-radius: 14px;
+    font-size: 12px;
+    font-weight: 850;
+}
+
+.profile-save-btn {
+    width: calc(100% - 28px);
+    margin: 14px;
+    border: none;
+    border-radius: 999px;
+    padding: 14px;
+    background: var(--profile-pink);
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.profile-row {
+    width: 100%;
+    background: transparent;
+    color: var(--profile-text);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 16px;
+    text-decoration: none;
+    font: inherit;
+    text-align: left;
+}
+
+.profile-chevron {
+    color: var(--profile-muted);
+    font-size: 22px;
+    flex-shrink: 0;
+}
+
+.profile-footer {
+    text-align: center;
+    color: var(--profile-muted);
+    font-size: 12px;
+    margin-top: 28px;
+}
+
+@media (max-width: 380px) {
+    .profile-name {
+        font-size: 20px;
+    }
+}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const photoInput = document.querySelector('input[name="profile_picture"]');
+        const preview = document.getElementById("profilePhotoPreview");
+        const fallback = document.getElementById("profileAvatarFallback");
+
+        if (photoInput && preview) {
+            photoInput.addEventListener("change", function () {
+                const file = photoInput.files[0];
+
+                if (!file) {
+                    return;
+                }
+
+                preview.src = URL.createObjectURL(file);
+                preview.classList.remove("hidden");
+
+                if (fallback) {
+                    fallback.style.display = "none";
+                }
+            });
+        }
+    });
+</script>
 {% endblock %}

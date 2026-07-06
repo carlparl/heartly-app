@@ -1,0 +1,141 @@
+{% extends "heartly/base.html" %}
+
+{% block title %}Matches - Heartly{% endblock %}
+
+{% block content %}
+
+<section class="matches-clean-screen">
+
+  <section class="matches-clean-header heartly-card heartly-glow-card">
+    <div>
+      <p>Discover</p>
+      <h1>Matches</h1>
+      <span>Find people who fit your vibe.</span>
+    </div>
+
+    <div class="matches-clean-heart">
+      ♥
+    </div>
+  </section>
+
+  {% if new_matches %}
+    <section class="matches-clean-section heartly-card">
+
+      <div class="matches-clean-heading">
+        <h2>New matches</h2>
+        <span>{{ new_matches|length }}</span>
+      </div>
+
+      <div class="matches-clean-carousel">
+
+        {% for item in new_matches %}
+          <article class="matches-mini-card">
+
+            {% if item.photo %}
+              <img src="{{ item.photo }}" alt="{{ item.name }}">
+            {% else %}
+              <div class="matches-mini-fallback">
+                {{ item.name|first|upper }}
+              </div>
+            {% endif %}
+
+            <strong>{{ item.name }}</strong>
+
+          </article>
+        {% endfor %}
+
+      </div>
+
+    </section>
+  {% endif %}
+
+  <section class="matches-clean-stack">
+
+    {% for item in candidate_cards %}
+
+      <article class="matches-person-card heartly-card">
+
+        <div class="matches-person-photo">
+
+          {% if item.photo %}
+            <img src="{{ item.photo }}" alt="{{ item.name }}">
+          {% else %}
+            <div class="matches-person-fallback">
+              {{ item.name|first|upper }}
+            </div>
+          {% endif %}
+
+          <div class="matches-person-gradient"></div>
+
+          <div class="matches-person-name">
+            <h2>
+              {{ item.name }}
+              {% if item.age %}
+                <span>{{ item.age }}</span>
+              {% endif %}
+            </h2>
+
+            {% if item.location %}
+              <p>📍 {{ item.location }}</p>
+            {% else %}
+              <p>📍 Nearby</p>
+            {% endif %}
+          </div>
+
+        </div>
+
+        {% if item.bio %}
+          <p class="matches-person-bio">
+            {{ item.bio }}
+          </p>
+        {% else %}
+          <p class="matches-person-bio">
+            No bio yet.
+          </p>
+        {% endif %}
+
+        <div class="matches-person-chips">
+          {% for interest in item.interests %}
+            <span>{{ interest.name }}</span>
+          {% empty %}
+            <span>Music</span>
+            <span>Travel</span>
+            <span>Movies</span>
+          {% endfor %}
+        </div>
+
+        <div class="matches-actions">
+
+          <form method="post" action="{% url 'matches:match_action' item.user.id 'pass' %}">
+            {% csrf_token %}
+            <button type="submit" class="matches-pass-btn">
+              ×
+            </button>
+          </form>
+
+          <form method="post" action="{% url 'matches:match_action' item.user.id 'like' %}">
+            {% csrf_token %}
+            <button type="submit" class="matches-like-btn">
+              ♥
+            </button>
+          </form>
+
+        </div>
+
+      </article>
+
+    {% empty %}
+
+      <section class="matches-empty heartly-card">
+        <div>💞</div>
+        <h2>No new profiles</h2>
+        <p>Check again later.</p>
+      </section>
+
+    {% endfor %}
+
+  </section>
+
+</section>
+
+{% endblock %}

@@ -1,0 +1,50 @@
+{% extends "heartly/base.html" %}
+
+{% block title %}Help & Support - Heartly{% endblock %}
+
+{% block topbar %}
+<header class="settings-mobile-topbar">
+  <a href="{% url 'settings' %}" class="heartly-icon-btn" aria-label="Back">‹</a>
+  <h1>Help</h1>
+  <span class="settings-topbar-spacer"></span>
+</header>
+{% endblock %}
+
+{% block content %}
+<section class="settings-screen">
+
+  <div class="settings-card">
+    <h2>Help & Support</h2>
+    <p>Get help using Heartly and managing your account.</p>
+  </div>
+
+  <div class="settings-card settings-menu-card">
+    <a href="#" class="settings-menu-item">
+      <span class="settings-menu-left">
+        <span class="settings-menu-icon">💬</span>
+        <span>Contact Support</span>
+      </span>
+      <span class="settings-pill">Soon</span>
+    </a>
+
+    <a href="#" class="settings-menu-item">
+      <span class="settings-menu-left">
+        <span class="settings-menu-icon">📘</span>
+        <span>FAQs</span>
+      </span>
+      <span class="settings-pill">Soon</span>
+    </a>
+
+    <a href="#" class="settings-menu-item">
+      <span class="settings-menu-left">
+        <span class="settings-menu-icon">⚠️</span>
+        <span>Report a Problem</span>
+      </span>
+      <span class="settings-pill">Soon</span>
+    </a>
+  </div>
+
+</section>
+
+{% include "accounts/settings_shared_styles.html" %}
+{% endblock %}

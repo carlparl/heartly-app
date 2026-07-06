@@ -1,0 +1,419 @@
+{% extends "heartly/base.html" %}
+{% load static %}
+
+{% block title %}Settings - Heartly{% endblock %}
+
+{% block content %}
+<div class="heartly-page settings-page">
+
+    <section class="heartly-hero-card settings-hero">
+        <span class="heartly-kicker">Control center</span>
+        <h1 class="heartly-page-title">Settings</h1>
+        <p class="heartly-page-subtitle">
+            Manage your account, privacy, appearance, and session.
+        </p>
+    </section>
+
+    <section class="settings-stack">
+
+        <article class="heartly-panel settings-card">
+            <div class="settings-card-head">
+                <div class="settings-card-icon">👤</div>
+                <div>
+                    <h2>Account</h2>
+                    <p>Control your profile, identity, and login information.</p>
+                </div>
+            </div>
+
+            <div class="settings-list">
+
+                <a href="{% url 'profiles:profile_home' %}" class="settings-item">
+                    <div class="settings-item-icon">🪪</div>
+                    <div class="settings-item-text">
+                        <strong>View profile</strong>
+                        <span>See how your Heartly profile looks.</span>
+                    </div>
+                    <div class="settings-item-arrow">›</div>
+                </a>
+
+                <a href="{% url 'profiles:edit_profile' %}" class="settings-item">
+                    <div class="settings-item-icon">✏️</div>
+                    <div class="settings-item-text">
+                        <strong>Edit profile</strong>
+                        <span>Update your name, photo, bio, and profile details.</span>
+                    </div>
+                    <div class="settings-item-arrow">›</div>
+                </a>
+
+                <a href="{% url 'profiles:edit_interests' %}" class="settings-item">
+                    <div class="settings-item-icon">✨</div>
+                    <div class="settings-item-text">
+                        <strong>Interests</strong>
+                        <span>Improve your match suggestions.</span>
+                    </div>
+                    <div class="settings-item-arrow">›</div>
+                </a>
+
+                <a href="{% url 'account_email' %}" class="settings-item">
+                    <div class="settings-item-icon">📧</div>
+                    <div class="settings-item-text">
+                        <strong>Email address</strong>
+                        <span>Manage your login and recovery email.</span>
+                    </div>
+                    <div class="settings-item-arrow">›</div>
+                </a>
+
+                <a href="{% url 'account_change_password' %}" class="settings-item">
+                    <div class="settings-item-icon">🔐</div>
+                    <div class="settings-item-text">
+                        <strong>Password & security</strong>
+                        <span>Change your password and protect your account.</span>
+                    </div>
+                    <div class="settings-item-arrow">›</div>
+                </a>
+
+            </div>
+        </article>
+
+        <article class="heartly-panel settings-card">
+            <div class="settings-card-head">
+                <div class="settings-card-icon">🛡️</div>
+                <div>
+                    <h2>Privacy</h2>
+                    <p>Control discovery, visibility, and interaction preferences.</p>
+                </div>
+            </div>
+
+            <div class="settings-list">
+
+                <a href="{% url 'profiles:profile_home' %}" class="settings-item">
+                    <div class="settings-item-icon">👁️</div>
+                    <div class="settings-item-text">
+                        <strong>Profile visibility</strong>
+                        <span>Control this from your profile privacy section.</span>
+                    </div>
+                    <div class="settings-item-arrow">›</div>
+                </a>
+
+                <a href="{% url 'profiles:profile_home' %}" class="settings-item">
+                    <div class="settings-item-icon">🟢</div>
+                    <div class="settings-item-text">
+                        <strong>Online status</strong>
+                        <span>Turn your online status on or off from your profile.</span>
+                    </div>
+                    <div class="settings-item-arrow">›</div>
+                </a>
+
+                <a href="{% url 'profiles:profile_home' %}" class="settings-item">
+                    <div class="settings-item-icon">💬</div>
+                    <div class="settings-item-text">
+                        <strong>Message requests</strong>
+                        <span>Control who can start conversations with you.</span>
+                    </div>
+                    <div class="settings-item-arrow">›</div>
+                </a>
+
+                <a href="{% url 'profiles:profile_home' %}" class="settings-item">
+                    <div class="settings-item-icon">🚫</div>
+                    <div class="settings-item-text">
+                        <strong>Blocked users</strong>
+                        <span>Review and unblock users from your profile page.</span>
+                    </div>
+                    <div class="settings-item-arrow">›</div>
+                </a>
+
+            </div>
+        </article>
+
+        <article class="heartly-panel settings-card">
+            <div class="settings-card-head">
+                <div class="settings-card-icon">🎨</div>
+                <div>
+                    <h2>Appearance</h2>
+                    <p>Change Heartly’s theme across the whole app.</p>
+                </div>
+            </div>
+
+            <div class="theme-grid">
+                <button type="button" class="theme-option" data-theme-choice="light">
+                    <span>☀️</span>
+                    <strong>Light</strong>
+                    <small>Bright and clean</small>
+                </button>
+
+                <button type="button" class="theme-option" data-theme-choice="dark">
+                    <span>🌙</span>
+                    <strong>Dark</strong>
+                    <small>Soft and focused</small>
+                </button>
+
+                <button type="button" class="theme-option" data-theme-choice="system">
+                    <span>⚙️</span>
+                    <strong>System</strong>
+                    <small>Follow device</small>
+                </button>
+            </div>
+        </article>
+
+        <article class="heartly-panel settings-card">
+            <div class="settings-card-head">
+                <div class="settings-card-icon">🚪</div>
+                <div>
+                    <h2>Session</h2>
+                    <p>Safely leave your account on this device.</p>
+                </div>
+            </div>
+
+            <a href="{% url 'account_logout' %}" class="logout-button">
+                Log out
+            </a>
+        </article>
+
+    </section>
+
+</div>
+{% endblock %}
+
+{% block extra_css %}
+.settings-page {
+    display: grid;
+    gap: var(--heartly-section-gap);
+}
+
+.settings-stack {
+    display: grid;
+    gap: 14px;
+}
+
+.settings-card {
+    display: grid;
+    gap: 16px;
+}
+
+.settings-card-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.settings-card-icon {
+    width: 50px;
+    height: 50px;
+    flex: 0 0 auto;
+    border-radius: 18px;
+    display: grid;
+    place-items: center;
+    color: #ffffff;
+    background: linear-gradient(135deg, var(--heartly-primary), var(--heartly-primary-2));
+    box-shadow: var(--heartly-shadow-btn);
+    font-size: 1.25rem;
+}
+
+.settings-card-head h2 {
+    margin: 0;
+    color: var(--heartly-text);
+    font-size: 1.25rem;
+    line-height: 1.1;
+    letter-spacing: -0.04em;
+    font-weight: 950;
+}
+
+.settings-card-head p {
+    margin: 6px 0 0;
+    color: var(--heartly-muted);
+    font-size: 0.9rem;
+    line-height: 1.45;
+    font-weight: 650;
+}
+
+.settings-list {
+    display: grid;
+    gap: 10px;
+}
+
+.settings-item {
+    min-width: 0;
+    padding: 14px;
+    border-radius: 22px;
+    display: grid;
+    grid-template-columns: 44px 1fr auto;
+    align-items: center;
+    gap: 12px;
+    color: var(--heartly-text);
+    background: var(--heartly-card-soft);
+    border: 1px solid var(--heartly-border);
+    text-decoration: none !important;
+}
+
+.settings-item:hover {
+    background: var(--heartly-primary-soft);
+}
+
+.settings-item-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 16px;
+    display: grid;
+    place-items: center;
+    background: var(--heartly-accent-soft);
+    font-size: 1.1rem;
+}
+
+.settings-item-text {
+    min-width: 0;
+}
+
+.settings-item-text strong {
+    display: block;
+    color: var(--heartly-text);
+    font-size: 0.94rem;
+    font-weight: 950;
+    line-height: 1.2;
+}
+
+.settings-item-text span {
+    display: block;
+    margin-top: 4px;
+    color: var(--heartly-muted);
+    font-size: 0.8rem;
+    line-height: 1.35;
+    font-weight: 650;
+}
+
+.settings-item-arrow {
+    color: var(--heartly-muted);
+    font-size: 1.7rem;
+    line-height: 1;
+    font-weight: 800;
+}
+
+.theme-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+.theme-option {
+    min-height: 112px;
+    padding: 14px;
+    border-radius: 24px;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 5px;
+    color: var(--heartly-text);
+    background: var(--heartly-card-soft);
+    border: 1px solid var(--heartly-border);
+    cursor: pointer;
+}
+
+.theme-option:hover {
+    background: var(--heartly-primary-soft);
+    border-color: var(--heartly-primary);
+}
+
+.theme-option.is-active {
+    color: #ffffff;
+    border-color: transparent;
+    background: linear-gradient(135deg, var(--heartly-primary), var(--heartly-primary-2));
+    box-shadow: var(--heartly-shadow-btn);
+}
+
+.theme-option span {
+    font-size: 1.45rem;
+}
+
+.theme-option strong {
+    color: inherit;
+    font-size: 0.95rem;
+    font-weight: 950;
+}
+
+.theme-option small {
+    color: inherit;
+    opacity: 0.78;
+    font-size: 0.76rem;
+    font-weight: 750;
+}
+
+.logout-button {
+    width: 100%;
+    min-height: 50px;
+    border-radius: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    background: linear-gradient(135deg, #d92f63, #ff5f8e);
+    box-shadow: 0 16px 34px rgba(217, 47, 99, 0.22);
+    text-decoration: none !important;
+    font-weight: 950;
+}
+
+@media (max-width: 430px) {
+    .settings-item {
+        grid-template-columns: 40px 1fr auto;
+        gap: 10px;
+        padding: 12px;
+    }
+
+    .settings-item-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 14px;
+    }
+
+    .theme-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .theme-option {
+        min-height: 78px;
+        grid-template-columns: 38px 1fr;
+        justify-items: start;
+        text-align: left;
+    }
+
+    .theme-option small {
+        grid-column: 2;
+    }
+}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function refreshThemeButtons() {
+        const currentTheme = window.getHeartlyTheme
+            ? window.getHeartlyTheme()
+            : localStorage.getItem("heartlyTheme") || "light";
+
+        document.querySelectorAll("[data-theme-choice]").forEach(function (button) {
+            button.classList.toggle(
+                "is-active",
+                button.dataset.themeChoice === currentTheme
+            );
+        });
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        document.querySelectorAll("[data-theme-choice]").forEach(function (button) {
+            button.addEventListener("click", function () {
+                const selectedTheme = button.dataset.themeChoice;
+
+                if (window.setHeartlyTheme) {
+                    window.setHeartlyTheme(selectedTheme);
+                } else {
+                    localStorage.setItem("heartlyTheme", selectedTheme);
+                    location.reload();
+                }
+
+                refreshThemeButtons();
+            });
+        });
+
+        refreshThemeButtons();
+    });
+
+    window.addEventListener("heartly-theme-changed", refreshThemeButtons);
+</script>
+{% endblock %}

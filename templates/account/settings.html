@@ -1,0 +1,617 @@
+{% extends "heartly/base.html" %}
+{% load static %}
+
+{% block title %}Settings - Heartly{% endblock %}
+
+{% block content %}
+<div class="settings-page">
+
+    <div class="settings-header">
+        <div>
+            <h1 class="settings-title">Settings</h1>
+            <p class="settings-subtitle">Theme, privacy, safety, and account options.</p>
+        </div>
+
+        <a href="{% url 'profiles:profile_home' %}" class="top-icon-btn" title="Profile" aria-label="Back to profile">
+            ‹
+        </a>
+    </div>
+
+    <section class="settings-section">
+        <div class="settings-card settings-main-card">
+
+            <div class="settings-identity">
+                {% if profile.profile_picture %}
+                    <img src="{{ profile.profile_picture.url }}" alt="Profile picture" class="settings-avatar">
+                {% else %}
+                    <div class="settings-avatar-fallback">
+                        {% if profile.display_name %}
+                            {{ profile.display_name|first|upper }}
+                        {% else %}
+                            {{ request.user.username|first|upper }}
+                        {% endif %}
+                    </div>
+                {% endif %}
+
+                <div>
+                    <h2 class="settings-name">
+                        {% if profile.display_name %}
+                            {{ profile.display_name }}
+                        {% else %}
+                            Heartly User
+                        {% endif %}
+                    </h2>
+                    <p class="settings-username">@{{ request.user.username }}</p>
+                </div>
+            </div>
+
+            <div class="settings-meta">
+                {% if profile.profile_visible %}
+                    <span class="settings-pill">👁️ Visible</span>
+                {% else %}
+                    <span class="settings-pill">🙈 Hidden</span>
+                {% endif %}
+
+                {% if profile.safety_filters_enabled %}
+                    <span class="settings-pill">🛡️ Safety on</span>
+                {% else %}
+                    <span class="settings-pill">⚠️ Safety off</span>
+                {% endif %}
+
+                <span class="settings-pill">💗 Heartly account</span>
+            </div>
+
+        </div>
+    </section>
+
+    <section class="settings-section">
+        <h2 class="settings-section-title">Appearance</h2>
+
+        <div class="settings-card">
+            <button type="button" class="settings-row-button" onclick="setHeartlyAppearance('light')">
+                <div class="settings-left">
+                    <div class="settings-icon">☀️</div>
+                    <div>
+                        <p class="settings-label">Light mode</p>
+                        <p class="settings-desc">Use Heartly’s bright pink and white theme.</p>
+                    </div>
+                </div>
+                <span class="settings-chevron">›</span>
+            </button>
+
+            <button type="button" class="settings-row-button" onclick="setHeartlyAppearance('dark')">
+                <div class="settings-left">
+                    <div class="settings-icon">🌙</div>
+                    <div>
+                        <p class="settings-label">Dark mode</p>
+                        <p class="settings-desc">Use the darker Heartly interface.</p>
+                    </div>
+                </div>
+                <span class="settings-chevron">›</span>
+            </button>
+        </div>
+    </section>
+
+    <section class="settings-section">
+        <h2 class="settings-section-title">Privacy</h2>
+
+        <div class="settings-card">
+
+            <form method="post" action="{% url 'profiles:toggle_profile_visibility' %}" class="settings-form-row">
+                {% csrf_token %}
+                <button type="submit" class="settings-row-button">
+                    <div class="settings-left">
+                        <div class="settings-icon">👁️</div>
+                        <div>
+                            <p class="settings-label">Profile visibility</p>
+                            <p class="settings-desc">
+                                {% if profile.profile_visible %}
+                                    People can see you in Discover.
+                                {% else %}
+                                    Your profile is hidden from Discover.
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+
+                    <span class="settings-status-pill">
+                        {% if profile.profile_visible %}On{% else %}Off{% endif %}
+                    </span>
+                </button>
+            </form>
+
+            <form method="post" action="{% url 'profiles:toggle_online_status' %}" class="settings-form-row">
+                {% csrf_token %}
+                <button type="submit" class="settings-row-button">
+                    <div class="settings-left">
+                        <div class="settings-icon">🟢</div>
+                        <div>
+                            <p class="settings-label">Online status</p>
+                            <p class="settings-desc">
+                                {% if profile.show_online_status %}
+                                    Others may see when you are active.
+                                {% else %}
+                                    Your online status is hidden.
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+
+                    <span class="settings-status-pill">
+                        {% if profile.show_online_status %}On{% else %}Off{% endif %}
+                    </span>
+                </button>
+            </form>
+
+            <form method="post" action="{% url 'profiles:toggle_message_requests' %}" class="settings-form-row">
+                {% csrf_token %}
+                <button type="submit" class="settings-row-button">
+                    <div class="settings-left">
+                        <div class="settings-icon">💬</div>
+                        <div>
+                            <p class="settings-label">Message requests</p>
+                            <p class="settings-desc">
+                                {% if profile.allow_message_requests %}
+                                    People can start chats with you.
+                                {% else %}
+                                    New message requests are blocked.
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+
+                    <span class="settings-status-pill">
+                        {% if profile.allow_message_requests %}On{% else %}Off{% endif %}
+                    </span>
+                </button>
+            </form>
+
+        </div>
+    </section>
+
+    <section class="settings-section">
+        <h2 class="settings-section-title">Safety</h2>
+
+        <div class="settings-card">
+
+            <form method="post" action="{% url 'profiles:toggle_safety_filters' %}" class="settings-form-row">
+                {% csrf_token %}
+                <button type="submit" class="settings-row-button">
+                    <div class="settings-left">
+                        <div class="settings-icon">🛡️</div>
+                        <div>
+                            <p class="settings-label">Safety filters</p>
+                            <p class="settings-desc">
+                                {% if profile.safety_filters_enabled %}
+                                    Extra safety filtering is enabled.
+                                {% else %}
+                                    Extra safety filtering is disabled.
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+
+                    <span class="settings-status-pill">
+                        {% if profile.safety_filters_enabled %}On{% else %}Off{% endif %}
+                    </span>
+                </button>
+            </form>
+
+            <a href="{% url 'profiles:profile_home' %}#blocked" class="settings-row">
+                <div class="settings-left">
+                    <div class="settings-icon">🚫</div>
+                    <div>
+                        <p class="settings-label">Blocked users</p>
+                        <p class="settings-desc">Review accounts you have blocked.</p>
+                    </div>
+                </div>
+                <span class="settings-chevron">›</span>
+            </a>
+
+            <a href="{% url 'notifications:notifications_home' %}" class="settings-row">
+                <div class="settings-left">
+                    <div class="settings-icon">🔔</div>
+                    <div>
+                        <p class="settings-label">Notifications</p>
+                        <p class="settings-desc">Open alerts, matches, messages, and activity.</p>
+                    </div>
+                </div>
+                <span class="settings-chevron">›</span>
+            </a>
+
+        </div>
+    </section>
+
+    <section class="settings-section">
+        <h2 class="settings-section-title">Account</h2>
+
+        <div class="settings-card">
+
+            <a href="{% url 'profiles:edit_profile' %}" class="settings-row">
+                <div class="settings-left">
+                    <div class="settings-icon">👤</div>
+                    <div>
+                        <p class="settings-label">Edit profile</p>
+                        <p class="settings-desc">Change your photo, display name, age, location, and bio.</p>
+                    </div>
+                </div>
+                <span class="settings-chevron">›</span>
+            </a>
+
+            <a href="{% url 'profiles:edit_interests' %}" class="settings-row">
+                <div class="settings-left">
+                    <div class="settings-icon">✨</div>
+                    <div>
+                        <p class="settings-label">Interests</p>
+                        <p class="settings-desc">Update the interests shown on your profile.</p>
+                    </div>
+                </div>
+                <span class="settings-chevron">›</span>
+            </a>
+
+            <a href="{% url 'account_change_password' %}" class="settings-row">
+                <div class="settings-left">
+                    <div class="settings-icon">🔐</div>
+                    <div>
+                        <p class="settings-label">Password & security</p>
+                        <p class="settings-desc">Change your password and protect your account.</p>
+                    </div>
+                </div>
+                <span class="settings-chevron">›</span>
+            </a>
+
+            <a href="{% url 'account_email' %}" class="settings-row">
+                <div class="settings-left">
+                    <div class="settings-icon">📧</div>
+                    <div>
+                        <p class="settings-label">Email settings</p>
+                        <p class="settings-desc">Manage account email addresses.</p>
+                    </div>
+                </div>
+                <span class="settings-chevron">›</span>
+            </a>
+
+        </div>
+    </section>
+
+    <section class="settings-section">
+        <h2 class="settings-section-title">Heartly</h2>
+
+        <div class="settings-card">
+
+            <a href="{% url 'ai_features:ai_home' %}" class="settings-row">
+                <div class="settings-left">
+                    <div class="settings-icon">🤖</div>
+                    <div>
+                        <p class="settings-label">Heartly AI Coach</p>
+                        <p class="settings-desc">Get help with profile, chat, confidence, and safety.</p>
+                    </div>
+                </div>
+                <span class="settings-chevron">›</span>
+            </a>
+
+            <a href="{% url 'feed:feed_home' %}" class="settings-row">
+                <div class="settings-left">
+                    <div class="settings-icon">🏠</div>
+                    <div>
+                        <p class="settings-label">Feed</p>
+                        <p class="settings-desc">Return to the social feed.</p>
+                    </div>
+                </div>
+                <span class="settings-chevron">›</span>
+            </a>
+
+            <a href="{% url 'matches:discover' %}" class="settings-row">
+                <div class="settings-left">
+                    <div class="settings-icon">💞</div>
+                    <div>
+                        <p class="settings-label">Discover</p>
+                        <p class="settings-desc">Find visible profiles and possible matches.</p>
+                    </div>
+                </div>
+                <span class="settings-chevron">›</span>
+            </a>
+
+            <a href="{% url 'chat:chat_home' %}" class="settings-row">
+                <div class="settings-left">
+                    <div class="settings-icon">💬</div>
+                    <div>
+                        <p class="settings-label">Messages</p>
+                        <p class="settings-desc">Open your conversations.</p>
+                    </div>
+                </div>
+                <span class="settings-chevron">›</span>
+            </a>
+
+        </div>
+    </section>
+
+    <section class="settings-section">
+        <div class="settings-card">
+            <form method="post" action="{% url 'account_logout' %}" class="settings-form-row">
+                {% csrf_token %}
+                <button type="submit" class="settings-row-button danger-row">
+                    <div class="settings-left">
+                        <div class="settings-icon">🚪</div>
+                        <div>
+                            <p class="settings-label">Log out</p>
+                            <p class="settings-desc">Sign out of your Heartly account.</p>
+                        </div>
+                    </div>
+                    <span class="settings-chevron">›</span>
+                </button>
+            </form>
+        </div>
+    </section>
+
+    <p class="settings-footer">Heartly v1.0</p>
+
+</div>
+{% endblock %}
+
+{% block extra_css %}
+:root {
+    --settings-bg: #f8fafc;
+    --settings-card: #ffffff;
+    --settings-text: #111827;
+    --settings-muted: #6b7280;
+    --settings-border: #e5e7eb;
+    --settings-pink: #ec4899;
+    --settings-pink-soft: #fce7f3;
+    --settings-red: #ef4444;
+    --settings-shadow: 0 14px 35px rgba(15, 23, 42, 0.08);
+}
+
+:root[data-heartly-theme="dark"] {
+    --settings-bg: #080b12;
+    --settings-card: #111827;
+    --settings-text: #f9fafb;
+    --settings-muted: #9ca3af;
+    --settings-border: #263244;
+    --settings-pink: #f472b6;
+    --settings-pink-soft: rgba(244, 114, 182, 0.14);
+    --settings-shadow: 0 14px 35px rgba(0, 0, 0, 0.38);
+}
+
+.settings-page {
+    min-height: 100vh;
+    color: var(--settings-text);
+    padding: 18px 16px 92px;
+    max-width: 520px;
+    margin: 0 auto;
+}
+
+.settings-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 22px;
+}
+
+.settings-title {
+    font-size: 28px;
+    font-weight: 900;
+    margin: 0;
+    letter-spacing: -0.04em;
+}
+
+.settings-subtitle {
+    color: var(--settings-muted);
+    font-size: 14px;
+    margin-top: 4px;
+}
+
+.top-icon-btn {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--settings-card);
+    color: var(--settings-text);
+    text-decoration: none;
+    border: 1px solid var(--settings-border);
+    box-shadow: var(--settings-shadow);
+    font-size: 26px;
+    font-weight: 900;
+}
+
+.settings-section {
+    margin-bottom: 24px;
+}
+
+.settings-section-title {
+    color: var(--settings-muted);
+    font-size: 13px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 0 0 10px;
+    padding-left: 4px;
+}
+
+.settings-card {
+    background: var(--settings-card);
+    border: 1px solid var(--settings-border);
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: var(--settings-shadow);
+}
+
+.settings-main-card {
+    padding: 18px;
+}
+
+.settings-identity {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+}
+
+.settings-avatar,
+.settings-avatar-fallback {
+    width: 82px;
+    height: 82px;
+    border-radius: 50%;
+    border: 4px solid var(--settings-pink-soft);
+    background: var(--settings-pink-soft);
+    flex-shrink: 0;
+}
+
+.settings-avatar {
+    object-fit: cover;
+}
+
+.settings-avatar-fallback {
+    color: var(--settings-pink);
+    display: grid;
+    place-items: center;
+    font-size: 32px;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.settings-name {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 900;
+    letter-spacing: -0.04em;
+}
+
+.settings-username {
+    margin: 4px 0 0;
+    color: var(--settings-muted);
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.settings-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+    margin-top: 16px;
+}
+
+.settings-pill,
+.settings-status-pill {
+    background: var(--settings-pink-soft);
+    color: var(--settings-pink);
+    border-radius: 999px;
+    padding: 8px 12px;
+    font-size: 13px;
+    font-weight: 900;
+}
+
+.settings-row,
+.settings-row-button {
+    width: 100%;
+    border: none;
+    background: transparent;
+    color: var(--settings-text);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 16px;
+    text-decoration: none;
+    cursor: pointer;
+    font: inherit;
+    text-align: left;
+}
+
+.settings-row + .settings-row,
+.settings-form-row + .settings-row,
+.settings-row + .settings-form-row,
+.settings-form-row + .settings-form-row,
+.settings-row-button + .settings-row-button {
+    border-top: 1px solid var(--settings-border);
+}
+
+.settings-form-row {
+    margin: 0;
+}
+
+.settings-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+}
+
+.settings-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 16px;
+    background: var(--settings-pink-soft);
+    color: var(--settings-pink);
+    display: grid;
+    place-items: center;
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.settings-label {
+    font-weight: 900;
+    font-size: 15px;
+    margin: 0;
+}
+
+.settings-desc {
+    color: var(--settings-muted);
+    font-size: 13px;
+    margin: 3px 0 0;
+    line-height: 1.35;
+}
+
+.settings-chevron {
+    color: var(--settings-muted);
+    font-size: 22px;
+    flex-shrink: 0;
+}
+
+.danger-row .settings-icon {
+    background: rgba(239, 68, 68, 0.12);
+    color: var(--settings-red);
+}
+
+.danger-row .settings-label {
+    color: var(--settings-red);
+}
+
+.settings-footer {
+    text-align: center;
+    color: var(--settings-muted);
+    font-size: 12px;
+    margin-top: 28px;
+}
+
+@media (max-width: 380px) {
+    .settings-name {
+        font-size: 20px;
+    }
+
+    .settings-row,
+    .settings-row-button {
+        align-items: flex-start;
+    }
+
+    .settings-status-pill {
+        flex-shrink: 0;
+    }
+}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function setHeartlyAppearance(theme) {
+        const selectedTheme = theme === "dark" ? "dark" : "light";
+
+        if (window.applyHeartlyTheme) {
+            window.applyHeartlyTheme(selectedTheme);
+        } else {
+            document.documentElement.setAttribute("data-heartly-theme", selectedTheme);
+            localStorage.setItem("heartlyTheme", selectedTheme);
+        }
+    }
+</script>
+{% endblock %}

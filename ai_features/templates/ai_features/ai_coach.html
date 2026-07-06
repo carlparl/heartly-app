@@ -1,85 +1,487 @@
 {% extends "heartly/base.html" %}
 {% load static %}
 
-{% block title %}AI Coach - Heartly{% endblock %}
+{% block title %}Heartly AI{% endblock %}
 
 {% block content %}
 
-<section class="ai-v2-screen">
+<section class="ai-polished-screen">
 
-  <section class="ai-v2-hero heartly-card heartly-glow-card">
+  <!-- Header -->
+  <section class="ai-polished-header heartly-card heartly-glow-card">
 
-    <div class="ai-v2-bot">
-      <div class="ai-v2-antenna"></div>
-      <div class="ai-v2-face">
+    <div class="ai-polished-bot">
+      <div class="ai-polished-face">
         <span></span>
         <span></span>
       </div>
     </div>
 
-    <h1>Hi there! 👋</h1>
-    <p>I’m your Heartly AI Coach</p>
+    <div class="ai-polished-title">
+      <div class="ai-polished-status">
+        <span></span>
+        Online
+      </div>
+
+      <h1>Heartly AI</h1>
+      <p>Friendly help for anything: ideas, coding, feelings, jokes, and daily questions.</p>
+    </div>
+
+    <button type="button" class="ai-polished-new-btn" id="endAiChatBtn">
+      New
+    </button>
 
   </section>
 
-  <section class="ai-v2-prompts">
-    <button type="button" data-prompt="How do I start a conversation?">
-      Start a conversation
-    </button>
+  <!-- Chat Thread -->
+  <section class="ai-polished-thread heartly-card" id="aiChatThread">
 
-    <button type="button" data-prompt="How do I know if someone likes me?">
-      Signs they like me
-    </button>
+    <div class="ai-polished-message ai">
+      <div class="ai-polished-avatar">♥</div>
 
-    <button type="button" data-prompt="How can I improve my profile?">
-      Improve my profile
-    </button>
+      <div class="ai-polished-bubble">
+        Hi. I’m Heartly. Ask me anything.
+      </div>
+    </div>
 
-    <button type="button" data-prompt="What red flags should I watch for?">
-      Red flags
-    </button>
   </section>
 
-  {% if ai_response %}
-    <section class="ai-v2-response heartly-card">
-      <h2>Coach says</h2>
-      <p>{{ ai_response|linebreaksbr }}</p>
-    </section>
-  {% endif %}
-
-  <form method="post" class="ai-v2-input-card heartly-card">
+  <!-- Input -->
+  <form method="post" class="ai-polished-form heartly-card" id="aiCoachForm">
     {% csrf_token %}
 
     <input
       type="text"
       name="message"
       id="aiCoachInput"
-      value="{{ user_message }}"
-      placeholder="Ask Heartly..."
+      placeholder="Message Heartly..."
       autocomplete="off"
       required
     >
 
-    <button type="submit">
+    <button type="submit" aria-label="Send message">
       ➜
     </button>
   </form>
 
 </section>
 
+<style>
+  .ai-polished-screen {
+    min-height: calc(100vh - 160px);
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    gap: 14px;
+  }
+
+  .ai-polished-header {
+    padding: 16px;
+    display: grid;
+    grid-template-columns: 58px 1fr auto;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .ai-polished-bot {
+    width: 54px;
+    height: 54px;
+    border-radius: 20px;
+    background: var(--heartly-gradient);
+    display: grid;
+    place-items: center;
+    box-shadow: var(--heartly-shadow-soft);
+  }
+
+  .ai-polished-face {
+    width: 36px;
+    height: 28px;
+    border-radius: 13px;
+    background: rgba(255, 255, 255, 0.92);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+  }
+
+  .ai-polished-face span {
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: var(--heartly-primary);
+  }
+
+  .ai-polished-title {
+    min-width: 0;
+  }
+
+  .ai-polished-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--heartly-success, #22c55e);
+    font-size: 11px;
+    font-weight: 950;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .ai-polished-status span {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--heartly-success, #22c55e);
+    box-shadow: 0 0 12px var(--heartly-success, #22c55e);
+  }
+
+  .ai-polished-title h1 {
+    margin: 4px 0 0;
+    color: var(--heartly-text-strong, var(--heartly-text));
+    font-size: 21px;
+    font-weight: 950;
+    letter-spacing: -0.045em;
+  }
+
+  .ai-polished-title p {
+    margin: 4px 0 0;
+    color: var(--heartly-muted);
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .ai-polished-new-btn {
+    min-height: 42px;
+    padding: 0 14px;
+    border: 1px solid var(--heartly-border);
+    border-radius: 16px;
+    background: var(--heartly-card-soft);
+    color: var(--heartly-text);
+    font-size: 13px;
+    font-weight: 950;
+    cursor: pointer;
+  }
+
+  .ai-polished-new-btn:hover {
+    background: var(--heartly-primary-soft);
+    color: var(--heartly-primary);
+  }
+
+  .ai-polished-thread {
+    min-height: 360px;
+    max-height: calc(100vh - 270px);
+    padding: 16px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .ai-polished-message {
+    display: flex;
+    align-items: flex-end;
+    gap: 9px;
+  }
+
+  .ai-polished-message.user {
+    justify-content: flex-end;
+  }
+
+  .ai-polished-message.ai {
+    justify-content: flex-start;
+  }
+
+  .ai-polished-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 14px;
+    background: var(--heartly-gradient);
+    color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 950;
+    box-shadow: var(--heartly-shadow-soft);
+    flex: 0 0 auto;
+  }
+
+  .ai-polished-bubble {
+    max-width: 82%;
+    padding: 12px 14px;
+    border-radius: 20px;
+    color: var(--heartly-text);
+    background: var(--heartly-card-soft);
+    border: 1px solid var(--heartly-border);
+    font-size: 14px;
+    line-height: 1.5;
+    font-weight: 800;
+    word-break: break-word;
+  }
+
+  .ai-polished-message.user .ai-polished-bubble {
+    color: #ffffff;
+    background: var(--heartly-gradient);
+    border-color: transparent;
+    border-bottom-right-radius: 7px;
+    box-shadow: 0 16px 36px rgba(139, 92, 246, 0.24);
+  }
+
+  .ai-polished-message.ai .ai-polished-bubble {
+    border-bottom-left-radius: 7px;
+  }
+
+  .ai-polished-form {
+    padding: 10px;
+    display: grid;
+    grid-template-columns: 1fr 50px;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .ai-polished-form input {
+    min-height: 50px;
+    border: 1px solid var(--heartly-input-border, var(--heartly-border));
+    border-radius: 999px;
+    background: var(--heartly-input-bg, var(--heartly-card-soft));
+    color: var(--heartly-input-text, var(--heartly-text));
+    padding: 0 16px;
+    outline: none;
+    font-size: 14px;
+    font-weight: 800;
+  }
+
+  .ai-polished-form input:focus {
+    border-color: var(--heartly-primary);
+    box-shadow: 0 0 0 4px var(--heartly-primary-soft);
+  }
+
+  .ai-polished-form button {
+    width: 50px;
+    height: 50px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--heartly-gradient);
+    color: #ffffff;
+    font-size: 22px;
+    font-weight: 950;
+    cursor: pointer;
+    box-shadow: var(--heartly-shadow-soft);
+  }
+
+  .ai-polished-typing {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .ai-polished-typing span {
+    margin-right: 3px;
+  }
+
+  .ai-polished-typing b {
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--heartly-primary);
+    opacity: 0.35;
+    animation: heartlyTyping 900ms infinite ease-in-out;
+  }
+
+  .ai-polished-typing b:nth-child(2) {
+    animation-delay: 120ms;
+  }
+
+  .ai-polished-typing b:nth-child(3) {
+    animation-delay: 240ms;
+  }
+
+  @keyframes heartlyTyping {
+    0%, 100% {
+      opacity: 0.25;
+      transform: translateY(0);
+    }
+
+    50% {
+      opacity: 1;
+      transform: translateY(-3px);
+    }
+  }
+
+  @media (max-width: 380px) {
+    .ai-polished-header {
+      grid-template-columns: 50px 1fr auto;
+      padding: 14px;
+    }
+
+    .ai-polished-bot {
+      width: 48px;
+      height: 48px;
+      border-radius: 18px;
+    }
+
+    .ai-polished-title h1 {
+      font-size: 19px;
+    }
+
+    .ai-polished-title p {
+      font-size: 11px;
+    }
+
+    .ai-polished-thread {
+      min-height: 330px;
+      padding: 14px;
+    }
+
+    .ai-polished-bubble {
+      max-width: 86%;
+      font-size: 13px;
+    }
+  }
+</style>
+
 {% endblock %}
 
 {% block extra_js %}
 <script>
 document.addEventListener("DOMContentLoaded", function () {
+  const form = document.getElementById("aiCoachForm");
   const input = document.getElementById("aiCoachInput");
+  const thread = document.getElementById("aiChatThread");
+  const newButton = document.getElementById("endAiChatBtn");
 
-  document.querySelectorAll("[data-prompt]").forEach(function (button) {
-    button.addEventListener("click", function () {
-      input.value = button.getAttribute("data-prompt");
-      input.focus();
+  if (!form || !input || !thread || !newButton) return;
+
+  function getCsrfToken() {
+    const token = form.querySelector("input[name='csrfmiddlewaretoken']");
+    return token ? token.value : "";
+  }
+
+  function scrollChat() {
+    thread.scrollTop = thread.scrollHeight;
+  }
+
+  function addMessage(type, text) {
+    const message = document.createElement("div");
+    message.className = "ai-polished-message " + type;
+
+    if (type === "ai") {
+      const avatar = document.createElement("div");
+      avatar.className = "ai-polished-avatar";
+      avatar.textContent = "♥";
+      message.appendChild(avatar);
+    }
+
+    const bubble = document.createElement("div");
+    bubble.className = "ai-polished-bubble";
+    bubble.textContent = text;
+    bubble.style.whiteSpace = "pre-line";
+
+    message.appendChild(bubble);
+    thread.appendChild(message);
+
+    scrollChat();
+
+    return message;
+  }
+
+  function addTypingMessage() {
+    const message = document.createElement("div");
+    message.className = "ai-polished-message ai ai-polished-typing-message";
+
+    const avatar = document.createElement("div");
+    avatar.className = "ai-polished-avatar";
+    avatar.textContent = "♥";
+
+    const bubble = document.createElement("div");
+    bubble.className = "ai-polished-bubble ai-polished-typing";
+    bubble.innerHTML = `
+      <span>Heartly is typing</span>
+      <b></b><b></b><b></b>
+    `;
+
+    message.appendChild(avatar);
+    message.appendChild(bubble);
+    thread.appendChild(message);
+
+    scrollChat();
+
+    return message;
+  }
+
+  function sendMessage(message) {
+    const cleanMessage = message.trim();
+
+    if (!cleanMessage) return;
+
+    addMessage("user", cleanMessage);
+
+    input.value = "";
+    input.focus();
+
+    const typingMessage = addTypingMessage();
+
+    const formData = new FormData();
+    formData.append("message", cleanMessage);
+
+    const startedAt = Date.now();
+
+    fetch("{% url 'ai_features:ai_coach_send' %}", {
+      method: "POST",
+      headers: {
+        "X-CSRFToken": getCsrfToken(),
+        "X-Requested-With": "XMLHttpRequest"
+      },
+      body: formData
+    })
+      .then(function (response) {
+        if (!response.ok) {
+          throw new Error("Request failed");
+        }
+
+        return response.json();
+      })
+      .then(function (data) {
+        const elapsed = Date.now() - startedAt;
+        const delay = Math.max(650 - elapsed, 0);
+
+        setTimeout(function () {
+          typingMessage.remove();
+
+          if (data.ok) {
+            addMessage("ai", data.reply);
+          } else {
+            addMessage("ai", data.reply || "Try asking that another way.");
+          }
+        }, delay);
+      })
+      .catch(function () {
+        typingMessage.remove();
+        addMessage("ai", "Connection issue. Try again.");
+      });
+  }
+
+  form.addEventListener("submit", function (event) {
+    event.preventDefault();
+
+    const message = input.value;
+    sendMessage(message);
+  });
+
+  newButton.addEventListener("click", function () {
+    thread.innerHTML = "";
+
+    addMessage("ai", "New chat started. What do you want to talk about?");
+
+    fetch("{% url 'ai_features:ai_coach_end_chat' %}", {
+      method: "POST",
+      headers: {
+        "X-CSRFToken": getCsrfToken(),
+        "X-Requested-With": "XMLHttpRequest"
+      }
+    }).catch(function () {
+      // Do not disturb the visible chat if backend cleanup fails.
     });
   });
+
+  scrollChat();
 });
 </script>
 {% endblock %}

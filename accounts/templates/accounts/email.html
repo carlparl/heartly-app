@@ -1,0 +1,426 @@
+{% extends "heartly/base.html" %}
+{% load static %}
+
+{% block title %}Email Addresses - Heartly{% endblock %}
+
+{% block content %}
+<div class="heartly-page email-page">
+
+    <section class="heartly-hero-card email-hero">
+        <span class="heartly-kicker">Account security</span>
+        <h1 class="heartly-page-title">Email addresses</h1>
+        <p class="heartly-page-subtitle">
+            Manage the email addresses connected to your Heartly account.
+        </p>
+    </section>
+
+    <section class="heartly-panel email-card">
+
+        <div class="email-card-head">
+            <div class="email-card-icon">📧</div>
+
+            <div>
+                <h2>Connected emails</h2>
+                <p>Select an email address, then choose what you want to do.</p>
+            </div>
+        </div>
+
+        {% if emailaddresses %}
+            <form method="post" action="{% url 'account_email' %}" class="email-list-form">
+                {% csrf_token %}
+
+                <div class="email-list">
+                    {% for emailaddress in emailaddresses %}
+                        <label class="email-item {% if emailaddress.primary %}email-primary{% endif %}">
+                            <input
+                                type="radio"
+                                name="email"
+                                value="{{ emailaddress.email }}"
+                                {% if emailaddress.primary or forloop.first %}checked{% endif %}
+                            >
+
+                            <div class="email-radio-dot"></div>
+
+                            <div class="email-item-main">
+                                <strong>{{ emailaddress.email }}</strong>
+
+                                <div class="email-badges">
+                                    {% if emailaddress.primary %}
+                                        <span class="email-badge primary">Primary</span>
+                                    {% endif %}
+
+                                    {% if emailaddress.verified %}
+                                        <span class="email-badge verified">Verified</span>
+                                    {% else %}
+                                        <span class="email-badge unverified">Unverified</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </label>
+                    {% endfor %}
+                </div>
+
+                <div class="email-actions">
+                    <button type="submit" name="action_primary" class="email-action-btn soft">
+                        Make primary
+                    </button>
+
+                    <button type="submit" name="action_send" class="email-action-btn soft">
+                        Re-send verification
+                    </button>
+
+                    <button type="submit" name="action_remove" class="email-action-btn danger">
+                        Remove selected
+                    </button>
+                </div>
+            </form>
+        {% else %}
+            <div class="heartly-empty-state">
+                <div class="heartly-empty-icon">📭</div>
+                <h3 class="heartly-empty-title">No email connected</h3>
+                <p class="heartly-empty-text">
+                    Add an email address so you can secure and recover your account.
+                </p>
+            </div>
+        {% endif %}
+
+    </section>
+
+    <section class="heartly-panel email-card">
+
+        <div class="email-card-head">
+            <div class="email-card-icon">➕</div>
+
+            <div>
+                <h2>Add email</h2>
+                <p>Add another email address to your Heartly account.</p>
+            </div>
+        </div>
+
+        <form method="post" action="{% url 'account_email' %}" class="add-email-form">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+                <div class="email-error-box">
+                    {{ form.non_field_errors }}
+                </div>
+            {% endif %}
+
+            <div class="email-field">
+                <label for="{{ form.email.id_for_label }}">New email address</label>
+                {{ form.email }}
+
+                {% if form.email.errors %}
+                    <div class="email-error-box">
+                        {{ form.email.errors }}
+                    </div>
+                {% endif %}
+            </div>
+
+            <button type="submit" name="action_add" class="add-email-btn">
+                Add email
+            </button>
+        </form>
+
+    </section>
+
+    <section class="email-bottom-actions">
+        <a href="{% url 'settings' %}" class="back-settings-btn">
+            Back to settings
+        </a>
+    </section>
+
+</div>
+
+<style>
+    .email-page {
+        display: grid;
+        gap: 14px;
+    }
+
+    .email-card {
+        display: grid;
+        gap: 16px;
+    }
+
+    .email-card-head {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .email-card-icon {
+        width: 50px;
+        height: 50px;
+        flex: 0 0 auto;
+        border-radius: 18px;
+        display: grid;
+        place-items: center;
+        color: #ffffff;
+        background: linear-gradient(135deg, var(--heartly-primary), var(--heartly-primary-2));
+        box-shadow: 0 14px 28px rgba(255, 63, 114, 0.24);
+        font-size: 1.25rem;
+    }
+
+    .email-card-head h2 {
+        margin: 0;
+        color: var(--heartly-text);
+        font-size: 1.22rem;
+        line-height: 1.1;
+        letter-spacing: -0.04em;
+        font-weight: 950;
+    }
+
+    .email-card-head p {
+        margin: 6px 0 0;
+        color: var(--heartly-muted);
+        font-size: 0.88rem;
+        line-height: 1.45;
+    }
+
+    .email-list-form {
+        display: grid;
+        gap: 14px;
+    }
+
+    .email-list {
+        display: grid;
+        gap: 10px;
+    }
+
+    .email-item {
+        position: relative;
+        min-width: 0;
+        padding: 14px;
+        border-radius: 22px;
+        display: grid;
+        grid-template-columns: 28px 1fr;
+        align-items: center;
+        gap: 12px;
+        color: var(--heartly-text);
+        background: var(--heartly-card-soft);
+        border: 1px solid var(--heartly-border);
+        cursor: pointer;
+    }
+
+    .email-item input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .email-radio-dot {
+        width: 22px;
+        height: 22px;
+        border-radius: 999px;
+        border: 2px solid rgba(255, 63, 114, 0.45);
+        background: transparent;
+        position: relative;
+    }
+
+    .email-radio-dot::after {
+        content: "";
+        position: absolute;
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        inset: 4px;
+        background: linear-gradient(135deg, var(--heartly-primary), var(--heartly-primary-2));
+        opacity: 0;
+        transform: scale(0.5);
+        transition: 0.18s ease;
+    }
+
+    .email-item input:checked + .email-radio-dot::after {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    .email-item:has(input:checked) {
+        border-color: rgba(255, 63, 114, 0.5);
+        box-shadow: 0 14px 30px rgba(255, 63, 114, 0.14);
+    }
+
+    .email-item-main {
+        min-width: 0;
+        display: grid;
+        gap: 8px;
+    }
+
+    .email-item-main strong {
+        min-width: 0;
+        display: block;
+        color: var(--heartly-text);
+        font-size: 0.92rem;
+        font-weight: 950;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .email-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .email-badge {
+        min-height: 26px;
+        padding: 0 10px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.72rem;
+        font-weight: 950;
+    }
+
+    .email-badge.primary {
+        color: #ffffff;
+        background: linear-gradient(135deg, var(--heartly-primary), var(--heartly-primary-2));
+    }
+
+    .email-badge.verified {
+        color: #157347;
+        background: rgba(25, 135, 84, 0.13);
+        border: 1px solid rgba(25, 135, 84, 0.2);
+    }
+
+    .email-badge.unverified {
+        color: #b96b00;
+        background: rgba(255, 193, 7, 0.14);
+        border: 1px solid rgba(255, 193, 7, 0.22);
+    }
+
+    .email-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .email-action-btn,
+    .add-email-btn,
+    .back-settings-btn {
+        min-height: 50px;
+        border-radius: 18px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        font-weight: 950;
+        cursor: pointer;
+    }
+
+    .email-action-btn {
+        border: 1px solid var(--heartly-border);
+    }
+
+    .email-action-btn.soft {
+        color: var(--heartly-text);
+        background: var(--heartly-card-soft);
+    }
+
+    .email-action-btn.danger {
+        color: #ffffff;
+        background: linear-gradient(135deg, #d92f63, #ff5f8e);
+        border-color: transparent;
+        box-shadow: 0 16px 34px rgba(217, 47, 99, 0.18);
+    }
+
+    .add-email-form {
+        display: grid;
+        gap: 14px;
+    }
+
+    .email-field {
+        display: grid;
+        gap: 8px;
+    }
+
+    .email-field label {
+        color: var(--heartly-text);
+        font-size: 0.86rem;
+        font-weight: 900;
+    }
+
+    .email-field input {
+        width: 100%;
+        min-height: 50px;
+        padding: 12px 14px;
+        border-radius: 18px;
+        color: var(--heartly-text);
+        background: var(--heartly-card-soft);
+        border: 1px solid var(--heartly-border);
+        outline: none;
+        font-size: 0.92rem;
+        font-weight: 750;
+    }
+
+    .email-field input:focus {
+        border-color: rgba(255, 63, 114, 0.55);
+        box-shadow: 0 0 0 4px rgba(255, 63, 114, 0.12);
+    }
+
+    .add-email-btn {
+        width: 100%;
+        border: none;
+        color: #ffffff;
+        background: linear-gradient(135deg, var(--heartly-primary), var(--heartly-primary-2));
+        box-shadow: 0 18px 38px rgba(255, 63, 114, 0.28);
+    }
+
+    .email-bottom-actions {
+        display: grid;
+    }
+
+    .back-settings-btn {
+        color: var(--heartly-text);
+        background: var(--heartly-card-soft);
+        border: 1px solid var(--heartly-border);
+    }
+
+    .email-error-box {
+        padding: 12px 14px;
+        border-radius: 16px;
+        color: #ffffff;
+        background: linear-gradient(135deg, #d92f63, #ff5f8e);
+        font-size: 0.82rem;
+        font-weight: 800;
+        line-height: 1.4;
+    }
+
+    @media (min-width: 520px) {
+        .email-actions {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .email-action-btn.danger {
+            grid-column: span 2;
+        }
+    }
+
+    @media (max-width: 430px) {
+        .email-card-icon {
+            width: 46px;
+            height: 46px;
+            border-radius: 16px;
+        }
+
+        .email-item {
+            grid-template-columns: 24px 1fr;
+            gap: 10px;
+            padding: 12px;
+        }
+
+        .email-radio-dot {
+            width: 20px;
+            height: 20px;
+        }
+
+        .email-radio-dot::after {
+            width: 8px;
+            height: 8px;
+        }
+    }
+</style>
+{% endblock %}

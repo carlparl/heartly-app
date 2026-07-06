@@ -1,0 +1,197 @@
+<style>
+  .settings-screen {
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .settings-mobile-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    height: 64px;
+    padding: 0 18px;
+    display: grid;
+    grid-template-columns: 44px 1fr 44px;
+    align-items: center;
+    background: color-mix(in srgb, var(--heartly-bg) 88%, transparent);
+    backdrop-filter: blur(18px);
+    border-bottom: 1px solid var(--heartly-border);
+  }
+
+  .settings-mobile-topbar h1 {
+    margin: 0;
+    text-align: center;
+    font-size: 1.2rem;
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    color: var(--heartly-text);
+  }
+
+  .settings-topbar-spacer {
+    width: 44px;
+    height: 44px;
+  }
+
+  .settings-card {
+    background: var(--heartly-surface);
+    border: 1px solid var(--heartly-border);
+    border-radius: 28px;
+    padding: 18px;
+    box-shadow: var(--heartly-shadow);
+  }
+
+  .settings-card h2 {
+    margin: 0;
+    color: var(--heartly-text);
+    font-size: 1.12rem;
+    font-weight: 900;
+    letter-spacing: -0.03em;
+  }
+
+  .settings-card p {
+    margin: 6px 0 0;
+    color: var(--heartly-muted);
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+
+  .settings-menu-card {
+    padding: 6px;
+  }
+
+  .settings-menu-item,
+  .settings-toggle-row {
+    min-height: 60px;
+    padding: 0 14px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: var(--heartly-text);
+    transition: background 0.18s ease, transform 0.18s ease;
+  }
+
+  .settings-menu-item:hover {
+    background: var(--heartly-surface-soft);
+    transform: translateX(2px);
+  }
+
+  .settings-menu-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 800;
+  }
+
+  .settings-menu-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--heartly-primary-soft);
+  }
+
+  .settings-chevron {
+    color: var(--heartly-muted);
+    font-size: 1.45rem;
+  }
+
+  .settings-pill {
+    padding: 5px 9px;
+    border-radius: 999px;
+    background: var(--heartly-primary-soft);
+    color: var(--heartly-primary);
+    font-size: 0.72rem;
+    font-weight: 900;
+  }
+
+  .settings-info-list {
+    margin-top: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .settings-info-list div {
+    padding: 13px;
+    border-radius: 18px;
+    background: var(--heartly-surface-soft);
+    border: 1px solid var(--heartly-border);
+  }
+
+  .settings-info-list span {
+    display: block;
+    color: var(--heartly-muted);
+    font-size: 0.76rem;
+    margin-bottom: 4px;
+  }
+
+  .settings-info-list strong {
+    color: var(--heartly-text);
+    font-size: 0.92rem;
+  }
+
+  .settings-toggle-row {
+    gap: 12px;
+  }
+
+  .settings-toggle-row strong {
+    display: block;
+    color: var(--heartly-text);
+    font-size: 0.93rem;
+  }
+
+  .settings-toggle-row small {
+    display: block;
+    color: var(--heartly-muted);
+    margin-top: 3px;
+    font-size: 0.76rem;
+  }
+
+  .settings-toggle-row input {
+    width: 22px;
+    height: 22px;
+    accent-color: var(--heartly-primary);
+  }
+
+  .danger-link {
+    color: #e53955;
+  }
+
+  .about-heartly-card {
+    text-align: center;
+  }
+
+  .about-heartly-logo {
+    width: 78px;
+    height: 78px;
+    margin: 0 auto 14px;
+    border-radius: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--heartly-primary), var(--heartly-primary-dark));
+    color: white;
+    font-size: 2.2rem;
+    box-shadow: 0 16px 34px rgba(236, 75, 122, 0.32);
+  }
+
+  @media (max-width: 420px) {
+    .settings-screen {
+      padding: 14px;
+    }
+
+    .settings-card {
+      border-radius: 24px;
+      padding: 16px;
+    }
+
+    .settings-menu-card {
+      padding: 6px;
+    }
+  }
+</style>

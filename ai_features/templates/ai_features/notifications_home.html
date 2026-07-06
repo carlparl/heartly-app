@@ -1,0 +1,280 @@
+{% extends "heartly/base.html" %}
+{% load static %}
+
+{% block title %}Notifications - Heartly{% endblock %}
+
+{% block content %}
+<div class="heartly-page notifications-page">
+
+    <section class="heartly-hero-card notifications-hero">
+        <span class="heartly-kicker">Updates</span>
+
+        <h1 class="heartly-page-title">Notifications</h1>
+
+        <p class="heartly-page-subtitle">
+            Likes, matches, messages, comments, and important Heartly updates appear here.
+        </p>
+    </section>
+
+    <section class="notifications-actions">
+        {% if notifications %}
+            <form method="post" action="{% url 'notifications:mark_notifications_read' %}">
+                {% csrf_token %}
+                <button type="submit" class="notifications-soft-btn">
+                    Mark all read
+                </button>
+            </form>
+
+            <form
+                method="post"
+                action="{% url 'notifications:clear_all_notifications' %}"
+                onsubmit="return confirm('Clear all notifications?')"
+            >
+                {% csrf_token %}
+                <button type="submit" class="notifications-danger-btn">
+                    Clear all
+                </button>
+            </form>
+        {% endif %}
+    </section>
+
+    <section class="notifications-stack">
+
+        {% if notifications %}
+            {% for notification in notifications %}
+                <article class="heartly-panel notification-card {% if not notification.is_read %}unread{% endif %}">
+
+                    <a
+                        href="{% url 'notifications:open_notification' notification.id %}"
+                        class="notification-main"
+                    >
+                        <div class="notification-icon">
+                            {{ notification.icon }}
+                        </div>
+
+                        <div class="notification-body">
+                            <div class="notification-top">
+                                <strong>{{ notification.title }}</strong>
+
+                                {% if not notification.is_read %}
+                                    <span>New</span>
+                                {% endif %}
+                            </div>
+
+                            {% if notification.message %}
+                                <p>{{ notification.message }}</p>
+                            {% endif %}
+
+                            <small>
+                                {{ notification.created_at|timesince }} ago
+                            </small>
+                        </div>
+                    </a>
+
+                    <form
+                        method="post"
+                        action="{% url 'notifications:clear_notification' notification.id %}"
+                        class="notification-clear-form"
+                    >
+                        {% csrf_token %}
+
+                        <button type="submit" aria-label="Clear notification">
+                            ×
+                        </button>
+                    </form>
+
+                </article>
+            {% endfor %}
+
+        {% else %}
+            <section class="heartly-empty-state">
+                <div class="heartly-empty-icon">🔔</div>
+
+                <h3 class="heartly-empty-title">
+                    No notifications
+                </h3>
+
+                <p class="heartly-empty-text">
+                    New messages, likes, comments, and matches will appear here.
+                </p>
+            </section>
+        {% endif %}
+
+    </section>
+
+</div>
+{% endblock %}
+
+{% block extra_css %}
+.notifications-page {
+    display: grid;
+    gap: var(--heartly-section-gap);
+}
+
+.notifications-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.notifications-actions form {
+    margin: 0;
+}
+
+.notifications-soft-btn,
+.notifications-danger-btn {
+    width: 100%;
+    min-height: 42px;
+    border: none;
+    border-radius: var(--heartly-radius-md);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.82rem;
+    font-weight: 950;
+    cursor: pointer;
+}
+
+.notifications-soft-btn {
+    color: var(--heartly-text);
+    background: var(--heartly-card);
+    box-shadow: var(--heartly-shadow-soft);
+}
+
+.notifications-danger-btn {
+    color: var(--heartly-accent);
+    background: var(--heartly-accent-soft);
+}
+
+.notifications-stack {
+    display: grid;
+    gap: 10px;
+}
+
+.notification-card {
+    position: relative;
+    padding: 10px;
+    display: grid;
+    grid-template-columns: 1fr 34px;
+    align-items: center;
+    gap: 8px;
+}
+
+.notification-card.unread {
+    background: var(--heartly-primary-soft) !important;
+}
+
+.notification-main {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: 46px minmax(0, 1fr);
+    align-items: center;
+    gap: 11px;
+    color: inherit;
+    text-decoration: none;
+}
+
+.notification-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 17px;
+    display: grid;
+    place-items: center;
+    color: #ffffff;
+    background: linear-gradient(135deg, var(--heartly-accent), var(--heartly-primary));
+    box-shadow: var(--heartly-shadow-btn);
+    font-size: 1.08rem;
+    font-weight: 950;
+}
+
+.notification-body {
+    min-width: 0;
+}
+
+.notification-top {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.notification-top strong {
+    min-width: 0;
+    color: var(--heartly-text);
+    font-size: 0.91rem;
+    line-height: 1.2;
+    font-weight: 950;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.notification-top span {
+    flex: 0 0 auto;
+    min-height: 22px;
+    padding: 0 8px;
+    border-radius: var(--heartly-radius-pill);
+    display: inline-flex;
+    align-items: center;
+    color: #ffffff;
+    background: var(--heartly-accent);
+    font-size: 0.66rem;
+    font-weight: 950;
+}
+
+.notification-body p {
+    margin: 5px 0 0;
+    color: var(--heartly-muted);
+    font-size: 0.8rem;
+    line-height: 1.35;
+    font-weight: 650;
+}
+
+.notification-body small {
+    display: block;
+    margin-top: 5px;
+    color: var(--heartly-muted);
+    font-size: 0.7rem;
+    font-weight: 750;
+}
+
+.notification-clear-form {
+    margin: 0;
+}
+
+.notification-clear-form button {
+    width: 34px;
+    height: 34px;
+    border: none;
+    border-radius: 13px;
+    display: grid;
+    place-items: center;
+    color: var(--heartly-muted);
+    background: var(--heartly-card-soft);
+    font-size: 1.1rem;
+    font-weight: 950;
+    cursor: pointer;
+}
+
+.notification-clear-form button:hover {
+    color: var(--heartly-accent);
+    background: var(--heartly-accent-soft);
+}
+
+@media (max-width: 430px) {
+    .notifications-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .notification-main {
+        grid-template-columns: 42px minmax(0, 1fr);
+        gap: 9px;
+    }
+
+    .notification-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 15px;
+    }
+}
+{% endblock %}

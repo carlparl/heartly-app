@@ -1,0 +1,532 @@
+{% extends "heartly/base.html" %}
+{% load static %}
+
+{% block title %}Discover - Heartly{% endblock %}
+
+{% block content %}
+<div class="matches-page">
+
+    <div class="matches-header">
+        <div>
+            <h1 class="matches-title">Discover</h1>
+            <p class="matches-subtitle">Find visible profiles and connect respectfully.</p>
+        </div>
+
+        <a href="{% url 'matches:your_matches' %}" class="top-icon-btn" title="Your matches" aria-label="Your matches">
+            💞
+        </a>
+    </div>
+    
+    <form method="get" action="{% url 'matches:discover' %}" class="discover-search-form">
+    <input
+        type="search"
+        name="q"
+        value="{{ search_query }}"
+        placeholder="Search people..."
+        autocomplete="off"
+    >
+
+    {% if search_query %}
+        <a href="{% url 'matches:discover' %}" class="discover-search-clear" aria-label="Clear search">×</a>
+    {% endif %}
+</form>
+
+    <section class="matches-section">
+        <div class="matches-card matches-main-card">
+
+            <div class="matches-summary">
+                <div class="matches-summary-icon">💗</div>
+
+                <div>
+                    <h2 class="matches-summary-title">Find people</h2>
+                    <p class="matches-summary-text">
+                        Browse profiles, like people you want to connect with, or pass respectfully.
+                    </p>
+                </div>
+            </div>
+
+            <div class="matches-meta">
+                <span class="matches-pill">🛡️ Safety first</span>
+                <span class="matches-pill">👁️ Visible profiles</span>
+            </div>
+
+            <div class="matches-actions">
+                <a href="{% url 'matches:your_matches' %}" class="primary-action">
+                    Your matches
+                </a>
+
+                <a href="{% url 'profiles:edit_profile' %}" class="secondary-action">
+                    Improve profile
+                </a>
+            </div>
+
+        </div>
+    </section>
+
+    <section class="matches-section">
+        <h2 class="matches-section-title">People</h2>
+
+        <div class="discover-stack">
+
+            {% for profile in profiles %}
+                <article class="discover-card">
+
+                    <a href="{% url 'profiles:public_profile' profile.user.id %}" class="discover-photo">
+                        {% if profile.profile_picture %}
+                            <img src="{{ profile.profile_picture.url }}" alt="{% if profile.display_name %}{{ profile.display_name }}{% else %}{{ profile.user.username }}{% endif %}" loading="lazy">
+                        {% else %}
+                            <div class="discover-photo-fallback">
+                                {% if profile.display_name %}
+                                    {{ profile.display_name|first|upper }}
+                                {% else %}
+                                    {{ profile.user.username|first|upper }}
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    </a>
+
+                    <div class="discover-body">
+                        <div>
+                            <h2 class="discover-name">
+                                {% if profile.display_name %}
+                                    {{ profile.display_name }}
+                                {% else %}
+                                    {{ profile.user.username }}
+                                {% endif %}
+                            </h2>
+
+                            <p class="discover-username">@{{ profile.user.username }}</p>
+                        </div>
+
+                        <div class="discover-meta">
+                            {% if profile.age %}
+                                <span>🎂 {{ profile.age }} years</span>
+                            {% endif %}
+
+                            {% if profile.location %}
+                                <span>📍 {{ profile.location }}</span>
+                            {% endif %}
+
+                            {% if profile.email_verified %}
+                                <span>✅ Verified</span>
+                            {% endif %}
+                        </div>
+
+                        <p class="discover-bio">
+                            {% if profile.bio %}
+                                {{ profile.bio|truncatechars:170 }}
+                            {% else %}
+                                No bio added yet.
+                            {% endif %}
+                        </p>
+
+                        <div class="discover-interest-list">
+                            {% for interest in profile.interests.all|slice:":5" %}
+                                <span>{{ interest.name }}</span>
+                            {% empty %}
+                                <span>No interests yet</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="discover-controls">
+                        <form method="post" action="{% url 'matches:swipe' profile.user.id 'pass' %}">
+                            {% csrf_token %}
+                            <button type="submit" class="pass-action">
+                                Pass
+                            </button>
+                        </form>
+
+                        <form method="post" action="{% url 'matches:swipe' profile.user.id 'like' %}">
+                            {% csrf_token %}
+                            <button type="submit" class="like-action">
+                                Like
+                            </button>
+                        </form>
+                    </div>
+
+                </article>
+            {% empty %}
+                <div class="matches-card">
+                    <div class="matches-empty">
+                        <div class="matches-empty-icon">💞</div>
+                        {% if search_query %}
+                            <h3 class="matches-empty-title">No results for "{{ search_query }}"</h3>
+                            <p class="matches-empty-text">
+                                Try a different name or username, or clear your search to see all profiles.
+                            </p>
+
+                            <a href="{% url 'matches:discover' %}" class="empty-action">
+                                Clear search
+                            </a>
+                        {% else %}
+                            <h3 class="matches-empty-title">No profiles right now</h3>
+                            <p class="matches-empty-text">
+                                New visible profiles will appear here. Update your profile to improve your Discover experience.
+                            </p>
+
+                            <a href="{% url 'profiles:edit_profile' %}" class="empty-action">
+                                Improve profile
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+
+        </div>
+    </section>
+
+    <p class="matches-footer">Heartly v1.0</p>
+
+</div>
+{% endblock %}
+
+{% block extra_css %}
+:root {
+    --matches-card: #ffffff;
+    --matches-text: #111827;
+    --matches-muted: #6b7280;
+    --matches-border: #e5e7eb;
+    --matches-pink: #ec4899;
+    --matches-pink-soft: #fce7f3;
+    --matches-red: #ef4444;
+    --matches-shadow: 0 14px 35px rgba(15, 23, 42, 0.08);
+}
+
+:root[data-heartly-theme="dark"] {
+    --matches-card: #111827;
+    --matches-text: #f9fafb;
+    --matches-muted: #9ca3af;
+    --matches-border: #263244;
+    --matches-pink: #f472b6;
+    --matches-pink-soft: rgba(244, 114, 182, 0.14);
+    --matches-shadow: 0 14px 35px rgba(0, 0, 0, 0.38);
+}
+
+.matches-page {
+    min-height: 100vh;
+    color: var(--matches-text);
+    padding: 18px 16px 92px;
+    max-width: 520px;
+    margin: 0 auto;
+}
+
+.matches-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 22px;
+}
+
+.matches-title {
+    font-size: 28px;
+    font-weight: 900;
+    margin: 0;
+    letter-spacing: -0.04em;
+}
+
+.matches-subtitle {
+    color: var(--matches-muted);
+    font-size: 14px;
+    margin-top: 4px;
+    line-height: 1.35;
+}
+
+.top-icon-btn {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--matches-card);
+    color: var(--matches-text);
+    text-decoration: none;
+    border: 1px solid var(--matches-border);
+    box-shadow: var(--matches-shadow);
+    font-size: 20px;
+}
+
+.matches-section {
+    margin-bottom: 24px;
+}
+
+.matches-section-title {
+    color: var(--matches-muted);
+    font-size: 13px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 0 0 10px;
+    padding-left: 4px;
+}
+
+.matches-card,
+.discover-card {
+    background: var(--matches-card);
+    border: 1px solid var(--matches-border);
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: var(--matches-shadow);
+}
+
+.matches-main-card {
+    padding: 18px;
+}
+
+.matches-summary {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+}
+
+.matches-summary-icon {
+    width: 72px;
+    height: 72px;
+    border-radius: 26px;
+    background: var(--matches-pink-soft);
+    color: var(--matches-pink);
+    display: grid;
+    place-items: center;
+    font-size: 30px;
+    flex-shrink: 0;
+}
+
+.matches-summary-title {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 900;
+    letter-spacing: -0.04em;
+}
+
+.matches-summary-text {
+    margin: 5px 0 0;
+    color: var(--matches-muted);
+    font-size: 14px;
+    line-height: 1.4;
+    font-weight: 700;
+}
+
+.matches-meta,
+.discover-meta,
+.discover-interest-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+    margin-top: 14px;
+}
+
+.matches-pill,
+.discover-meta span,
+.discover-interest-list span {
+    background: var(--matches-pink-soft);
+    color: var(--matches-pink);
+    border-radius: 999px;
+    padding: 8px 12px;
+    font-size: 13px;
+    font-weight: 900;
+}
+
+.matches-actions,
+.discover-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.matches-actions a,
+.discover-controls button,
+.empty-action {
+    border: none;
+    border-radius: 999px;
+    padding: 12px 14px;
+    text-align: center;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.primary-action,
+.like-action,
+.empty-action {
+    background: var(--matches-pink);
+    color: #ffffff;
+}
+
+.secondary-action,
+.pass-action {
+    background: var(--matches-pink-soft);
+    color: var(--matches-pink);
+}
+
+.discover-stack {
+    display: grid;
+    gap: 16px;
+}
+
+.discover-card {
+    padding: 12px;
+}
+
+.discover-photo {
+    min-height: 390px;
+    border-radius: 22px;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    background: var(--matches-pink-soft);
+    text-decoration: none;
+}
+
+.discover-photo img {
+    width: 100%;
+    height: 100%;
+    max-height: 560px;
+    object-fit: cover;
+    display: block;
+}
+
+.discover-photo-fallback {
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    background: var(--matches-pink-soft);
+    color: var(--matches-pink);
+    display: grid;
+    place-items: center;
+    font-size: 36px;
+    font-weight: 900;
+}
+
+.discover-body {
+    padding: 16px 4px 0;
+}
+
+.discover-name {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 900;
+    letter-spacing: -0.04em;
+}
+
+.discover-username {
+    margin: 4px 0 0;
+    color: var(--matches-muted);
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.discover-bio {
+    margin: 14px 0 0;
+    color: var(--matches-text);
+    font-size: 15px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+}
+
+.discover-controls form {
+    margin: 0;
+}
+
+.discover-controls button {
+    width: 100%;
+}
+
+.matches-empty {
+    text-align: center;
+    padding: 28px 18px;
+}
+
+.matches-empty-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 20px;
+    background: var(--matches-pink-soft);
+    color: var(--matches-pink);
+    display: grid;
+    place-items: center;
+    margin: 0 auto 12px;
+    font-size: 24px;
+}
+
+.matches-empty-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 900;
+}
+
+.matches-empty-text {
+    margin: 6px 0 16px;
+    color: var(--matches-muted);
+    font-size: 14px;
+    line-height: 1.45;
+}
+
+.matches-footer {
+    text-align: center;
+    color: var(--matches-muted);
+    font-size: 12px;
+    margin-top: 28px;
+}
+
+.discover-search-form {
+    margin: 0 0 14px;
+    padding: 8px 10px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--matches-pink-soft);
+    border: 1px solid var(--matches-border);
+}
+
+.discover-search-form input {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: var(--matches-text);
+    font-size: 14px;
+    font-weight: 750;
+}
+
+.discover-search-form input::placeholder {
+    color: var(--matches-muted);
+}
+
+.discover-search-clear {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--matches-pink);
+    color: #ffffff;
+    text-decoration: none;
+    font-size: 18px;
+    font-weight: 950;
+    flex-shrink: 0;
+}
+
+.discover-search-form input:focus-visible,
+.discover-search-clear:focus-visible,
+.top-icon-btn:focus-visible,
+.discover-controls button:focus-visible,
+.matches-actions a:focus-visible {
+    outline: 2px solid var(--matches-pink);
+    outline-offset: 2px;
+}
+
+@media (max-width: 380px) {
+    .matches-actions,
+    .discover-controls {
+        grid-template-columns: 1fr;
+    }
+
+    .discover-photo {
+        min-height: 330px;
+    }
+}
+{% endblock %}

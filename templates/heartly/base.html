@@ -1,160 +1,1480 @@
 {% load static %}
 
 <!DOCTYPE html>
-<html lang="en" data-theme="system">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
+    <meta charset="UTF-8">
 
-  <script>
-    (function () {
-      const savedTheme = localStorage.getItem("heartly-theme");
-      const validThemes = ["system", "light", "dark"];
-      const safeTheme = validThemes.includes(savedTheme) ? savedTheme : "system";
-      document.documentElement.setAttribute("data-theme", safeTheme);
-    })();
-  </script>
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no"
+    >
 
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="color-scheme" content="light dark">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#18aaa1">
 
-  <title>{% block title %}Heartly{% endblock %}</title>
+    <title>{% block title %}Heartly{% endblock %}</title>
 
-  <link rel="stylesheet" href="{% static 'css/heartly-theme.css' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-  <style>
-    body {
-      margin: 0;
-      min-height: 100vh;
-      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #16091f;
-      color: #fdf7ff;
-    }
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+        rel="stylesheet"
+    >
 
-    a {
-      color: inherit;
-      text-decoration: none;
-    }
+    <script>
+        (function () {
+            const savedTheme = localStorage.getItem("heartlyTheme");
+            let theme = "light";
 
-    .heartly-safe-shell {
-      min-height: 100vh;
-    }
-  </style>
+            if (savedTheme) {
+                theme = savedTheme === "dark" ? "dark" : "light";
+            } else if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
+                theme = "dark";
+            }
 
-  {% block extra_css %}{% endblock %}
+            if (theme === "dark") {
+                document.documentElement.classList.add("heartly-dark-root");
+                document.documentElement.setAttribute("data-heartly-theme", "dark");
+            } else {
+                document.documentElement.classList.remove("heartly-dark-root");
+                document.documentElement.setAttribute("data-heartly-theme", "light");
+            }
+        })();
+    </script>
+
+    <style>
+        :root {
+            /* LIGHT THEME — clean, minimal premium design */
+            --heartly-primary: #18ada0;
+            --heartly-primary-2: #28c7b8;
+            --heartly-primary-soft: rgba(24, 173, 160, 0.1);
+            --heartly-primary-glow: rgba(24, 173, 160, 0.22);
+            --heartly-gradient: linear-gradient(135deg, #18ada0, #28c7b8);
+
+            --heartly-accent: #f24d6b;
+            --heartly-accent-2: #ff6f8c;
+            --heartly-accent-soft: rgba(242, 77, 107, 0.1);
+            --heartly-accent-glow: rgba(242, 77, 107, 0.2);
+
+            --heartly-pink: var(--heartly-accent);
+            --heartly-pink-2: var(--heartly-accent-2);
+            --heartly-pink-soft: var(--heartly-accent-soft);
+            --heartly-pink-glow: var(--heartly-accent-glow);
+
+            --heartly-like: var(--heartly-accent);
+            --heartly-like-2: var(--heartly-accent-2);
+            --heartly-like-soft: var(--heartly-accent-soft);
+
+            --heartly-bg: #fafbfc;
+            --heartly-bg-2: #ffffff;
+            --heartly-card: #ffffff;
+            --heartly-card-soft: #f5f7f9;
+            --heartly-card-solid: #ffffff;
+            --heartly-glass: rgba(255, 255, 255, 0.95);
+
+            --heartly-text: #0d1117;
+            --heartly-muted: #57606a;
+
+            --heartly-border: rgba(13, 17, 23, 0.06);
+            --heartly-border-strong: rgba(13, 17, 23, 0.1);
+
+            --heartly-shadow:
+                0 12px 32px -8px rgba(13, 17, 23, 0.12),
+                0 2px 6px rgba(13, 17, 23, 0.03);
+
+            --heartly-shadow-soft:
+                0 8px 20px -6px rgba(13, 17, 23, 0.08),
+                0 1px 3px rgba(13, 17, 23, 0.02);
+
+            --heartly-shadow-btn:
+                0 6px 16px -4px var(--heartly-primary-glow);
+
+            --heartly-page-max: 520px;
+            --heartly-content-padding: 14px;
+            --heartly-section-gap: 14px;
+
+            --heartly-topbar-height: 0px;
+            --heartly-bottomnav-height: 82px;
+
+            --heartly-radius-sm: 14px;
+            --heartly-radius-md: 18px;
+            --heartly-radius-lg: 22px;
+            --heartly-radius-xl: 28px;
+            --heartly-radius-pill: 999px;
+
+            --heartly-ease: cubic-bezier(0.22, 1, 0.36, 1);
+            --heartly-ease-fast: cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        html.heartly-dark-root {
+            /* DARK THEME — premium midnight */
+            --heartly-primary: #12a095;
+            --heartly-primary-2: #1db8aa;
+            --heartly-primary-soft: rgba(18, 160, 149, 0.16);
+            --heartly-primary-glow: rgba(18, 160, 149, 0.32);
+            --heartly-gradient: linear-gradient(135deg, #ff3f72, #ff82a6);
+
+            --heartly-accent: #ff4f7b;
+            --heartly-accent-2: #ff6f8c;
+            --heartly-accent-soft: rgba(255, 79, 123, 0.16);
+            --heartly-accent-glow: rgba(255, 79, 123, 0.28);
+
+            --heartly-pink: var(--heartly-accent);
+            --heartly-pink-2: var(--heartly-accent-2);
+            --heartly-pink-soft: var(--heartly-accent-soft);
+            --heartly-pink-glow: var(--heartly-accent-glow);
+
+            --heartly-like: var(--heartly-accent);
+            --heartly-like-2: var(--heartly-accent-2);
+            --heartly-like-soft: var(--heartly-accent-soft);
+
+            --heartly-bg: #0a0e14;
+            --heartly-bg-2: #0a0e14;
+            --heartly-card: #121820;
+            --heartly-card-soft: #182230;
+            --heartly-card-solid: #121820;
+            --heartly-glass: rgba(18, 24, 32, 0.85);
+
+            --heartly-text: #e6eef7;
+            --heartly-muted: #8b95a5;
+
+            --heartly-border: rgba(255, 255, 255, 0.08);
+            --heartly-border-strong: rgba(255, 255, 255, 0.14);
+
+            --heartly-shadow:
+                0 20px 48px -18px rgba(0, 0, 0, 0.68),
+                0 1px 0 rgba(255, 255, 255, 0.04) inset;
+
+            --heartly-shadow-soft:
+                0 12px 32px -16px rgba(0, 0, 0, 0.6),
+                0 1px 0 rgba(255, 255, 255, 0.04) inset;
+
+            --heartly-shadow-btn:
+                0 8px 28px -8px var(--heartly-primary-glow);
+        }
+
+        body.has-feed-topbar {
+            --heartly-topbar-height: 72px;
+        }
+
+        body.no-feed-topbar {
+            --heartly-topbar-height: 0px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            min-height: 100%;
+            background: var(--heartly-bg);
+            scroll-behavior: smooth;
+        }
+
+        html,
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        body {
+            min-height: 100vh;
+            margin: 0;
+            color: var(--heartly-text);
+            background: var(--heartly-bg);
+            font-family:
+                "Inter",
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                Roboto,
+                Helvetica,
+                Arial,
+                sans-serif;
+            font-size: 14px;
+            line-height: 1.35;
+            overflow-x: hidden;
+        }
+
+        body.heartly-dark {
+            background: var(--heartly-bg);
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        button,
+        input,
+        textarea,
+        select {
+            font: inherit;
+        }
+
+        button,
+        a {
+            -webkit-tap-highlight-color: transparent;
+            transition:
+                transform 0.18s var(--heartly-ease-fast),
+                background-color 0.2s var(--heartly-ease-fast),
+                color 0.2s var(--heartly-ease-fast),
+                box-shadow 0.2s var(--heartly-ease-fast),
+                opacity 0.2s var(--heartly-ease-fast);
+        }
+
+        button:active,
+        a:active {
+            transform: scale(0.97);
+        }
+
+        img,
+        video {
+            max-width: 100%;
+        }
+
+        .heartly-app-shell {
+            width: min(100%, var(--heartly-page-max));
+            min-height: 100vh;
+            margin: 0 auto;
+            position: relative;
+            background: var(--heartly-bg);
+        }
+
+        .heartly-app-main {
+            min-height: 100vh;
+            padding:
+                calc(var(--heartly-topbar-height) + var(--heartly-content-padding))
+                var(--heartly-content-padding)
+                calc(var(--heartly-bottomnav-height) + 14px);
+            background: var(--heartly-bg);
+        }
+
+        body:not(.heartly-authenticated) .heartly-app-main {
+            padding-bottom: var(--heartly-content-padding);
+        }
+
+        .heartly-page {
+            width: 100%;
+            color: var(--heartly-text);
+            background: var(--heartly-bg);
+        }
+
+        .heartly-panel {
+            background: var(--heartly-card);
+            border: none;
+            border-radius: var(--heartly-radius-lg);
+            box-shadow: var(--heartly-shadow-soft);
+            transition:
+                box-shadow 0.25s var(--heartly-ease-fast),
+                transform 0.25s var(--heartly-ease-fast);
+        }
+
+        /* FEED-ONLY TOP BAR */
+        .heartly-topbar {
+            position: fixed;
+            top: 0;
+            left: 50%;
+            z-index: 300;
+            width: min(100%, var(--heartly-page-max));
+            height: var(--heartly-topbar-height);
+            padding: 10px 14px;
+            transform: translateX(-50%);
+            background: var(--heartly-glass);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: none;
+            box-shadow: var(--heartly-shadow-soft);
+        }
+
+        body:not(.has-feed-topbar) .heartly-topbar {
+            display: none;
+        }
+
+        .heartly-topbar-inner {
+            height: 100%;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .heartly-brand {
+            min-width: 0;
+            display: flex;
+            align-items: center;
+            gap: 11px;
+        }
+
+        .heartly-brand-mark {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            flex: 0 0 48px;
+            display: grid;
+            place-items: center;
+            color: #ffffff;
+            background: linear-gradient(135deg, var(--heartly-accent), var(--heartly-primary));
+            box-shadow: var(--heartly-shadow-btn);
+            font-size: 1.1rem;
+            font-weight: 800;
+        }
+
+        .heartly-brand-text {
+            min-width: 0;
+            display: grid;
+            gap: 2px;
+        }
+
+        .heartly-brand-text strong {
+            color: var(--heartly-text);
+            font-size: 1.02rem;
+            line-height: 1.05;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+        }
+
+        .heartly-brand-text span {
+            color: var(--heartly-muted);
+            font-size: 0.78rem;
+            line-height: 1.05;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .heartly-top-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .heartly-top-btn {
+            position: relative;
+            width: 44px;
+            height: 44px;
+            padding: 0;
+            border-radius: 16px;
+            border: none;
+            display: grid;
+            place-items: center;
+            color: var(--heartly-text);
+            background: var(--heartly-card-soft);
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        .heartly-top-btn:hover {
+            color: var(--heartly-primary);
+            background: var(--heartly-primary-soft);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px -8px var(--heartly-primary-glow);
+        }
+
+        .heartly-top-btn:active {
+            transform: translateY(0) scale(0.94);
+        }
+
+        .heartly-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            min-width: 18px;
+            height: 18px;
+            padding: 0 5px;
+            border-radius: var(--heartly-radius-pill);
+            display: grid;
+            place-items: center;
+            color: #ffffff;
+            background: var(--heartly-accent);
+            border: 2px solid var(--heartly-card);
+            font-size: 0.62rem;
+            line-height: 1;
+            font-weight: 800;
+        }
+
+        /* GLOBAL BOTTOM NAV */
+        .heartly-bottomnav {
+            position: fixed;
+            left: 50%;
+            bottom: 0;
+            z-index: 260;
+            width: min(100%, var(--heartly-page-max));
+            height: var(--heartly-bottomnav-height);
+            padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+            transform: translateX(-50%);
+            background: transparent;
+            border: none;
+            box-shadow: none;
+        }
+
+        body:not(.heartly-authenticated) .heartly-bottomnav {
+            display: none;
+        }
+
+        .heartly-bottomnav-inner {
+            height: 100%;
+            padding: 6px;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 4px;
+            border-radius: 28px;
+            background: var(--heartly-glass);
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            border: none;
+            box-shadow:
+                var(--heartly-shadow),
+                inset 0 1px 0 rgba(255, 255, 255, 0.35);
+        }
+
+        html.heartly-dark-root .heartly-bottomnav-inner {
+            box-shadow:
+                var(--heartly-shadow),
+                inset 0 1px 0 rgba(255, 255, 255, 0.03);
+        }
+
+        .heartly-nav-item {
+            position: relative;
+            min-width: 0;
+            border-radius: 23px;
+            display: grid;
+            place-items: center;
+            align-content: center;
+            gap: 3px;
+            color: var(--heartly-muted);
+            font-size: 0.66rem;
+            line-height: 1;
+            font-weight: 700;
+            transition:
+                transform 0.25s var(--heartly-ease),
+                color 0.2s var(--heartly-ease-fast),
+                background-color 0.2s var(--heartly-ease-fast),
+                box-shadow 0.25s var(--heartly-ease-fast);
+        }
+
+        .heartly-nav-icon {
+            width: 24px;
+            height: 24px;
+            display: grid;
+            place-items: center;
+            font-size: 1rem;
+            line-height: 1;
+            transition: transform 0.25s var(--heartly-ease);
+        }
+
+        .heartly-nav-item:hover {
+            color: var(--heartly-primary);
+            background: var(--heartly-primary-soft);
+        }
+
+        .heartly-nav-item:hover .heartly-nav-icon {
+            transform: translateY(-2px);
+        }
+
+        .heartly-nav-item.active {
+            color: #ffffff;
+            background: linear-gradient(135deg, var(--heartly-accent), var(--heartly-primary));
+            box-shadow: var(--heartly-shadow-btn);
+        }
+
+        .heartly-nav-item.active .heartly-nav-icon {
+            transform: translateY(-1px) scale(1.05);
+        }
+
+        .heartly-nav-badge {
+            position: absolute;
+            top: 4px;
+            right: 11px;
+            min-width: 16px;
+            height: 16px;
+            padding: 0 4px;
+            border-radius: var(--heartly-radius-pill);
+            display: grid;
+            place-items: center;
+            color: #ffffff;
+            background: var(--heartly-accent);
+            border: 2px solid var(--heartly-card-solid);
+            font-size: 0.56rem;
+            line-height: 1;
+            font-weight: 800;
+        }
+
+        .heartly-messages {
+            display: grid;
+            gap: 8px;
+            margin: 0 0 var(--heartly-section-gap);
+        }
+
+        .heartly-message {
+            padding: 12px 14px;
+            border-radius: var(--heartly-radius-md);
+            color: var(--heartly-text);
+            background: var(--heartly-card);
+            border: none;
+            border-left: 3px solid var(--heartly-border-strong);
+            box-shadow: var(--heartly-shadow-soft);
+            font-size: 0.84rem;
+            font-weight: 600;
+        }
+
+        .heartly-message.success {
+            color: var(--heartly-primary);
+            background: var(--heartly-primary-soft);
+            border-left-color: var(--heartly-primary);
+        }
+
+        .heartly-message.error {
+            color: var(--heartly-accent);
+            background: var(--heartly-accent-soft);
+            border-left-color: var(--heartly-accent);
+        }
+
+        .heartly-message.warning {
+            color: #b77900;
+            background: rgba(255, 184, 77, 0.12);
+            border-left-color: #ffb84d;
+        }
+
+        /* SHARED PAGE CARD POLISH */
+        :where(
+            .feed-composer-card,
+            .feed-post-card,
+            .feed-empty-state,
+            .feed-modal-card,
+            .chat-room-header,
+            .chat-compose-bar,
+            .chat-card,
+            .chat-thread-card,
+            .chat-list-card,
+            .message-card,
+            .match-card,
+            .discover-card,
+            .matched-card,
+            .matches-section-card,
+            .matches-header-card,
+            .profile-card,
+            .profile-section,
+            .profile-block,
+            .profile-panel,
+            .profile-hero-card,
+            .profile-section-card,
+            .edit-profile-card,
+            .edit-profile-header-card,
+            .settings-card,
+            .settings-section,
+            .settings-panel,
+            .notification-card,
+            .notification-item,
+            .ai-card,
+            .ai-panel,
+            .call-card
+        ) {
+            border-radius: var(--heartly-radius-lg) !important;
+            border: none !important;
+            background-color: var(--heartly-card) !important;
+            box-shadow: var(--heartly-shadow-soft) !important;
+            transition:
+                box-shadow 0.25s var(--heartly-ease-fast),
+                transform 0.25s var(--heartly-ease-fast) !important;
+        }
+
+        :where(
+            .feed-composer-card,
+            .feed-post-card,
+            .match-card,
+            .discover-card,
+            .notification-card,
+            .notification-item,
+            .ai-card
+        ):hover {
+            box-shadow: var(--heartly-shadow) !important;
+            transform: translateY(-2px);
+        }
+
+        :where(
+            .profile-detail-row,
+            .profile-info-row,
+            .profile-stat,
+            .matched-card,
+            .settings-row,
+            .settings-option,
+            .chat-row,
+            .chat-list-row,
+            .notification-row,
+            .interest-pill,
+            .profile-interest,
+            .profile-interest-pill,
+            .discover-interests span,
+            .feed-action-btn,
+            .feed-open-composer,
+            .feed-comment-body,
+            .feed-comment-form input,
+            .feed-post-menu-btn,
+            .chat-menu-btn,
+            .chat-back-btn,
+            .compose-icon-btn,
+            .send-btn
+        ) {
+            border-radius: var(--heartly-radius-md) !important;
+            border: none !important;
+        }
+
+        html.heartly-dark-root :where(
+            .heartly-panel,
+            .feed-composer-card,
+            .feed-post-card,
+            .feed-empty-state,
+            .feed-modal-card,
+            .chat-room-header,
+            .chat-compose-bar,
+            .chat-card,
+            .chat-thread-card,
+            .chat-list-card,
+            .message-card,
+            .match-card,
+            .discover-card,
+            .matched-card,
+            .matches-section-card,
+            .matches-header-card,
+            .profile-card,
+            .profile-section,
+            .profile-block,
+            .profile-panel,
+            .profile-hero-card,
+            .profile-section-card,
+            .edit-profile-card,
+            .edit-profile-header-card,
+            .settings-card,
+            .settings-section,
+            .settings-panel,
+            .notification-card,
+            .notification-item,
+            .ai-card,
+            .ai-panel,
+            .call-card
+        ) {
+            box-shadow:
+                0 1px 0 rgba(255, 255, 255, 0.03) inset,
+                0 12px 28px -18px rgba(0, 0, 0, 0.5) !important;
+        }
+
+        /* SHARED UI KIT FROM PROTOTYPE — CLEANED */
+        .heartly-btn {
+            width: 100%;
+            min-height: 48px;
+            padding: 12px 20px;
+            border-radius: var(--heartly-radius-md);
+            border: none;
+            display: grid;
+            place-items: center;
+            color: #ffffff;
+            background: linear-gradient(135deg, var(--heartly-primary), var(--heartly-primary-2));
+            box-shadow: var(--heartly-shadow-btn);
+            font-size: 0.92rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition:
+                transform 0.18s var(--heartly-ease-fast),
+                box-shadow 0.2s var(--heartly-ease-fast),
+                background-color 0.2s var(--heartly-ease-fast);
+        }
+
+        .heartly-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 32px -6px var(--heartly-primary-glow);
+            filter: brightness(1.05);
+        }
+
+        .heartly-btn:active {
+            transform: translateY(-1px);
+        }
+
+        .heartly-btn-secondary {
+            color: var(--heartly-text) !important;
+            background: var(--heartly-card-soft) !important;
+            box-shadow: none !important;
+        }
+
+        .heartly-btn-secondary:hover {
+            color: var(--heartly-primary) !important;
+            background: var(--heartly-primary-soft) !important;
+        }
+
+        .heartly-icon-btn {
+            width: 42px;
+            height: 42px;
+            padding: 0;
+            border-radius: 16px;
+            border: none;
+            display: grid;
+            place-items: center;
+            color: var(--heartly-text);
+            background: var(--heartly-card-soft);
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        .heartly-icon-btn:hover {
+            color: var(--heartly-primary);
+            background: var(--heartly-primary-soft);
+            transform: translateY(-1px);
+        }
+
+        .heartly-input {
+            width: 100%;
+            min-height: 48px;
+            padding: 0 15px;
+            border-radius: var(--heartly-radius-md);
+            border: none;
+            color: var(--heartly-text);
+            background: var(--heartly-card-soft);
+            outline: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition:
+                box-shadow 0.2s var(--heartly-ease-fast),
+                background-color 0.2s var(--heartly-ease-fast);
+        }
+
+        textarea.heartly-input {
+            min-height: 110px;
+            padding-top: 13px;
+            padding-bottom: 13px;
+            line-height: 1.45;
+            resize: vertical;
+        }
+
+        .heartly-input:focus,
+        :where(input, textarea, select):focus {
+            background: var(--heartly-card) !important;
+            box-shadow: 0 0 0 3px var(--heartly-primary-soft) !important;
+        }
+
+        :where(input, textarea, select) {
+            border-radius: var(--heartly-radius-md);
+            border: none;
+            color: var(--heartly-text);
+            background: var(--heartly-card-soft);
+            outline: none;
+        }
+
+        .heartly-input-wrap {
+            position: relative;
+        }
+
+        .heartly-input-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            z-index: 2;
+            transform: translateY(-50%);
+            color: var(--heartly-muted);
+            font-size: 0.95rem;
+        }
+
+        .heartly-input-wrap .heartly-input {
+            padding-left: 42px;
+        }
+
+        .heartly-pill {
+            min-height: 34px;
+            padding: 0 13px;
+            border-radius: var(--heartly-radius-pill);
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--heartly-text);
+            background: var(--heartly-card-soft);
+            font-size: 0.78rem;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .heartly-pill:hover {
+            color: var(--heartly-primary);
+            background: var(--heartly-primary-soft);
+            transform: translateY(-1px);
+        }
+
+        .heartly-pill.active {
+            color: #ffffff;
+            background: var(--heartly-primary);
+        }
+
+        .heartly-pink-gradient {
+            color: #ffffff !important;
+            background: linear-gradient(135deg, var(--heartly-accent), var(--heartly-accent-2)) !important;
+            box-shadow: 0 8px 22px -8px var(--heartly-accent-glow) !important;
+        }
+
+        .heartly-teal-gradient {
+            color: #ffffff !important;
+            background: linear-gradient(135deg, var(--heartly-primary), var(--heartly-primary-2)) !important;
+            box-shadow: var(--heartly-shadow-btn) !important;
+        }
+
+        .heartly-nav-icon-wrap {
+    position: relative;
+    display: inline-grid;
+    place-items: center;
+}
+
+.heartly-notification-badge {
+    position: absolute;
+    top: -7px;
+    right: -10px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    background: linear-gradient(135deg, var(--heartly-accent), var(--heartly-accent-2));
+    border: 2px solid var(--heartly-card);
+    font-size: 0.62rem;
+    font-style: normal;
+    font-weight: 950;
+    line-height: 1;
+}
+
+        .heartly-glow-card {
+            box-shadow: 0 0 40px -8px var(--heartly-primary-glow),
+                        var(--heartly-shadow);
+            border: 1px solid var(--heartly-border);
+        }
+
+        .heartly-outer-page {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: var(--heartly-content-padding);
+        }
+
+        .page-header {
+            min-height: 48px;
+            margin-bottom: var(--heartly-section-gap);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .page-header-title {
+            flex: 1;
+            color: var(--heartly-text);
+            font-size: 1.05rem;
+            line-height: 1.1;
+            font-weight: 850;
+            letter-spacing: -0.02em;
+            text-align: center;
+        }
+
+        .form-stack {
+            display: grid;
+            gap: 12px;
+        }
+
+        .pill-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .mt-2 {
+            margin-top: 8px;
+        }
+
+        .mt-3 {
+            margin-top: 12px;
+        }
+
+        .mt-4 {
+            margin-top: 16px;
+        }
+
+        :where(button) {
+            border-radius: var(--heartly-radius-md);
+            border: none;
+            cursor: pointer;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+        }
+
+        :where(button):disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        @media (max-width: 430px) {
+            :root {
+                --heartly-bottomnav-height: 76px;
+                --heartly-content-padding: 10px;
+            }
+
+            body.has-feed-topbar {
+                --heartly-topbar-height: 72px;
+            }
+
+            .heartly-topbar {
+                padding-left: 10px;
+                padding-right: 10px;
+            }
+
+            .heartly-brand-mark {
+                width: 46px;
+                height: 46px;
+                flex-basis: 46px;
+            }
+
+            .heartly-top-btn {
+                width: 42px;
+                height: 42px;
+            }
+
+            .heartly-bottomnav {
+                padding-left: 8px;
+                padding-right: 8px;
+            }
+
+            .heartly-bottomnav-inner {
+                border-radius: 27px;
+            }
+
+            .heartly-nav-item {
+                border-radius: 22px;
+                font-size: 0.63rem;
+            }
+        }
+
+        @media (max-width: 350px) {
+            .heartly-brand-text span {
+                display: none;
+            }
+
+            .heartly-bottomnav-inner {
+                gap: 4px;
+                padding: 4px;
+            }
+
+            .heartly-nav-item {
+                font-size: 0.59rem;
+            }
+        }
+
+        {% block extra_css %}{% endblock %}
+    </style>
 </head>
 
-<body>
+<body
+    class="
+        {% if user.is_authenticated %}heartly-authenticated{% endif %}
+        {% if request.resolver_match.namespace == 'feed' and request.resolver_match.url_name == 'feed_home' %}
+            has-feed-topbar
+        {% else %}
+            no-feed-topbar
+        {% endif %}
+    "
+>
 
-<div class="heartly-safe-shell">
-  <div class="heartly-app">
+<script>
+    (function () {
+        const savedTheme = localStorage.getItem("heartlyTheme");
+        let theme = "light";
 
-    {% block outer_content %}
+        if (savedTheme) {
+            theme = savedTheme === "dark" ? "dark" : "light";
+        } else if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
+            theme = "dark";
+        }
 
-      {% block topbar %}
+        if (theme === "dark") {
+            document.body.classList.add("heartly-dark");
+            document.documentElement.classList.add("heartly-dark-root");
+            document.documentElement.setAttribute("data-heartly-theme", "dark");
+            document.body.setAttribute("data-heartly-theme", "dark");
+        } else {
+            document.body.classList.remove("heartly-dark");
+            document.documentElement.classList.remove("heartly-dark-root");
+            document.documentElement.setAttribute("data-heartly-theme", "light");
+            document.body.setAttribute("data-heartly-theme", "light");
+        }
+    })();
+</script>
+
+<div class="heartly-app-shell">
+
+    {% if request.resolver_match.namespace == "feed" and request.resolver_match.url_name == "feed_home" %}
         <header class="heartly-topbar">
-          <div class="heartly-topbar-inner">
+            <div class="heartly-topbar-inner">
 
-            <a href="/feed/" class="heartly-logo" aria-label="Heartly home">
-              <span class="heartly-logo-mark">♥</span>
-              <span>Heartly</span>
-            </a>
+                <a href="{% url 'feed:feed_home' %}" class="heartly-brand">
+                    <div class="heartly-brand-mark">
+                        ♥
+                    </div>
 
-            <div class="heartly-header-actions">
+                    <div class="heartly-brand-text">
+                        <strong>Heartly</strong>
+                        <span>Your social companion</span>
+                    </div>
+                </a>
 
-              <a
-                href="/notifications/"
-                class="heartly-icon-btn heartly-notification-btn"
-                aria-label="Notifications"
-              >
-                🔔
-                {% if unread_notifications_count %}
-                  <span class="heartly-notification-dot"></span>
+                <div class="heartly-top-actions">
+
+                    <button
+                        type="button"
+                        class="heartly-top-btn"
+                        onclick="toggleHeartlyTheme()"
+                        aria-label="Toggle theme"
+                    >
+                        🌓
+                    </button>
+
+                    <a href="{% url 'notifications:notifications_home' %}" class="heartly-nav-item">
+    <span class="heartly-nav-icon-wrap">
+        🔔
+
+        {% if unread_notifications_count %}
+            <em class="heartly-notification-badge">
+                {% if unread_notifications_count > 9 %}
+                    9+
+                {% else %}
+                    {{ unread_notifications_count }}
                 {% endif %}
-              </a>
+            </em>
+        {% endif %}
+    </span>
 
-              <a
-                href="/settings/"
-                class="heartly-icon-btn"
-                aria-label="Settings"
-              >
-                ⚙
-              </a>
+
+</a>
+
+                    <a href="{% url 'settings' %}" class="heartly-top-btn" aria-label="Settings">
+                        ⚙️
+                    </a>
+
+                </div>
 
             </div>
-
-          </div>
         </header>
-      {% endblock %}
+    {% endif %}
 
-      <main class="heartly-page">
+    <main class="heartly-app-main">
 
         {% if messages %}
-          <section class="heartly-message-stack">
-            {% for message in messages %}
-              <div class="heartly-soft-card heartly-message heartly-message-{{ message.tags|default:'info' }}">
-                {{ message }}
-              </div>
-            {% endfor %}
-          </section>
+            <section class="heartly-messages">
+                {% for message in messages %}
+                    <div class="heartly-message {{ message.tags }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </section>
         {% endif %}
 
         {% block content %}{% endblock %}
 
-      </main>
+    </main>
 
-      {% block bottom_nav %}
-        <nav class="heartly-bottom-nav" aria-label="Main navigation">
+    {% if user.is_authenticated %}
+        <nav class="heartly-bottomnav" aria-label="Main navigation">
+            <div class="heartly-bottomnav-inner">
 
-          <a
-            href="/feed/"
-            class="heartly-nav-item {% if request.path|slice:':6' == '/feed/' %}active{% endif %}"
-          >
-            <span class="heartly-nav-icon">🏠</span>
-            <span>Feed</span>
-          </a>
+                <a
+                    href="{% url 'feed:feed_home' %}"
+                    class="heartly-nav-item {% if request.resolver_match.namespace == 'feed' %}active{% endif %}"
+                >
+                    <span class="heartly-nav-icon">🏠</span>
+                   
+                </a>
 
-          <a
-            href="/matches/"
-            class="heartly-nav-item {% if request.path|slice:':9' == '/matches/' %}active{% endif %}"
-          >
-            <span class="heartly-nav-icon">💞</span>
-            <span>Match</span>
-          </a>
+                <a
+                    href="{% url 'matches:discover' %}"
+                    class="heartly-nav-item {% if request.resolver_match.namespace == 'matches' %}active{% endif %}"
+                >
+                    <span class="heartly-nav-icon">💕</span>
+                   
+                </a>
 
-          <a
-            href="/ai/"
-            class="heartly-nav-item {% if request.path|slice:':4' == '/ai/' %}active{% endif %}"
-          >
-            <span class="heartly-nav-icon">🤖</span>
-            <span>AI</span>
-          </a>
+                <a
+                    href="{% url 'ai_features:ai_coach' %}"
+                    class="heartly-nav-item {% if request.resolver_match.namespace == 'ai_features' %}active{% endif %}"
+                >
+                    <span class="heartly-nav-icon">🤖</span>
+                   
+                </a>
 
-          <a
-            href="/chat/"
-            class="heartly-nav-item {% if request.path|slice:':6' == '/chat/' %}active{% endif %}"
-          >
-            <span class="heartly-nav-icon">💬</span>
-            <span>Chat</span>
-          </a>
+                <a
+                    href="{% url 'chat:chat_home' %}"
+                    class="heartly-nav-item {% if request.resolver_match.namespace == 'chat' %}active{% endif %}"
+                >
+                    <span class="heartly-nav-icon">💬</span>
+                   
 
-          <a
-            href="/profiles/"
-            class="heartly-nav-item {% if request.path|slice:':10' == '/profiles/' %}active{% endif %}"
-          >
-            <span class="heartly-nav-icon">👤</span>
-            <span>Profile</span>
-          </a>
+                    {% if unread_chat_messages_count %}
+                    <em class="heartly-notification-badge">
+                        {% if unread_chat_messages_count > 9 %}
+                            9+
+                        {% else %}
+                            {{ unread_chat_messages_count }}
+                        {% endif %}
+                    </em>
+                {% endif %}
+                </a>
 
+                <a
+                    href="{% url 'profiles:profile_home' %}"
+                    class="heartly-nav-item {% if request.resolver_match.namespace == 'profiles' %}active{% endif %}"
+                >
+                    <span class="heartly-nav-icon">👤</span>
+                   
+                </a>
+
+            </div>
         </nav>
-      {% endblock %}
+    {% endif %}
 
-    {% endblock %}
-
-  </div>
 </div>
 
-<script src="{% static 'js/heartly-theme.js' %}"></script>
+<script>
+    function applyHeartlyTheme(theme) {
+        const normalizedTheme = theme === "dark" ? "dark" : "light";
 
+        if (normalizedTheme === "dark") {
+            document.body.classList.add("heartly-dark");
+            document.documentElement.classList.add("heartly-dark-root");
+        } else {
+            document.body.classList.remove("heartly-dark");
+            document.documentElement.classList.remove("heartly-dark-root");
+        }
+
+        document.documentElement.setAttribute("data-heartly-theme", normalizedTheme);
+        document.body.setAttribute("data-heartly-theme", normalizedTheme);
+        localStorage.setItem("heartlyTheme", normalizedTheme);
+
+        const metaTheme = document.querySelector('meta[name="theme-color"]');
+
+        if (metaTheme) {
+            metaTheme.setAttribute(
+                "content",
+                normalizedTheme === "dark" ? "#03080e" : "#18aaa1"
+            );
+        }
+
+        document.querySelectorAll("[data-heartly-theme-input]").forEach(function (input) {
+            input.checked = input.value === normalizedTheme;
+        });
+
+        document.querySelectorAll("[data-heartly-theme-label]").forEach(function (label) {
+            label.textContent = normalizedTheme === "dark" ? "Dark" : "Light";
+        });
+    }
+
+    function setHeartlyTheme(theme) {
+        applyHeartlyTheme(theme);
+    }
+
+    function toggleHeartlyTheme() {
+        const isDark = document.documentElement.classList.contains("heartly-dark-root");
+
+        if (isDark) {
+            applyHeartlyTheme("light");
+        } else {
+            applyHeartlyTheme("dark");
+        }
+    }
+
+    window.applyHeartlyTheme = applyHeartlyTheme;
+    window.setHeartlyTheme = setHeartlyTheme;
+    window.toggleHeartlyTheme = toggleHeartlyTheme;
+
+    document.addEventListener("DOMContentLoaded", function () {
+        const savedTheme = localStorage.getItem("heartlyTheme");
+        let theme = "light";
+
+        if (savedTheme) {
+            theme = savedTheme === "dark" ? "dark" : "light";
+        } else if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
+            theme = "dark";
+        }
+
+        applyHeartlyTheme(theme);
+
+        document.querySelectorAll("[data-heartly-theme-choice]").forEach(function (button) {
+            button.addEventListener("click", function () {
+                const selectedTheme = button.getAttribute("data-heartly-theme-choice");
+                applyHeartlyTheme(selectedTheme);
+            });
+        });
+
+        document.querySelectorAll("[data-heartly-theme-toggle]").forEach(function (button) {
+            button.addEventListener("click", function () {
+                toggleHeartlyTheme();
+            });
+        });
+
+        document.querySelectorAll("[data-heartly-theme-input]").forEach(function (input) {
+            input.addEventListener("change", function () {
+                if (input.checked) {
+                    applyHeartlyTheme(input.value);
+                }
+            });
+        });
+    });
+</script>
+{% if request.user.is_authenticated %}
+<div id="globalIncomingCall" class="global-call-pop" hidden>
+    <div class="global-call-card">
+        <div class="global-call-avatar">📞</div>
+        <div>
+            <strong id="globalCallTitle">Incoming call</strong>
+            <p id="globalCallText">Someone is calling you.</p>
+        </div>
+        <div class="global-call-actions">
+            <button type="button" id="globalAcceptCall">Accept</button>
+            <button type="button" id="globalDeclineCall">Decline</button>
+        </div>
+    </div>
+</div>
+
+<style>
+.global-call-pop {
+    position: fixed;
+    inset: auto 12px calc(var(--heartly-bottomnav-height, 74px) + 12px) 12px;
+    z-index: 5000;
+}
+
+.global-call-pop[hidden] {
+    display: none;
+}
+
+.global-call-card {
+    max-width: 420px;
+    margin: 0 auto;
+    padding: 12px;
+    border-radius: 22px;
+    display: grid;
+    grid-template-columns: 46px 1fr auto;
+    gap: 10px;
+    align-items: center;
+    background: var(--heartly-card, #ffffff);
+    color: var(--heartly-text, #111827);
+    border: 1px solid var(--heartly-border, #e5e7eb);
+    box-shadow: var(--heartly-shadow-soft, 0 12px 30px rgba(15, 23, 42, 0.08));
+}
+
+.global-call-avatar {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--heartly-primary, #ec4899);
+    color: #ffffff;
+    font-size: 20px;
+}
+
+.global-call-card strong {
+    display: block;
+    font-size: 14px;
+    font-weight: 950;
+}
+
+.global-call-card p {
+    margin: 2px 0 0;
+    color: var(--heartly-muted, #6b7280);
+    font-size: 12px;
+    font-weight: 750;
+}
+
+.global-call-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.global-call-actions button {
+    border: none;
+    border-radius: 999px;
+    padding: 8px 10px;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 950;
+    cursor: pointer;
+}
+
+#globalAcceptCall {
+    background: #22c55e;
+}
+
+#globalDeclineCall {
+    background: #ef4444;
+}
+
+.heartly-live-match-toast {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    bottom: calc(var(--heartly-bottomnav-height, 74px) + 86px);
+    z-index: 5100;
+    max-width: 420px;
+    margin: 0 auto;
+    padding: 12px;
+    border-radius: 22px;
+    display: grid;
+    grid-template-columns: 46px 1fr;
+    gap: 10px;
+    align-items: center;
+    background: var(--heartly-card, #ffffff);
+    color: var(--heartly-text, #111827);
+    border: 1px solid var(--heartly-border, #e5e7eb);
+    box-shadow: var(--heartly-shadow-soft, 0 12px 30px rgba(15, 23, 42, 0.08));
+    text-decoration: none;
+}
+
+.heartly-live-match-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--heartly-primary, #ec4899);
+    color: #ffffff;
+    font-size: 20px;
+}
+
+.heartly-live-match-toast strong {
+    display: block;
+    color: var(--heartly-text, #111827);
+    font-size: 14px;
+    font-weight: 950;
+}
+
+.heartly-live-match-toast p {
+    margin: 2px 0 0;
+    color: var(--heartly-muted, #6b7280);
+    font-size: 12px;
+    font-weight: 750;
+}
+</style>
+
+<script>
+    let globalNotificationSocket = null;
+    let activeGlobalCall = null;
+
+    function openGlobalNotificationSocket() {
+        const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+        const socketUrl = protocol + "://" + window.location.host + "/ws/notifications/";
+
+        globalNotificationSocket = new WebSocket(socketUrl);
+
+        globalNotificationSocket.onmessage = function (event) {
+            const data = JSON.parse(event.data);
+
+            if (data.type === "incoming_call") {
+                activeGlobalCall = data;
+
+                document.getElementById("globalCallTitle").textContent =
+                    data.call_type === "video" ? "Incoming video call" : "Incoming audio call";
+
+                document.getElementById("globalCallText").textContent =
+                    (data.caller_name || "Someone") + " is calling you.";
+
+                document.getElementById("globalIncomingCall").hidden = false;
+            }
+
+            if (data.type === "feed_notification") {
+    const toast = document.createElement("a");
+    toast.href = data.url || "/feed/";
+    toast.className = "heartly-feed-toast";
+
+    toast.innerHTML = `
+        <div class="heartly-feed-toast-icon">🔔</div>
+        <div>
+            <strong>${data.title || "Feed notification"}</strong>
+            <p>${data.message || "You have a new feed update."}</p>
+        </div>
+    `;
+
+    document.body.appendChild(toast);
+
+    setTimeout(function () {
+        toast.remove();
+    }, 6000);
+}
+
+            if (data.type === "match") {
+    const toast = document.createElement("a");
+    toast.href = data.url || "/matches/your-matches/";
+    toast.className = "heartly-live-match-toast";
+
+    toast.innerHTML = `
+        <div class="heartly-live-match-icon">💞</div>
+        <div>
+            <strong>${data.title || "New match"}</strong>
+            <p>${data.message || "You have a new match."}</p>
+        </div>
+    `;
+
+    document.body.appendChild(toast);
+
+    setTimeout(function () {
+        toast.remove();
+    }, 6000);
+}
+
+            if (data.type === "missed_call") {
+                const callBox = document.getElementById("globalIncomingCall");
+
+                if (callBox) {
+                    callBox.hidden = true;
+                }
+            }
+        };
+
+        globalNotificationSocket.onclose = function () {
+            setTimeout(openGlobalNotificationSocket, 1500);
+        };
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        openGlobalNotificationSocket();
+
+        const acceptBtn = document.getElementById("globalAcceptCall");
+        const declineBtn = document.getElementById("globalDeclineCall");
+
+        acceptBtn.addEventListener("click", function () {
+            if (!activeGlobalCall) {
+                return;
+            }
+
+            window.location.href = activeGlobalCall.accept_url;
+        });
+
+        declineBtn.addEventListener("click", function () {
+            if (activeGlobalCall && globalNotificationSocket) {
+                globalNotificationSocket.send(JSON.stringify({
+                    type: "call.decline",
+                    call_id: activeGlobalCall.call_id,
+                    thread_id: activeGlobalCall.thread_id
+                }));
+            }
+
+            document.getElementById("globalIncomingCall").hidden = true;
+            activeGlobalCall = null;
+        });
+    });
+</script>
+{% endif %}
 {% block extra_js %}{% endblock %}
 
 </body>

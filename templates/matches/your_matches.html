@@ -1,0 +1,428 @@
+{% extends "heartly/base.html" %}
+{% load static %}
+
+{% block title %}Your Matches - Heartly{% endblock %}
+
+{% block content %}
+<div class="matches-page">
+
+    <div class="matches-header">
+        <div>
+            <h1 class="matches-title">Your matches</h1>
+            <p class="matches-subtitle">People who liked you back.</p>
+        </div>
+
+        <a href="{% url 'matches:discover' %}" class="top-icon-btn" title="Discover" aria-label="Discover">
+            💗
+        </a>
+    </div>
+
+    <section class="matches-section">
+        <div class="matches-card matches-main-card">
+
+            <div class="matches-summary">
+                <div class="matches-summary-icon">💞</div>
+
+                <div>
+                    <h2 class="matches-summary-title">Connections</h2>
+                    <p class="matches-summary-text">
+                        Start conversations respectfully. Block or report anything unsafe.
+                    </p>
+                </div>
+            </div>
+
+            <div class="matches-meta">
+                <span class="matches-pill">{{ match_cards|length }} match{{ match_cards|length|pluralize:"es" }}</span>
+                <span class="matches-pill">🛡️ Safety first</span>
+            </div>
+
+            <div class="matches-actions">
+                <a href="{% url 'matches:discover' %}" class="primary-action">
+                    Discover
+                </a>
+
+                <a href="{% url 'chat:chat_home' %}" class="secondary-action">
+                    Messages
+                </a>
+            </div>
+
+        </div>
+    </section>
+
+    <section class="matches-section">
+        <h2 class="matches-section-title">Matched profiles</h2>
+
+        <div class="match-list">
+
+            {% for card in match_cards %}
+                <article class="match-card">
+
+                    <a href="{% url 'profiles:public_profile' card.other_user.id %}" class="match-avatar">
+                        {% if card.other_profile.profile_picture %}
+                            <img src="{{ card.other_profile.profile_picture.url }}" alt="">
+                        {% else %}
+                            <span>
+                                {% if card.other_profile.display_name %}
+                                    {{ card.other_profile.display_name|first|upper }}
+                                {% else %}
+                                    {{ card.other_user.username|first|upper }}
+                                {% endif %}
+                            </span>
+                        {% endif %}
+                    </a>
+
+                    <div class="match-body">
+                        <h2 class="match-name">{{ card.display_name }}</h2>
+                        <p class="match-username">@{{ card.other_user.username }}</p>
+
+                        <div class="match-meta">
+                            {% if card.other_profile.age %}
+                                <span>🎂 {{ card.other_profile.age }} years</span>
+                            {% endif %}
+
+                            {% if card.other_profile.location %}
+                                <span>📍 {{ card.other_profile.location }}</span>
+                            {% endif %}
+
+                            <span>💞 {{ card.match.created_at|timesince }} ago</span>
+                        </div>
+
+                        <p class="match-bio">
+                            {% if card.other_profile.bio %}
+                                {{ card.other_profile.bio|truncatechars:145 }}
+                            {% else %}
+                                No bio added yet.
+                            {% endif %}
+                        </p>
+
+                        <div class="match-interest-list">
+                            {% for interest in card.other_profile.interests.all|slice:":4" %}
+                                <span>{{ interest.name }}</span>
+                            {% empty %}
+                                <span>No interests yet</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="match-actions">
+                        <a href="{% url 'profiles:public_profile' card.other_user.id %}" class="secondary-action">
+                            Profile
+                        </a>
+
+                        <a href="{% url 'chat:start_chat' card.other_user.id %}" class="primary-action">
+                            Message
+                        </a>
+                    </div>
+
+                </article>
+            {% empty %}
+                <div class="matches-card">
+                    <div class="matches-empty">
+                        <div class="matches-empty-icon">💞</div>
+                        <h3 class="matches-empty-title">No matches yet</h3>
+                        <p class="matches-empty-text">
+                            Like profiles in Discover. When someone likes you back, they will appear here.
+                        </p>
+
+                        <a href="{% url 'matches:discover' %}" class="empty-action">
+                            Go to Discover
+                        </a>
+                    </div>
+                </div>
+            {% endfor %}
+
+        </div>
+    </section>
+
+    <p class="matches-footer">Heartly v1.0</p>
+
+</div>
+{% endblock %}
+
+{% block extra_css %}
+:root {
+    --matches-card: #ffffff;
+    --matches-text: #111827;
+    --matches-muted: #6b7280;
+    --matches-border: #e5e7eb;
+    --matches-pink: #ec4899;
+    --matches-pink-soft: #fce7f3;
+    --matches-shadow: 0 14px 35px rgba(15, 23, 42, 0.08);
+}
+
+:root[data-heartly-theme="dark"] {
+    --matches-card: #111827;
+    --matches-text: #f9fafb;
+    --matches-muted: #9ca3af;
+    --matches-border: #263244;
+    --matches-pink: #f472b6;
+    --matches-pink-soft: rgba(244, 114, 182, 0.14);
+    --matches-shadow: 0 14px 35px rgba(0, 0, 0, 0.38);
+}
+
+.matches-page {
+    min-height: 100vh;
+    color: var(--matches-text);
+    padding: 18px 16px 92px;
+    max-width: 520px;
+    margin: 0 auto;
+}
+
+.matches-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 22px;
+}
+
+.matches-title {
+    font-size: 28px;
+    font-weight: 900;
+    margin: 0;
+    letter-spacing: -0.04em;
+}
+
+.matches-subtitle {
+    color: var(--matches-muted);
+    font-size: 14px;
+    margin-top: 4px;
+}
+
+.top-icon-btn {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--matches-card);
+    color: var(--matches-text);
+    text-decoration: none;
+    border: 1px solid var(--matches-border);
+    box-shadow: var(--matches-shadow);
+    font-size: 20px;
+}
+
+.matches-section {
+    margin-bottom: 24px;
+}
+
+.matches-section-title {
+    color: var(--matches-muted);
+    font-size: 13px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 0 0 10px;
+    padding-left: 4px;
+}
+
+.matches-card,
+.match-card {
+    background: var(--matches-card);
+    border: 1px solid var(--matches-border);
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: var(--matches-shadow);
+}
+
+.matches-main-card {
+    padding: 18px;
+}
+
+.matches-summary {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+}
+
+.matches-summary-icon {
+    width: 72px;
+    height: 72px;
+    border-radius: 26px;
+    background: var(--matches-pink-soft);
+    color: var(--matches-pink);
+    display: grid;
+    place-items: center;
+    font-size: 30px;
+    flex-shrink: 0;
+}
+
+.matches-summary-title {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 900;
+    letter-spacing: -0.04em;
+}
+
+.matches-summary-text {
+    margin: 5px 0 0;
+    color: var(--matches-muted);
+    font-size: 14px;
+    line-height: 1.4;
+    font-weight: 700;
+}
+
+.matches-meta,
+.match-meta,
+.match-interest-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+    margin-top: 14px;
+}
+
+.matches-pill,
+.match-meta span,
+.match-interest-list span {
+    background: var(--matches-pink-soft);
+    color: var(--matches-pink);
+    border-radius: 999px;
+    padding: 8px 12px;
+    font-size: 13px;
+    font-weight: 900;
+}
+
+.matches-actions,
+.match-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.primary-action,
+.secondary-action,
+.empty-action {
+    border-radius: 999px;
+    padding: 12px 14px;
+    text-align: center;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 900;
+}
+
+.primary-action,
+.empty-action {
+    background: var(--matches-pink);
+    color: #ffffff;
+}
+
+.secondary-action {
+    background: var(--matches-pink-soft);
+    color: var(--matches-pink);
+}
+
+.match-list {
+    display: grid;
+    gap: 14px;
+}
+
+.match-card {
+    padding: 14px;
+    display: grid;
+    grid-template-columns: 82px 1fr;
+    gap: 14px;
+}
+
+.match-avatar {
+    width: 82px;
+    height: 82px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    background: var(--matches-pink-soft);
+    color: var(--matches-pink);
+    text-decoration: none;
+    font-size: 30px;
+    font-weight: 900;
+    border: 4px solid var(--matches-pink-soft);
+}
+
+.match-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.match-body {
+    min-width: 0;
+}
+
+.match-name {
+    margin: 0;
+    font-size: 20px;
+    line-height: 1.05;
+    font-weight: 900;
+    letter-spacing: -0.04em;
+}
+
+.match-username {
+    margin: 4px 0 0;
+    color: var(--matches-muted);
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.match-bio {
+    margin: 12px 0 0;
+    color: var(--matches-text);
+    font-size: 14px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+}
+
+.match-actions {
+    grid-column: 1 / -1;
+}
+
+.matches-empty {
+    text-align: center;
+    padding: 28px 18px;
+}
+
+.matches-empty-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 20px;
+    background: var(--matches-pink-soft);
+    color: var(--matches-pink);
+    display: grid;
+    place-items: center;
+    margin: 0 auto 12px;
+    font-size: 24px;
+}
+
+.matches-empty-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 900;
+}
+
+.matches-empty-text {
+    margin: 6px 0 16px;
+    color: var(--matches-muted);
+    font-size: 14px;
+    line-height: 1.45;
+}
+
+.matches-footer {
+    text-align: center;
+    color: var(--matches-muted);
+    font-size: 12px;
+    margin-top: 28px;
+}
+
+@media (max-width: 380px) {
+    .matches-actions,
+    .match-actions,
+    .match-card {
+        grid-template-columns: 1fr;
+    }
+
+    .match-avatar {
+        width: 92px;
+        height: 92px;
+    }
+}
+{% endblock %}

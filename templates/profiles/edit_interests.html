@@ -1,0 +1,184 @@
+{% extends "heartly/base.html" %}
+{% load static %}
+
+{% block title %}Edit Interests - Heartly{% endblock %}
+
+{% block extra_css %}
+<style>
+.edit-interests-page {
+    display: grid;
+    gap: var(--heartly-section-gap);
+    padding-bottom: 90px;
+}
+
+.edit-interests-card {
+    padding: 16px;
+    border-radius: var(--heartly-radius-xl);
+    display: grid;
+    gap: 16px;
+    background: var(--heartly-card);
+    border: 1px solid var(--heartly-border);
+    box-shadow: var(--heartly-shadow-soft);
+}
+
+.edit-interests-header {
+    display: grid;
+    grid-template-columns: 42px 1fr;
+    gap: 12px;
+    align-items: start;
+}
+
+.edit-interests-back {
+    width: 42px;
+    height: 42px;
+    border-radius: 16px;
+    display: grid;
+    place-items: center;
+    color: var(--heartly-text);
+    background: var(--heartly-card-soft);
+    text-decoration: none;
+    font-size: 1.7rem;
+    font-weight: 850;
+}
+
+.edit-interests-form {
+    display: grid;
+    gap: 14px;
+}
+
+.edit-interests-error {
+    padding: 10px 12px;
+    border-radius: 16px;
+    color: var(--heartly-accent);
+    background: var(--heartly-accent-soft);
+    font-size: 0.82rem;
+    font-weight: 850;
+}
+
+.edit-interests-field ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+}
+
+.edit-interests-field li {
+    margin: 0;
+}
+
+.edit-interests-field label {
+    min-height: 40px;
+    padding: 0 12px;
+    border-radius: var(--heartly-radius-pill);
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--heartly-text);
+    background: var(--heartly-card-soft);
+    font-size: 0.8rem;
+    font-weight: 850;
+    cursor: pointer;
+}
+
+.edit-interests-field input {
+    accent-color: var(--heartly-primary);
+}
+
+.edit-interests-field em {
+    color: var(--heartly-accent);
+    font-size: 0.74rem;
+    font-style: normal;
+    font-weight: 850;
+}
+
+.edit-interests-actions {
+    display: grid;
+    grid-template-columns: 0.8fr 1.2fr;
+    gap: 10px;
+}
+
+.edit-interests-cancel,
+.edit-interests-actions button {
+    min-height: 48px;
+    border: none;
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    font-size: 0.86rem;
+    font-weight: 950;
+}
+
+.edit-interests-cancel {
+    color: var(--heartly-text);
+    background: var(--heartly-card-soft);
+}
+
+.edit-interests-actions button {
+    color: #ffffff;
+    background: linear-gradient(135deg, var(--heartly-primary), var(--heartly-primary-2));
+    box-shadow: var(--heartly-shadow-btn);
+    cursor: pointer;
+}
+
+@media (max-width: 430px) {
+    .edit-interests-header,
+    .edit-interests-actions {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="heartly-page edit-interests-page">
+
+    <section class="edit-interests-card">
+        <header class="edit-interests-header">
+            <a href="{% url 'profiles:profile_home' %}" class="edit-interests-back">‹</a>
+
+            <div>
+                <span class="heartly-kicker">Personalize</span>
+                <h1 class="heartly-page-title">Interests</h1>
+                <p class="heartly-page-subtitle">
+                    Choose interests that help people understand you better.
+                </p>
+            </div>
+        </header>
+
+        <form method="post" class="edit-interests-form">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+                <div class="edit-interests-error">
+                    {{ form.non_field_errors }}
+                </div>
+            {% endif %}
+
+            {% for field in form.visible_fields %}
+                <div class="edit-interests-field">
+                    {{ field }}
+
+                    {% if field.errors %}
+                        <em>{{ field.errors|striptags }}</em>
+                    {% endif %}
+                </div>
+            {% endfor %}
+
+            <div class="edit-interests-actions">
+                <a href="{% url 'profiles:profile_home' %}" class="edit-interests-cancel">
+                    Cancel
+                </a>
+
+                <button type="submit">
+                    Save interests
+                </button>
+            </div>
+        </form>
+    </section>
+
+</div>
+{% endblock %}

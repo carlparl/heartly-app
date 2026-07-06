@@ -1,33 +1,209 @@
 {% extends "heartly/base.html" %}
+{% load static %}
 
 {% block title %}Notifications - Heartly{% endblock %}
 
-{% block topbar %}
-<header class="settings-mobile-topbar">
-  <a href="{% url 'settings' %}" class="heartly-icon-btn" aria-label="Back">‹</a>
-  <h1>Notifications</h1>
-  <span class="settings-topbar-spacer"></span>
-</header>
-{% endblock %}
-
 {% block content %}
+<div class="heartly-page notifications-page">
 
-<section class="settings-subpage">
+    <section class="heartly-hero-card notifications-hero">
+        <span class="heartly-kicker">Updates</span>
 
-  <div class="settings-subpage-card">
-    <h2>Notifications</h2>
-    <p>Your Heartly notifications will appear here.</p>
+        <h1 class="heartly-page-title">Notifications</h1>
 
-    <div class="settings-subpage-list">
+        <p class="heartly-page-subtitle">
+            Likes, comments, messages, matches, and important Heartly updates appear here.
+        </p>
+    </section>
 
-      <div class="settings-subpage-item">
-        <strong>No notifications yet</strong>
-        <span>New matches, likes, comments, and messages will show here when available.</span>
-      </div>
+    {% if unread_count %}
+        <form method="post" action="{% url 'notifications:mark_notifications_read' %}">
+            {% csrf_token %}
+            <button type="submit" class="mark-read-btn">
+                Mark all as read · {{ unread_count }}
+            </button>
+        </form>
+    {% endif %}
 
-    </div>
-  </div>
+    <section class="notifications-stack">
 
-</section>
+        {% if notifications %}
+            {% for notification in notifications %}
 
+                <a
+                    href="{% url 'notifications:open_notification' notification.id %}"
+                    class="heartly-card notification-card {% if not notification.is_read %}unread{% endif %}"
+                >
+
+                    <div class="notification-icon">
+                        {% if notification.notification_type == "like" %}
+                            ❤️
+                        {% elif notification.notification_type == "comment" %}
+                            💬
+                        {% elif notification.notification_type == "message" %}
+                            ✉️
+                        {% elif notification.notification_type == "match" %}
+                            💞
+                        {% else %}
+                            🔔
+                        {% endif %}
+                    </div>
+
+                    <div class="notification-content">
+                        <div class="notification-title-row">
+                            <strong>{{ notification.title }}</strong>
+
+                            {% if not notification.is_read %}
+                                <span class="unread-dot"></span>
+                            {% endif %}
+                        </div>
+
+                        {% if notification.message %}
+                            <span>{{ notification.message }}</span>
+                        {% endif %}
+
+                        <small>{{ notification.created_at|timesince }} ago</small>
+                    </div>
+
+                </a>
+
+            {% endfor %}
+        {% else %}
+            <section class="heartly-empty-state">
+                <div class="heartly-empty-icon">🔔</div>
+
+                <h3 class="heartly-empty-title">
+                    No notifications yet
+                </h3>
+
+                <p class="heartly-empty-text">
+                    When someone likes your post, comments, or messages you, it will appear here.
+                </p>
+
+                <a href="{% url 'feed:feed_home' %}" class="notifications-empty-btn">
+                    Back to feed
+                </a>
+            </section>
+        {% endif %}
+
+    </section>
+
+</div>
+
+<style>
+    .notifications-page {
+        display: grid;
+        gap: 14px;
+    }
+
+    .notifications-stack {
+        display: grid;
+        gap: 12px;
+    }
+
+    .notification-card {
+        display: grid;
+        grid-template-columns: 48px 1fr;
+        align-items: center;
+        gap: 12px;
+        color: var(--heartly-text);
+        text-decoration: none;
+    }
+
+    .notification-card:hover {
+        background: rgba(255, 63, 114, 0.08);
+    }
+
+    .notification-card.unread {
+        border-color: rgba(255, 63, 114, 0.34);
+        box-shadow: 0 18px 42px rgba(255, 63, 114, 0.13);
+    }
+
+    .notification-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 18px;
+        display: grid;
+        place-items: center;
+        color: #ffffff;
+        background: linear-gradient(135deg, var(--heartly-primary), var(--heartly-primary-2));
+        box-shadow: 0 14px 28px rgba(255, 63, 114, 0.22);
+        font-size: 1.2rem;
+    }
+
+    .notification-content {
+        min-width: 0;
+        display: grid;
+        gap: 4px;
+    }
+
+    .notification-title-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .notification-content strong {
+        color: var(--heartly-text);
+        font-size: 0.95rem;
+        line-height: 1.2;
+        font-weight: 950;
+    }
+
+    .notification-content span {
+        color: var(--heartly-muted);
+        font-size: 0.82rem;
+        line-height: 1.4;
+        font-weight: 650;
+    }
+
+    .notification-content small {
+        color: var(--heartly-soft-text);
+        font-size: 0.74rem;
+        font-weight: 800;
+    }
+
+    .unread-dot {
+        width: 9px;
+        height: 9px;
+        flex: 0 0 auto;
+        border-radius: 999px;
+        background: var(--heartly-primary);
+        box-shadow: 0 0 0 5px rgba(255, 63, 114, 0.12);
+    }
+
+    .mark-read-btn,
+    .notifications-empty-btn {
+        min-height: 48px;
+        padding: 0 18px;
+        border: none;
+        border-radius: 18px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #ffffff;
+        background: linear-gradient(135deg, var(--heartly-primary), var(--heartly-primary-2));
+        box-shadow: 0 16px 34px rgba(255, 63, 114, 0.22);
+        text-decoration: none;
+        font-size: 0.9rem;
+        font-weight: 950;
+        cursor: pointer;
+    }
+
+    .mark-read-btn {
+        width: 100%;
+    }
+
+    @media (max-width: 430px) {
+        .notification-card {
+            grid-template-columns: 44px 1fr;
+        }
+
+        .notification-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 16px;
+        }
+    }
+</style>
 {% endblock %}

@@ -1,24 +1,36 @@
-from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
+from django.shortcuts import redirect, render
+
+from profiles.models import Profile
 
 
 def welcome(request):
-    """
-    Root page: http://127.0.0.1:8000/
+    if request.user.is_authenticated:
+        return redirect("feed:feed_home")
 
-    This page always shows the auth landing screen.
-    Logged-out users see Sign Up and Login.
-    Logged-in users see Continue to Discover and Logout.
-    """
-    return render(request, "heartly/welcome.html")
+    return render(request, "welcome.html")
 
 
 @login_required
 def post_login_redirect(request):
-    """
-    Runs only after successful login/signup.
-    """
-    return redirect("matches:discover")
+    Profile.objects.get_or_create(user=request.user)
+
+    return redirect("feed:feed_home")
+
+
 @login_required
 def settings_view(request):
-    return render(request, "accounts/settings.html")
+    profile, created = Profile.objects.get_or_create(user=request.user)
+
+    return render(
+        request,
+        "accounts/settings.html",
+        {
+            "profile": profile,
+        },
+    )
+
+
+@login_required
+def settings_help(request):
+    return settings_view(request)
