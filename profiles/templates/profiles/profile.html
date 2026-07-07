@@ -4,18 +4,21 @@
 {% block title %}{{ display_name|default:"Profile" }} - Heartly{% endblock %}
 
 {% block content %}
-<div class="profile-page">
+<div class="heartly-page profile-page">
 
     <div class="profile-header">
         <div>
-            <h1 class="profile-title">
+            <span class="heartly-kicker">
+                {% if is_owner %}Your account{% else %}Community profile{% endif %}
+            </span>
+            <h1 class="heartly-page-title">
                 {% if is_owner %}
                     Profile
                 {% else %}
                     {{ display_name|default:"Profile" }}
                 {% endif %}
             </h1>
-            <p class="profile-subtitle">
+            <p class="heartly-page-subtitle">
                 {% if is_owner %}
                     Your Heartly account and activity.
                 {% else %}
@@ -542,32 +545,9 @@
 {% endblock %}
 
 {% block extra_css %}
-:root {
-    --profile-bg: #f8fafc;
-    --profile-card: #ffffff;
-    --profile-text: #111827;
-    --profile-muted: #6b7280;
-    --profile-border: #e5e7eb;
-    --profile-pink: #ec4899;
-    --profile-pink-soft: #fce7f3;
-    --profile-red: #ef4444;
-    --profile-shadow: 0 14px 35px rgba(15, 23, 42, 0.08);
-}
-
-:root[data-heartly-theme="dark"] {
-    --profile-bg: #080b12;
-    --profile-card: #111827;
-    --profile-text: #f9fafb;
-    --profile-muted: #9ca3af;
-    --profile-border: #263244;
-    --profile-pink: #f472b6;
-    --profile-pink-soft: rgba(244, 114, 182, 0.14);
-    --profile-shadow: 0 14px 35px rgba(0, 0, 0, 0.38);
-}
-
 .profile-page {
     min-height: 100vh;
-    color: var(--profile-text);
+    color: var(--heartly-text, #1f1f1f);
     padding: 18px 16px 92px;
     max-width: 520px;
     margin: 0 auto;
@@ -580,30 +560,17 @@
     margin-bottom: 22px;
 }
 
-.profile-title {
-    font-size: 28px;
-    font-weight: 900;
-    margin: 0;
-    letter-spacing: -0.04em;
-}
-
-.profile-subtitle {
-    color: var(--profile-muted);
-    font-size: 14px;
-    margin-top: 4px;
-}
-
 .top-icon-btn {
     width: 46px;
     height: 46px;
     border-radius: 50%;
     display: grid;
     place-items: center;
-    background: var(--profile-card);
-    color: var(--profile-text);
+    background: var(--heartly-card, #ffffff);
+    color: var(--heartly-text, #1f1f1f);
     text-decoration: none;
-    border: 1px solid var(--profile-border);
-    box-shadow: var(--profile-shadow);
+    border: 1px solid var(--heartly-border, rgba(0, 0, 0, 0.06));
+    box-shadow: var(--heartly-shadow-soft, 0 14px 35px rgba(15, 23, 42, 0.08));
     font-size: 24px;
     font-weight: 900;
 }
@@ -613,7 +580,7 @@
 }
 
 .profile-section-title {
-    color: var(--profile-muted);
+    color: var(--heartly-muted, #666666);
     font-size: 13px;
     font-weight: 900;
     text-transform: uppercase;
@@ -623,11 +590,11 @@
 }
 
 .profile-card {
-    background: var(--profile-card);
-    border: 1px solid var(--profile-border);
-    border-radius: 24px;
+    background: var(--heartly-card, #ffffff);
+    border: 1px solid var(--heartly-border, rgba(0, 0, 0, 0.06));
+    border-radius: var(--heartly-radius-xl, 24px);
     overflow: hidden;
-    box-shadow: var(--profile-shadow);
+    box-shadow: var(--heartly-shadow-soft, 0 14px 35px rgba(15, 23, 42, 0.08));
 }
 
 .profile-main-card {
@@ -645,8 +612,8 @@
     height: 82px;
     border-radius: 50%;
     object-fit: cover;
-    border: 4px solid var(--profile-pink-soft);
-    background: var(--profile-pink-soft);
+    border: 4px solid var(--heartly-primary-soft, rgba(255, 79, 123, 0.12));
+    background: var(--heartly-primary-soft, rgba(255, 79, 123, 0.12));
     flex-shrink: 0;
 }
 
@@ -654,13 +621,13 @@
     width: 82px;
     height: 82px;
     border-radius: 50%;
-    background: var(--profile-pink-soft);
-    color: var(--profile-pink);
+    background: var(--heartly-primary-soft, rgba(255, 79, 123, 0.12));
+    color: var(--heartly-primary, #ff4f7b);
     display: grid;
     place-items: center;
     font-size: 32px;
     font-weight: 900;
-    border: 4px solid var(--profile-pink-soft);
+    border: 4px solid var(--heartly-primary-soft, rgba(255, 79, 123, 0.12));
     flex-shrink: 0;
     text-transform: uppercase;
 }
@@ -674,14 +641,14 @@
 
 .profile-username {
     margin: 4px 0 0;
-    color: var(--profile-muted);
+    color: var(--heartly-muted, #666666);
     font-size: 14px;
     font-weight: 700;
 }
 
 .profile-bio {
     margin: 16px 0 0;
-    color: var(--profile-text);
+    color: var(--heartly-text, #1f1f1f);
     font-size: 15px;
     line-height: 1.5;
     white-space: pre-wrap;
@@ -696,9 +663,9 @@
 
 .profile-pill,
 .profile-status-pill {
-    background: var(--profile-pink-soft);
-    color: var(--profile-pink);
-    border-radius: 999px;
+    background: var(--heartly-primary-soft, rgba(255, 79, 123, 0.12));
+    color: var(--heartly-primary, #ff4f7b);
+    border-radius: var(--heartly-radius-pill, 999px);
     padding: 8px 12px;
     font-size: 13px;
     font-weight: 900;
@@ -714,7 +681,7 @@
 .primary-action,
 .secondary-action {
     border: none;
-    border-radius: 999px;
+    border-radius: var(--heartly-radius-pill, 999px);
     padding: 12px 14px;
     text-align: center;
     text-decoration: none;
@@ -724,17 +691,18 @@
 }
 
 .primary-action {
-    background: var(--profile-pink);
+    background: linear-gradient(135deg, var(--heartly-primary, #ff4f7b), var(--heartly-primary-2, #e0355f));
+    box-shadow: var(--heartly-shadow-btn, 0 8px 20px -6px rgba(255, 79, 123, 0.3));
     color: #ffffff;
 }
 
 .secondary-action {
-    background: var(--profile-pink-soft);
-    color: var(--profile-pink);
+    background: var(--heartly-primary-soft, rgba(255, 79, 123, 0.12));
+    color: var(--heartly-primary, #ff4f7b);
 }
 
 .danger-action {
-    color: var(--profile-red);
+    color: var(--heartly-accent, #ef4444);
     background: rgba(239, 68, 68, 0.12);
 }
 
@@ -745,10 +713,10 @@
 .profile-block-form button {
     width: 100%;
     border: none;
-    border-radius: 999px;
+    border-radius: var(--heartly-radius-pill, 999px);
     padding: 12px 14px;
     background: rgba(239, 68, 68, 0.12);
-    color: var(--profile-red);
+    color: var(--heartly-accent, #ef4444);
     font-size: 14px;
     font-weight: 900;
     cursor: pointer;
@@ -757,7 +725,7 @@
 .profile-stats {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    border-top: 1px solid var(--profile-border);
+    border-top: 1px solid var(--heartly-border, rgba(0, 0, 0, 0.06));
     margin-top: 18px;
 }
 
@@ -770,13 +738,13 @@
     display: block;
     font-size: 20px;
     font-weight: 900;
-    color: var(--profile-text);
+    color: var(--heartly-text, #1f1f1f);
 }
 
 .profile-stat-label {
     display: block;
     margin-top: 3px;
-    color: var(--profile-muted);
+    color: var(--heartly-muted, #666666);
     font-size: 12px;
     font-weight: 800;
 }
@@ -786,7 +754,7 @@
     width: 100%;
     border: none;
     background: transparent;
-    color: var(--profile-text);
+    color: var(--heartly-text, #1f1f1f);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -802,7 +770,7 @@
 .profile-form-row + .profile-row,
 .profile-row + .profile-form-row,
 .profile-form-row + .profile-form-row {
-    border-top: 1px solid var(--profile-border);
+    border-top: 1px solid var(--heartly-border, rgba(0, 0, 0, 0.06));
 }
 
 .profile-form-row {
@@ -820,8 +788,8 @@
     width: 42px;
     height: 42px;
     border-radius: 16px;
-    background: var(--profile-pink-soft);
-    color: var(--profile-pink);
+    background: var(--heartly-primary-soft, rgba(255, 79, 123, 0.12));
+    color: var(--heartly-primary, #ff4f7b);
     display: grid;
     place-items: center;
     font-size: 20px;
@@ -835,25 +803,25 @@
 }
 
 .profile-desc {
-    color: var(--profile-muted);
+    color: var(--heartly-muted, #666666);
     font-size: 13px;
     margin: 3px 0 0;
     line-height: 1.35;
 }
 
 .profile-chevron {
-    color: var(--profile-muted);
+    color: var(--heartly-muted, #666666);
     font-size: 22px;
     flex-shrink: 0;
 }
 
 .danger-row .profile-icon {
     background: rgba(239, 68, 68, 0.12);
-    color: var(--profile-red);
+    color: var(--heartly-accent, #ef4444);
 }
 
 .danger-row .profile-label {
-    color: var(--profile-red);
+    color: var(--heartly-accent, #ef4444);
 }
 
 .profile-tabs {
@@ -864,19 +832,19 @@
 }
 
 .profile-tab {
-    border: 1px solid var(--profile-border);
-    background: var(--profile-card);
-    color: var(--profile-muted);
-    border-radius: 999px;
+    border: 1px solid var(--heartly-border, rgba(0, 0, 0, 0.06));
+    background: var(--heartly-card, #ffffff);
+    color: var(--heartly-muted, #666666);
+    border-radius: var(--heartly-radius-pill, 999px);
     padding: 10px;
     font-weight: 900;
     cursor: pointer;
 }
 
 .profile-tab.active {
-    background: var(--profile-pink);
+    background: linear-gradient(135deg, var(--heartly-primary, #ff4f7b), var(--heartly-primary-2, #e0355f));
     color: #ffffff;
-    border-color: var(--profile-pink);
+    border-color: var(--heartly-primary, #ff4f7b);
 }
 
 .profile-content {
@@ -896,8 +864,8 @@
     width: 56px;
     height: 56px;
     border-radius: 20px;
-    background: var(--profile-pink-soft);
-    color: var(--profile-pink);
+    background: var(--heartly-primary-soft, rgba(255, 79, 123, 0.12));
+    color: var(--heartly-primary, #ff4f7b);
     display: grid;
     place-items: center;
     margin: 0 auto 12px;
@@ -912,7 +880,7 @@
 
 .profile-empty-text {
     margin: 6px 0 0;
-    color: var(--profile-muted);
+    color: var(--heartly-muted, #666666);
     font-size: 14px;
     line-height: 1.45;
 }
@@ -922,7 +890,7 @@
 }
 
 .profile-post + .profile-post {
-    border-top: 1px solid var(--profile-border);
+    border-top: 1px solid var(--heartly-border, rgba(0, 0, 0, 0.06));
 }
 
 .profile-post-text {
@@ -943,13 +911,13 @@
 
 .profile-post-date {
     margin-top: 8px;
-    color: var(--profile-muted);
+    color: var(--heartly-muted, #666666);
     font-size: 12px;
     font-weight: 800;
 }
 
 .profile-post-date a {
-    color: var(--profile-pink);
+    color: var(--heartly-primary, #ff4f7b);
     text-decoration: none;
 }
 
@@ -960,10 +928,10 @@
 }
 
 .profile-interest-list span {
-    border-radius: 999px;
+    border-radius: var(--heartly-radius-pill, 999px);
     padding: 9px 12px;
-    background: var(--profile-pink-soft);
-    color: var(--profile-pink);
+    background: var(--heartly-primary-soft, rgba(255, 79, 123, 0.12));
+    color: var(--heartly-primary, #ff4f7b);
     font-size: 13px;
     font-weight: 900;
 }
@@ -974,10 +942,10 @@
 
 .profile-small-btn {
     border: none;
-    border-radius: 999px;
+    border-radius: var(--heartly-radius-pill, 999px);
     padding: 9px 12px;
-    background: var(--profile-pink-soft);
-    color: var(--profile-pink);
+    background: var(--heartly-primary-soft, rgba(255, 79, 123, 0.12));
+    color: var(--heartly-primary, #ff4f7b);
     font-size: 12px;
     font-weight: 900;
     cursor: pointer;
@@ -985,7 +953,7 @@
 
 .profile-footer {
     text-align: center;
-    color: var(--profile-muted);
+    color: var(--heartly-muted, #666666);
     font-size: 12px;
     margin-top: 28px;
 }
@@ -1009,9 +977,9 @@
     width: min(100%, 430px);
     padding: 16px;
     border-radius: 26px;
-    background: var(--profile-card);
-    border: 1px solid var(--profile-border);
-    box-shadow: var(--profile-shadow);
+    background: var(--heartly-card, #ffffff);
+    border: 1px solid var(--heartly-border, rgba(0, 0, 0, 0.06));
+    box-shadow: var(--heartly-shadow-soft, 0 14px 35px rgba(15, 23, 42, 0.08));
 }
 
 .profile-modal-card header {
@@ -1032,8 +1000,8 @@
     height: 36px;
     border: none;
     border-radius: 14px;
-    background: var(--profile-pink-soft);
-    color: var(--profile-pink);
+    background: var(--heartly-primary-soft, rgba(255, 79, 123, 0.12));
+    color: var(--heartly-primary, #ff4f7b);
     font-size: 20px;
     cursor: pointer;
 }
@@ -1049,7 +1017,7 @@
 }
 
 .profile-modal-card label span {
-    color: var(--profile-muted);
+    color: var(--heartly-muted, #666666);
     font-size: 13px;
     font-weight: 900;
 }
@@ -1057,11 +1025,11 @@
 .profile-modal-card select,
 .profile-modal-card textarea {
     width: 100%;
-    border: 1px solid var(--profile-border);
+    border: 1px solid var(--heartly-border, rgba(0, 0, 0, 0.06));
     border-radius: 18px;
     padding: 12px;
-    background: var(--profile-bg);
-    color: var(--profile-text);
+    background: var(--heartly-bg, #f8fafc);
+    color: var(--heartly-text, #1f1f1f);
     outline: none;
     font-size: 14px;
     font-weight: 700;
@@ -1073,9 +1041,10 @@
 
 .profile-modal-card form button {
     border: none;
-    border-radius: 999px;
+    border-radius: var(--heartly-radius-pill, 999px);
     padding: 13px;
-    background: var(--profile-pink);
+    background: linear-gradient(135deg, var(--heartly-primary, #ff4f7b), var(--heartly-primary-2, #e0355f));
+    box-shadow: var(--heartly-shadow-btn, 0 8px 20px -6px rgba(255, 79, 123, 0.3));
     color: #ffffff;
     font-size: 14px;
     font-weight: 900;

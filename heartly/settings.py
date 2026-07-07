@@ -90,6 +90,10 @@ INSTALLED_APPS = [
     # Daphne must stay before django.contrib.staticfiles
     "daphne",
 
+    # Cloudinary media storage
+    "cloudinary_storage",
+    "cloudinary",
+
     # Django apps
     "django.contrib.admin",
     "django.contrib.auth",
@@ -291,10 +295,23 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 
 # ============================================================
+# CLOUDINARY SETTINGS
+# ============================================================
+
+CLOUDINARY_STORAGE = {
+    "CLOUD_NAME": os.environ.get("CLOUDINARY_CLOUD_NAME", ""),
+    "API_KEY": os.environ.get("CLOUDINARY_API_KEY", ""),
+    "API_SECRET": os.environ.get("CLOUDINARY_API_SECRET", ""),
+}
+
+
+# ============================================================
 # STORAGE: STATIC + MEDIA
 # ============================================================
 
-MEDIA_STORAGE_BACKEND = os.environ.get("MEDIA_STORAGE_BACKEND", "local")
+# Options: local, cloudinary, s3
+# Use cloudinary for uploaded profile pictures, feed images, and videos.
+MEDIA_STORAGE_BACKEND = os.environ.get("MEDIA_STORAGE_BACKEND", "cloudinary").strip().lower()
 
 STORAGES = {
     "default": {
@@ -309,7 +326,12 @@ STORAGES = {
     },
 }
 
-if MEDIA_STORAGE_BACKEND == "s3":
+if MEDIA_STORAGE_BACKEND == "cloudinary":
+    STORAGES["default"] = {
+        "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
+    }
+
+elif MEDIA_STORAGE_BACKEND == "s3":
     STORAGES["default"] = {
         "BACKEND": "storages.backends.s3.S3Storage",
         "OPTIONS": {
@@ -324,6 +346,20 @@ if MEDIA_STORAGE_BACKEND == "s3":
         },
     }
 
+elif MEDIA_STORAGE_BACKEND != "local":
+    raise RuntimeError(
+        "Invalid MEDIA_STORAGE_BACKEND. Use one of: local, cloudinary, s3."
+    )
+
+# ============================================================
+# DJANGO 6 + django-cloudinary-storage COMPATIBILITY
+# ============================================================
+# django-cloudinary-storage still checks these legacy names during collectstatic.
+# In Django 6, STORAGES is the real configuration; these lines only prevent
+# AttributeError during collectstatic and keep static files on WhiteNoise/local.
+
+STATICFILES_STORAGE = STORAGES["staticfiles"]["BACKEND"]
+DEFAULT_FILE_STORAGE = STORAGES["default"]["BACKEND"]
 
 # ============================================================
 # FILE UPLOAD LIMITS

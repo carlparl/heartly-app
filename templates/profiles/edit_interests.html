@@ -12,10 +12,10 @@
 }
 
 .edit-interests-card {
-    padding: 16px;
+    padding: 20px 16px;
     border-radius: var(--heartly-radius-xl);
     display: grid;
-    gap: 16px;
+    gap: 20px;
     background: var(--heartly-card);
     border: 1px solid var(--heartly-border);
     box-shadow: var(--heartly-shadow-soft);
@@ -24,7 +24,7 @@
 .edit-interests-header {
     display: grid;
     grid-template-columns: 42px 1fr;
-    gap: 12px;
+    gap: 14px;
     align-items: start;
 }
 
@@ -37,84 +37,137 @@
     color: var(--heartly-text);
     background: var(--heartly-card-soft);
     text-decoration: none;
-    font-size: 1.7rem;
-    font-weight: 850;
+    font-size: 1.8rem;
+    font-weight: 800;
+    line-height: 1;
 }
 
 .edit-interests-form {
     display: grid;
-    gap: 14px;
+    gap: 18px;
 }
 
 .edit-interests-error {
-    padding: 10px 12px;
+    padding: 12px 14px;
     border-radius: 16px;
     color: var(--heartly-accent);
     background: var(--heartly-accent-soft);
-    font-size: 0.82rem;
-    font-weight: 850;
+    font-size: 0.85rem;
+    font-weight: 800;
 }
 
-.edit-interests-field ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
+/* Interest Toolbar */
+.interest-toolbar {
+    padding: 14px 16px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: var(--heartly-card-soft);
+    border: 1px solid var(--heartly-border);
+}
+
+.interest-toolbar strong {
+    display: block;
+    color: var(--heartly-text);
+    font-size: 0.95rem;
+    font-weight: 900;
+}
+
+.interest-toolbar span {
+    display: block;
+    margin-top: 3px;
+    color: var(--heartly-muted);
+    font-size: 0.78rem;
+}
+
+.interest-count {
+    flex-shrink: 0;
+    min-height: 32px;
+    padding: 0 14px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    background: linear-gradient(135deg, var(--heartly-primary), var(--heartly-primary-2));
+    font-size: 0.78rem;
+    font-weight: 900;
+}
+
+/* Chip Grid */
+.interest-chip-grid {
     display: flex;
     flex-wrap: wrap;
     gap: 9px;
 }
 
-.edit-interests-field li {
-    margin: 0;
-}
-
-.edit-interests-field label {
-    min-height: 40px;
-    padding: 0 12px;
-    border-radius: var(--heartly-radius-pill);
+.interest-chip {
+    position: relative;
+    min-height: 44px;
+    padding: 0 16px;
+    border-radius: 999px;
     display: inline-flex;
     align-items: center;
-    gap: 7px;
+    justify-content: center;
     color: var(--heartly-text);
     background: var(--heartly-card-soft);
-    font-size: 0.8rem;
-    font-weight: 850;
+    border: 1px solid var(--heartly-border);
     cursor: pointer;
-}
-
-.edit-interests-field input {
-    accent-color: var(--heartly-primary);
-}
-
-.edit-interests-field em {
-    color: var(--heartly-accent);
-    font-size: 0.74rem;
-    font-style: normal;
+    user-select: none;
+    font-size: 0.9rem;
     font-weight: 850;
+    transition: all 0.15s ease;
+}
+
+.interest-chip input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.interest-chip span {
+    position: relative;
+    z-index: 1;
+}
+
+.interest-chip.selected {
+    color: #ffffff;
+    background: linear-gradient(135deg, var(--heartly-primary), var(--heartly-primary-2));
+    border-color: transparent;
+    box-shadow: 0 10px 25px rgba(255, 63, 114, 0.25);
+}
+
+.interest-chip:hover:not(.selected) {
+    background: rgba(255, 63, 114, 0.08);
+    transform: translateY(-1px);
 }
 
 .edit-interests-actions {
     display: grid;
     grid-template-columns: 0.8fr 1.2fr;
     gap: 10px;
+    margin-top: 8px;
 }
 
 .edit-interests-cancel,
 .edit-interests-actions button {
-    min-height: 48px;
+    min-height: 50px;
     border: none;
-    border-radius: 20px;
+    border-radius: 18px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     text-decoration: none;
-    font-size: 0.86rem;
-    font-weight: 950;
+    font-size: 0.9rem;
+    font-weight: 900;
 }
 
 .edit-interests-cancel {
     color: var(--heartly-text);
     background: var(--heartly-card-soft);
+    border: 1px solid var(--heartly-border);
 }
 
 .edit-interests-actions button {
@@ -129,6 +182,11 @@
     .edit-interests-actions {
         grid-template-columns: 1fr;
     }
+    
+    .interest-toolbar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
 }
 </style>
 {% endblock %}
@@ -142,9 +200,9 @@
 
             <div>
                 <span class="heartly-kicker">Personalize</span>
-                <h1 class="heartly-page-title">Interests</h1>
+                <h1 class="heartly-page-title">Your interests</h1>
                 <p class="heartly-page-subtitle">
-                    Choose interests that help people understand you better.
+                    Choose what describes you. These help improve your matches.
                 </p>
             </div>
         </header>
@@ -158,21 +216,27 @@
                 </div>
             {% endif %}
 
-            {% for field in form.visible_fields %}
-                <div class="edit-interests-field">
-                    {{ field }}
-
-                    {% if field.errors %}
-                        <em>{{ field.errors|striptags }}</em>
-                    {% endif %}
+            <div class="interest-toolbar">
+                <div>
+                    <strong>Select your interests</strong>
+                    <span>Tap to add or remove</span>
                 </div>
-            {% endfor %}
+                <span class="interest-count" id="interestCount">0 selected</span>
+            </div>
+
+            <div class="interest-chip-grid">
+                {% for checkbox in form.interests %}
+                    <label class="interest-chip" for="{{ checkbox.id_for_label }}">
+                        {{ checkbox.tag }}
+                        <span>{{ checkbox.choice_label }}</span>
+                    </label>
+                {% endfor %}
+            </div>
 
             <div class="edit-interests-actions">
                 <a href="{% url 'profiles:profile_home' %}" class="edit-interests-cancel">
                     Cancel
                 </a>
-
                 <button type="submit">
                     Save interests
                 </button>
@@ -181,4 +245,43 @@
     </section>
 
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const chips = document.querySelectorAll(".interest-chip");
+    const countLabel = document.getElementById("interestCount");
+
+    function updateCount() {
+        let selected = 0;
+        chips.forEach(chip => {
+            const input = chip.querySelector("input");
+            if (input && input.checked) {
+                chip.classList.add("selected");
+                selected++;
+            } else {
+                chip.classList.remove("selected");
+            }
+        });
+
+        if (countLabel) {
+            countLabel.textContent = selected === 1 ? "1 selected" : `${selected} selected`;
+        }
+    }
+
+    chips.forEach(chip => {
+        const input = chip.querySelector("input");
+        if (!input) return;
+
+        chip.addEventListener("click", () => {
+            setTimeout(updateCount, 0);
+        });
+
+        input.addEventListener("change", updateCount);
+    });
+
+    updateCount();
+});
+</script>
 {% endblock %}
