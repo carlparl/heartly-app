@@ -6,16 +6,10 @@
 {% block content %}
 <div class="heartly-signup-card">
 
-    <div style="
-        text-align: center;
-        margin-bottom: 32px;
-
-    </div>
-
     <div class="heartly-signup-header">
         <p class="heartly-kicker">Join Heartly</p>
         <h1>Create account</h1>
-        <p>Start your Heartly journey and connect with meaning.</p>
+        <p>Choose who you are and what you want Heartly to help you find.</p>
     </div>
 
     <form method="post" action="{% url 'account_signup' %}" class="heartly-signup-form">
@@ -83,12 +77,12 @@
     .heartly-signup-card {
         box-sizing: border-box;
         width: 100%;
-        max-width: 480px;
+        max-width: 500px;
         padding: 44px 40px;
         border-radius: 28px;
         background: var(--heartly-card, #ffffff);
         border: 1px solid var(--heartly-border, rgba(0, 0, 0, 0.06));
-        box-shadow: 
+        box-shadow:
             0 4px 24px rgba(0, 0, 0, 0.01),
             0 24px 64px rgba(0, 0, 0, 0.04);
         margin: 20px auto;
@@ -103,7 +97,7 @@
         margin: 0 0 8px;
         color: var(--heartly-primary, #ff4f7b);
         font-size: 0.75rem;
-        font-weight: 700;
+        font-weight: 800;
         letter-spacing: 0.06em;
         text-transform: uppercase;
     }
@@ -114,7 +108,7 @@
         font-size: clamp(2.2rem, 8vw, 2.8rem);
         line-height: 1.1;
         letter-spacing: -0.03em;
-        font-weight: 800;
+        font-weight: 900;
     }
 
     .heartly-signup-header p {
@@ -126,7 +120,7 @@
 
     .heartly-signup-form {
         display: grid;
-        gap: 20px;
+        gap: 18px;
     }
 
     .heartly-field {
@@ -138,26 +132,62 @@
     .heartly-field label {
         color: var(--heartly-text, #1f1f1f);
         font-size: 0.88rem;
-        font-weight: 600;
+        font-weight: 750;
     }
 
-    /* Standardizes inputs, selects, and textareas parsed inside the template wrapper */
     .heartly-field input,
-    .heartly-field select,
-    .heartly-field textarea {
-        box-sizing: border-box;
-        width: 100%;
-        min-height: 52px;
-        padding: 0 16px;
-        border-radius: 12px;
-        color: #1f1f1f;
-        background: #ffffff;
-        border: 1.5px solid #d4d4d4;
-        outline: none;
-        font-size: 0.95rem;
-        font-weight: 450;
-        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-        caret-color: #1f1f1f;
+.heartly-field select,
+.heartly-field textarea {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 52px;
+    padding: 0 16px;
+    border-radius: 12px;
+    color: #1f1f1f !important;
+    background: #ffffff !important;
+    border: 1.5px solid #d4d4d4;
+    outline: none;
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    caret-color: #1f1f1f;
+}
+
+.heartly-field select {
+    appearance: auto;
+    -webkit-appearance: menulist;
+    cursor: pointer;
+}
+
+.heartly-field select option {
+    color: #1f1f1f !important;
+    background: #ffffff !important;
+}
+
+.heartly-field select option:checked {
+    color: #ffffff !important;
+    background: #2563eb !important;
+}
+
+.heartly-field textarea {
+    min-height: 110px;
+    padding-top: 14px;
+    padding-bottom: 14px;
+    resize: vertical;
+}
+
+.heartly-field input:focus,
+.heartly-field select:focus,
+.heartly-field textarea:focus {
+    border-color: var(--heartly-primary, #ff4f7b);
+    background: #ffffff !important;
+    color: #1f1f1f !important;
+    box-shadow: 0 0 0 4px rgba(255, 79, 123, 0.15);
+    border-width: 2px;
+}
+
+    .heartly-field select {
+        cursor: pointer;
     }
 
     .heartly-field textarea {
@@ -169,24 +199,22 @@
 
     .heartly-field input:focus,
     .heartly-field select:focus,
-    .heartly-field textarea:focus {
+    .heartly-field textarea:focus,
+    .heartly-input:focus {
         border-color: var(--heartly-primary, #ff4f7b);
-        background: #ffffff;
         box-shadow: 0 0 0 4px rgba(255, 79, 123, 0.15);
-        border-width: 2px;
     }
 
     .heartly-field input::placeholder,
     .heartly-field textarea::placeholder {
-        color: #888888;
-        font-weight: 400;
+        color: var(--heartly-muted, #888888);
+        font-weight: 500;
     }
 
     .heartly-field small {
         color: var(--heartly-muted, #666666);
         font-size: 0.82rem;
         line-height: 1.4;
-        font-weight: 400;
         margin-top: 2px;
     }
 
@@ -217,19 +245,19 @@
         min-height: 52px;
         margin-top: 10px;
         border: none;
-        border-radius: 12px;
+        border-radius: 14px;
         color: #ffffff;
         background: linear-gradient(135deg, var(--heartly-primary, #ff4f7b), #e0355f);
-        box-shadow: 0 8px 20px -6px rgba(var(--heartly-primary-rgb, 255, 79, 123), 0.3);
-        font-size: 0.95rem;
-        font-weight: 600;
+        box-shadow: 0 10px 24px -8px rgba(255, 79, 123, 0.45);
+        font-size: 0.96rem;
+        font-weight: 850;
         cursor: pointer;
-        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        transition: 0.2s ease;
     }
 
     .heartly-submit:hover {
         transform: translateY(-1px);
-        box-shadow: 0 12px 24px -4px rgba(var(--heartly-primary-rgb, 255, 79, 123), 0.4);
+        box-shadow: 0 14px 28px -6px rgba(255, 79, 123, 0.48);
     }
 
     .heartly-submit:active {
@@ -253,9 +281,8 @@
 
     .heartly-signup-footer a {
         color: var(--heartly-primary, #ff4f7b);
-        font-weight: 600;
+        font-weight: 750;
         text-decoration: none;
-        transition: color 0.2s ease;
     }
 
     .heartly-signup-footer a:hover {
@@ -272,7 +299,7 @@
         background: #fdf2f4;
         border: 1px solid rgba(255, 79, 123, 0.15);
         font-size: 0.88rem;
-        font-weight: 500;
+        font-weight: 650;
         line-height: 1.4;
     }
 

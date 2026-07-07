@@ -406,6 +406,8 @@ ACCOUNT_LOGOUT_REDIRECT_URL = "/"
 
 ACCOUNT_SIGNUP_REDIRECT_URL = "/post-login-redirect/"
 
+ACCOUNT_SIGNUP_FORM_CLASS = "accounts.forms.CustomSignupForm"
+
 ACCOUNT_EMAIL_VERIFICATION = os.environ.get(
     "ACCOUNT_EMAIL_VERIFICATION",
     "optional",

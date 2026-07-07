@@ -1,7 +1,11 @@
-from datetime import date
+from datetime import date, timedelta
+import secrets
+
 from django.conf import settings
+from django.contrib.auth.hashers import check_password, make_password
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.utils import timezone
 from django.utils.text import slugify
 
 
@@ -62,8 +66,8 @@ class CustomUser(AbstractUser):
 
     def save(self, *args, **kwargs):
         """
-        Keeps username safe even when the app uses email login.
-        Allauth may not ask for username, but Django's AbstractUser still has it.
+        Keep username valid even when the app uses email-first signup.
+        AbstractUser still requires a username value internally.
         """
         if not self.username:
             base_username = self.email.split("@")[0] if self.email else "heartly-user"
@@ -114,12 +118,13 @@ class CustomUser(AbstractUser):
 
     def __str__(self):
         return self.get_display_name()
-    
+
+
 class EmailVerificationCode(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name="email_verification_codes"
+        related_name="email_verification_codes",
     )
 
     email = models.EmailField()
@@ -148,7 +153,7 @@ class EmailVerificationCode(models.Model):
         cls.objects.filter(
             user=user,
             email=user.email,
-            used_at__isnull=True
+            used_at__isnull=True,
         ).update(used_at=timezone.now())
 
         verification = cls.objects.create(
