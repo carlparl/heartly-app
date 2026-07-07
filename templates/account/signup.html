@@ -156,12 +156,13 @@
         min-height: 52px;
         padding: 0 16px;
         border-radius: 12px;
-        color: var(--heartly-text, #1f1f1f);
-        background: #ffffff;
+        color: #181018 !important;
+        background: #ffffff !important;
         border: 1.5px solid #d4d4d4;
         outline: none;
         font-size: 0.95rem;
-        font-weight: 450;
+        font-weight: 500;
+        caret-color: #ff4f7b;
         transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
@@ -175,16 +176,25 @@
     .heartly-field input:focus,
     .heartly-field select:focus,
     .heartly-field textarea:focus {
+        color: #181018 !important;
+        background: #ffffff !important;
         border-color: var(--heartly-primary, #ff4f7b);
-        background: #ffffff;
-        box-shadow: 0 0 0 4px rgba(255, 79, 123, 0.15);
+        box-shadow: 0 0 0 4px rgba(255, 79, 123, 0.18);
         border-width: 2px;
     }
 
     .heartly-field input::placeholder,
     .heartly-field textarea::placeholder {
-        color: #888888;
+        color: #7a747d !important;
         font-weight: 400;
+    }
+
+    .heartly-field input:-webkit-autofill,
+    .heartly-field input:-webkit-autofill:hover,
+    .heartly-field input:-webkit-autofill:focus {
+        -webkit-text-fill-color: #181018 !important;
+        box-shadow: 0 0 0 1000px #ffffff inset !important;
+        caret-color: #ff4f7b;
     }
 
     .heartly-field small {
