@@ -168,18 +168,51 @@
 
             <textarea name="content" rows="5" maxlength="2000" placeholder="What's happening?"></textarea>
 
-            <div class="feed-media-preview" id="mediaPreview" hidden></div>
+            <div class="attachment-preview" id="createAttachmentPreview" hidden></div>
 
-            <div class="feed-composer-tools">
-                <label>
-                    Photo
-                    <input type="file" name="image" id="imageInput" accept="image/jpeg,image/png,image/webp,image/gif" hidden>
-                </label>
+            <div class="attachment-area">
+                <button type="button" class="attachment-main-btn" id="openCreateAttachmentTray" aria-label="Add attachment">
+                    📎
+                </button>
 
-                <label>
-                    Video
-                    <input type="file" name="video" id="videoInput" accept="video/mp4,video/webm,video/quicktime" hidden>
-                </label>
+                <div class="attachment-tray" id="createAttachmentTray" hidden>
+                    <label class="attachment-option camera-option">
+                        <span>📷</span>
+                        <strong>Camera</strong>
+                        <input
+                            type="file"
+                            name="camera_image"
+                            id="createCameraInput"
+                            accept="image/*"
+                            capture="environment"
+                            hidden
+                        >
+                    </label>
+
+                    <label class="attachment-option photo-option">
+                        <span>🖼️</span>
+                        <strong>Photo</strong>
+                        <input
+                            type="file"
+                            name="image"
+                            id="createPhotoInput"
+                            accept="image/jpeg,image/png,image/webp,image/gif"
+                            hidden
+                        >
+                    </label>
+
+                    <label class="attachment-option video-option">
+                        <span>🎥</span>
+                        <strong>Video</strong>
+                        <input
+                            type="file"
+                            name="video"
+                            id="createVideoInput"
+                            accept="video/mp4,video/webm,video/quicktime"
+                            hidden
+                        >
+                    </label>
+                </div>
             </div>
         </form>
     </div>
@@ -201,16 +234,51 @@
                 Remove current media
             </label>
 
-            <div class="feed-composer-tools">
-                <label>
-                    Replace photo
-                    <input type="file" name="image" accept="image/jpeg,image/png,image/webp,image/gif" hidden>
-                </label>
+            <div class="attachment-preview" id="editAttachmentPreview" hidden></div>
 
-                <label>
-                    Replace video
-                    <input type="file" name="video" accept="video/mp4,video/webm,video/quicktime" hidden>
-                </label>
+            <div class="attachment-area">
+                <button type="button" class="attachment-main-btn" id="openEditAttachmentTray" aria-label="Replace attachment">
+                    📎
+                </button>
+
+                <div class="attachment-tray" id="editAttachmentTray" hidden>
+                    <label class="attachment-option camera-option">
+                        <span>📷</span>
+                        <strong>Camera</strong>
+                        <input
+                            type="file"
+                            name="camera_image"
+                            id="editCameraInput"
+                            accept="image/*"
+                            capture="environment"
+                            hidden
+                        >
+                    </label>
+
+                    <label class="attachment-option photo-option">
+                        <span>🖼️</span>
+                        <strong>Photo</strong>
+                        <input
+                            type="file"
+                            name="image"
+                            id="editPhotoInput"
+                            accept="image/jpeg,image/png,image/webp,image/gif"
+                            hidden
+                        >
+                    </label>
+
+                    <label class="attachment-option video-option">
+                        <span>🎥</span>
+                        <strong>Video</strong>
+                        <input
+                            type="file"
+                            name="video"
+                            id="editVideoInput"
+                            accept="video/mp4,video/webm,video/quicktime"
+                            hidden
+                        >
+                    </label>
+                </div>
             </div>
         </form>
     </div>
@@ -703,6 +771,150 @@
     align-items: center;
     gap: 8px;
 }
+
+/* WhatsApp-style attachment tray */
+.attachment-area {
+    position: relative;
+    margin-top: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.attachment-main-btn {
+    width: 48px;
+    height: 48px;
+    border: none;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--heartly-card-soft, rgba(236, 72, 153, 0.10));
+    color: var(--heartly-text, #111827);
+    font-size: 22px;
+    cursor: pointer;
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+}
+
+.attachment-main-btn:hover {
+    background: var(--heartly-primary, #ec4899);
+    color: #ffffff;
+}
+
+.attachment-tray {
+    position: absolute;
+    left: 0;
+    bottom: 58px;
+    z-index: 60;
+    width: min(280px, calc(100vw - 48px));
+    padding: 12px;
+    border-radius: 26px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    background: var(--heartly-card, #ffffff);
+    border: 1px solid var(--heartly-border, #e5e7eb);
+    box-shadow: 0 22px 50px rgba(0, 0, 0, 0.22);
+}
+
+.attachment-tray[hidden] {
+    display: none;
+}
+
+.attachment-option {
+    min-height: 86px;
+    border-radius: 20px;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 6px;
+    background: var(--heartly-card-soft, rgba(236, 72, 153, 0.08));
+    color: var(--heartly-text, #111827);
+    cursor: pointer;
+    text-align: center;
+    border: 1px solid transparent;
+    user-select: none;
+}
+
+.attachment-option:hover {
+    transform: translateY(-1px);
+    border-color: rgba(236, 72, 153, 0.25);
+}
+
+.attachment-option span {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    color: #ffffff;
+    font-size: 22px;
+}
+
+.attachment-option strong {
+    font-size: 12px;
+    font-weight: 950;
+}
+
+.camera-option span {
+    background: linear-gradient(135deg, #8b5cf6, #6366f1);
+}
+
+.photo-option span {
+    background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.video-option span {
+    background: linear-gradient(135deg, #ec4899, #ef4444);
+}
+
+.attachment-preview {
+    position: relative;
+    margin-top: 12px;
+    overflow: hidden;
+    border-radius: 22px;
+    background: #000000;
+    border: 1px solid var(--heartly-border, #e5e7eb);
+}
+
+.attachment-preview[hidden] {
+    display: none;
+}
+
+.attachment-preview img,
+.attachment-preview video {
+    width: 100%;
+    max-height: 440px;
+    display: block;
+    object-fit: cover;
+}
+
+.remove-attachment-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: rgba(0, 0, 0, 0.66);
+    color: #ffffff;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+@media (max-width: 420px) {
+    .attachment-tray {
+        width: min(264px, calc(100vw - 36px));
+    }
+
+    .attachment-option {
+        min-height: 78px;
+    }
+}
+
 {% endblock %}
 
 {% block extra_js %}
@@ -712,10 +924,6 @@ document.addEventListener("DOMContentLoaded", function () {
     const openComposerBtn = document.getElementById("openComposerBtn");
     const closeComposerBtn = document.getElementById("closeComposerBtn");
     const createPostForm = document.getElementById("createPostForm");
-
-    const imageInput = document.getElementById("imageInput");
-    const videoInput = document.getElementById("videoInput");
-    const mediaPreview = document.getElementById("mediaPreview");
 
     const editModal = document.getElementById("editModal");
     const closeEditBtn = document.getElementById("closeEditBtn");
@@ -744,31 +952,142 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    function showPreview(file, type) {
-        if (!file || !mediaPreview) {
+    function resetPreview(preview, inputs) {
+        if (preview) {
+            preview.innerHTML = "";
+            preview.hidden = true;
+        }
+
+        inputs.forEach(function (input) {
+            if (input) {
+                input.value = "";
+            }
+        });
+    }
+
+    function showAttachmentPreview(file, type, preview, inputs) {
+        if (!file || !preview) {
             return;
         }
 
         const fileUrl = URL.createObjectURL(file);
-        mediaPreview.innerHTML = "";
+        preview.innerHTML = "";
 
-        if (type === "image") {
-            const image = document.createElement("img");
-            image.src = fileUrl;
-            image.alt = file.name;
-            mediaPreview.appendChild(image);
-        }
+        const removeButton = document.createElement("button");
+        removeButton.type = "button";
+        removeButton.className = "remove-attachment-btn";
+        removeButton.textContent = "×";
+        removeButton.setAttribute("aria-label", "Remove attachment");
+
+        removeButton.addEventListener("click", function () {
+            resetPreview(preview, inputs);
+        });
 
         if (type === "video") {
             const video = document.createElement("video");
             video.src = fileUrl;
             video.controls = true;
             video.preload = "metadata";
-            mediaPreview.appendChild(video);
+            preview.appendChild(video);
+        } else {
+            const image = document.createElement("img");
+            image.src = fileUrl;
+            image.alt = file.name || "Selected attachment";
+            preview.appendChild(image);
         }
 
-        mediaPreview.hidden = false;
+        preview.appendChild(removeButton);
+        preview.hidden = false;
     }
+
+    function setupAttachmentTray(options) {
+        const button = document.getElementById(options.buttonId);
+        const tray = document.getElementById(options.trayId);
+        const preview = document.getElementById(options.previewId);
+        const cameraInput = document.getElementById(options.cameraInputId);
+        const photoInput = document.getElementById(options.photoInputId);
+        const videoInput = document.getElementById(options.videoInputId);
+        const inputs = [cameraInput, photoInput, videoInput];
+
+        function closeTray() {
+            if (tray) {
+                tray.hidden = true;
+            }
+        }
+
+        function clearOtherInputs(activeInput) {
+            inputs.forEach(function (input) {
+                if (input && input !== activeInput) {
+                    input.value = "";
+                }
+            });
+        }
+
+        if (button && tray) {
+            button.addEventListener("click", function (event) {
+                event.stopPropagation();
+                tray.hidden = !tray.hidden;
+            });
+
+            tray.addEventListener("click", function (event) {
+                event.stopPropagation();
+            });
+
+            document.addEventListener("click", function () {
+                closeTray();
+            });
+        }
+
+        if (cameraInput) {
+            cameraInput.addEventListener("change", function () {
+                const file = cameraInput.files[0];
+                clearOtherInputs(cameraInput);
+                showAttachmentPreview(file, "image", preview, inputs);
+                closeTray();
+            });
+        }
+
+        if (photoInput) {
+            photoInput.addEventListener("change", function () {
+                const file = photoInput.files[0];
+                clearOtherInputs(photoInput);
+                showAttachmentPreview(file, "image", preview, inputs);
+                closeTray();
+            });
+        }
+
+        if (videoInput) {
+            videoInput.addEventListener("change", function () {
+                const file = videoInput.files[0];
+                clearOtherInputs(videoInput);
+                showAttachmentPreview(file, "video", preview, inputs);
+                closeTray();
+            });
+        }
+
+        return function () {
+            resetPreview(preview, inputs);
+            closeTray();
+        };
+    }
+
+    const resetCreateAttachments = setupAttachmentTray({
+        buttonId: "openCreateAttachmentTray",
+        trayId: "createAttachmentTray",
+        previewId: "createAttachmentPreview",
+        cameraInputId: "createCameraInput",
+        photoInputId: "createPhotoInput",
+        videoInputId: "createVideoInput",
+    });
+
+    const resetEditAttachments = setupAttachmentTray({
+        buttonId: "openEditAttachmentTray",
+        trayId: "editAttachmentTray",
+        previewId: "editAttachmentPreview",
+        cameraInputId: "editCameraInput",
+        photoInputId: "editPhotoInput",
+        videoInputId: "editVideoInput",
+    });
 
     async function submitAjaxForm(form) {
         const response = await fetch(form.action, {
@@ -791,58 +1110,16 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         if (!response.ok || data.success === false) {
-            console.error("Heartly feed request failed", {
+            console.error("Feed request failed", {
                 status: response.status,
                 url: form.action,
                 response: rawText,
             });
 
-            throw new Error(
-                data.error ||
-                `Server error ${response.status}. Check Render logs.`
-            );
+            throw new Error(data.error || `Server error ${response.status}. Check the terminal or Render logs.`);
         }
 
         return data;
-    }
-
-    function makeCommentRow(commentData) {
-        const row = document.createElement("div");
-        row.className = "feed-comment";
-
-        const avatar = document.createElement("div");
-        avatar.className = "feed-comment-avatar";
-
-        const authorName = commentData.user || "User";
-        const photoUrl = commentData.photo_url || "";
-
-        if (photoUrl) {
-            const image = document.createElement("img");
-            image.src = `${photoUrl}?v=${commentData.photo_version || Date.now()}`;
-            image.alt = authorName;
-            avatar.appendChild(image);
-        } else {
-            const initial = document.createElement("span");
-            initial.textContent = authorName.charAt(0).toUpperCase();
-            avatar.appendChild(initial);
-        }
-
-        const body = document.createElement("div");
-        body.className = "feed-comment-body";
-
-        const strong = document.createElement("strong");
-        strong.textContent = authorName;
-
-        const paragraph = document.createElement("p");
-        paragraph.textContent = commentData.content || commentData.text || "";
-
-        body.appendChild(strong);
-        body.appendChild(paragraph);
-
-        row.appendChild(avatar);
-        row.appendChild(body);
-
-        return row;
     }
 
     if (openComposerBtn) {
@@ -854,6 +1131,7 @@ document.addEventListener("DOMContentLoaded", function () {
     if (closeComposerBtn) {
         closeComposerBtn.addEventListener("click", function () {
             closeModal(composerModal);
+            resetCreateAttachments();
         });
     }
 
@@ -861,34 +1139,7 @@ document.addEventListener("DOMContentLoaded", function () {
         composerModal.addEventListener("click", function (event) {
             if (event.target === composerModal) {
                 closeModal(composerModal);
-            }
-        });
-    }
-
-    if (imageInput) {
-        imageInput.addEventListener("change", function () {
-            const file = imageInput.files[0];
-
-            if (file) {
-                if (videoInput) {
-                    videoInput.value = "";
-                }
-
-                showPreview(file, "image");
-            }
-        });
-    }
-
-    if (videoInput) {
-        videoInput.addEventListener("change", function () {
-            const file = videoInput.files[0];
-
-            if (file) {
-                if (imageInput) {
-                    imageInput.value = "";
-                }
-
-                showPreview(file, "video");
+                resetCreateAttachments();
             }
         });
     }
@@ -936,10 +1187,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const comments = postCard ? postCard.querySelector("[data-comments]") : null;
 
             if (comments) {
-                comments.scrollIntoView({
-                    behavior: "smooth",
-                    block: "nearest",
-                });
+                comments.scrollIntoView({ behavior: "smooth", block: "nearest" });
             }
         });
     });
@@ -951,12 +1199,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
             if (editPostForm) {
                 editPostForm.action = url;
+                editPostForm.reset();
             }
 
             if (editContentInput) {
                 editContentInput.value = content;
             }
 
+            resetEditAttachments();
             openModal(editModal);
         });
     });
@@ -964,6 +1214,7 @@ document.addEventListener("DOMContentLoaded", function () {
     if (closeEditBtn) {
         closeEditBtn.addEventListener("click", function () {
             closeModal(editModal);
+            resetEditAttachments();
         });
     }
 
@@ -971,6 +1222,7 @@ document.addEventListener("DOMContentLoaded", function () {
         editModal.addEventListener("click", function (event) {
             if (event.target === editModal) {
                 closeModal(editModal);
+                resetEditAttachments();
             }
         });
     }
@@ -986,11 +1238,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 const data = await submitAjaxForm(form);
 
                 if (button) {
-                    button.classList.toggle("active", Boolean(data.liked));
+                    button.classList.toggle("active", data.liked);
                 }
 
                 if (countSpan) {
-                    countSpan.textContent = data.likes_count ?? data.total_likes ?? "0";
+                    countSpan.textContent = data.likes_count;
                 }
             } catch (error) {
                 alert(error.message);
@@ -1007,7 +1259,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const commentsSection = form.closest("[data-comments]");
             const commentToggleCount = postCard ? postCard.querySelector("[data-comment-toggle] span:last-child") : null;
 
-            if (!input || !input.value.trim() || !commentsSection) {
+            if (!input || !input.value.trim()) {
                 return;
             }
 
@@ -1019,10 +1271,29 @@ document.addEventListener("DOMContentLoaded", function () {
                     emptyMessage.remove();
                 }
 
-                commentsSection.insertBefore(makeCommentRow(data.comment || {}), form);
+                const commentRow = document.createElement("div");
+                commentRow.className = "feed-comment";
+
+                const photoUrl = data.comment.photo_url || "";
+                const authorName = data.comment.user || "User";
+                const content = data.comment.content || data.comment.text || "";
+
+                const avatarHtml = photoUrl
+                    ? `<img src="${photoUrl}?v=${data.comment.photo_version || Date.now()}" alt="${authorName}">`
+                    : `<span>${authorName.charAt(0).toUpperCase()}</span>`;
+
+                commentRow.innerHTML = `
+                    <div class="feed-comment-avatar">${avatarHtml}</div>
+                    <div class="feed-comment-body">
+                        <strong>${authorName}</strong>
+                        <p>${content}</p>
+                    </div>
+                `;
+
+                commentsSection.insertBefore(commentRow, form);
 
                 if (commentToggleCount) {
-                    commentToggleCount.textContent = data.comments_count ?? data.total_comments ?? "0";
+                    commentToggleCount.textContent = data.comments_count;
                 }
 
                 input.value = "";
@@ -1094,6 +1365,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
 
                 closeModal(editModal);
+                resetEditAttachments();
+                window.location.href = "{% url 'feed:feed_home' %}";
             } catch (error) {
                 alert(error.message);
             }

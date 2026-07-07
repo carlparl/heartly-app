@@ -319,7 +319,7 @@ def feed_home(request):
 @require_POST
 def create_post(request):
     content = request.POST.get("content", "").strip()
-    image = request.FILES.get("image")
+    image = request.FILES.get("image") or request.FILES.get("camera_image")
     video = request.FILES.get("video")
 
     if image and video:
@@ -356,7 +356,7 @@ def edit_post(request, post_id):
     post = get_object_or_404(Post, id=post_id, user=request.user)
 
     content = request.POST.get("content", "").strip()
-    image = request.FILES.get("image")
+    image = request.FILES.get("image") or request.FILES.get("camera_image")
     video = request.FILES.get("video")
     remove_media = request.POST.get("remove_media") == "on"
 
