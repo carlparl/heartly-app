@@ -2,61 +2,246 @@
 
 {% block title %}Account - Heartly{% endblock %}
 
-{% block topbar %}
-<header class="settings-mobile-topbar">
-  <a href="{% url 'settings' %}" class="heartly-icon-btn" aria-label="Back">‹</a>
-  <h1>Account</h1>
-  <span class="settings-topbar-spacer"></span>
-</header>
+{% block content %}
+<div class="heartly-page settings-page">
+
+    <section class="heartly-hero-card settings-hero">
+        <span class="heartly-kicker">Account</span>
+        <h1 class="heartly-page-title">Account settings</h1>
+        <p class="heartly-page-subtitle">
+            Manage your public identity, login details, and account access.
+        </p>
+    </section>
+
+    {% if messages %}
+        <section class="settings-messages">
+            {% for message in messages %}
+                <div class="settings-message {{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        </section>
+    {% endif %}
+
+    <section class="settings-stack">
+
+        <article class="heartly-panel settings-card">
+            <div class="settings-card-head">
+                <div class="settings-card-icon">👤</div>
+                <div>
+                    <h2>Your account</h2>
+                    <p>Signed in as {{ request.user.username }}.</p>
+                </div>
+            </div>
+
+            <div class="settings-info-list">
+                <div class="settings-info-item">
+                    <span>Username</span>
+                    <strong>{{ request.user.username }}</strong>
+                </div>
+
+                <div class="settings-info-item">
+                    <span>Email</span>
+                    <strong>{{ request.user.email|default:"No email added" }}</strong>
+                </div>
+            </div>
+        </article>
+
+        <article class="heartly-panel settings-card">
+            <div class="settings-list">
+                <a href="{% url 'profiles:edit_profile' %}" class="settings-item">
+                    <div class="settings-item-icon">✏️</div>
+                    <div class="settings-item-text">
+                        <strong>Edit profile</strong>
+                        <span>Update your display name, photo, bio, and profile details.</span>
+                    </div>
+                    <div class="settings-item-arrow">›</div>
+                </a>
+
+                <a href="{% url 'account_email' %}" class="settings-item">
+                    <div class="settings-item-icon">📧</div>
+                    <div class="settings-item-text">
+                        <strong>Email address</strong>
+                        <span>Manage your login and recovery email.</span>
+                    </div>
+                    <div class="settings-item-arrow">›</div>
+                </a>
+
+                <a href="{% url 'account_change_password' %}" class="settings-item">
+                    <div class="settings-item-icon">🔐</div>
+                    <div class="settings-item-text">
+                        <strong>Password & security</strong>
+                        <span>Change your password.</span>
+                    </div>
+                    <div class="settings-item-arrow">›</div>
+                </a>
+
+                <a href="{% url 'account_logout' %}" class="settings-item danger-link">
+                    <div class="settings-item-icon">🚪</div>
+                    <div class="settings-item-text">
+                        <strong>Log out</strong>
+                        <span>Leave your account on this device.</span>
+                    </div>
+                    <div class="settings-item-arrow">›</div>
+                </a>
+
+                <a href="{% url 'delete_account' %}" class="settings-item danger-link">
+                    <div class="settings-item-icon">🗑️</div>
+                    <div class="settings-item-text">
+                        <strong>Delete account</strong>
+                        <span>Permanently delete your Heartly account.</span>
+                    </div>
+                    <div class="settings-item-arrow">›</div>
+                </a>
+            </div>
+        </article>
+
+    </section>
+</div>
 {% endblock %}
 
-{% block content %}
-<section class="settings-screen">
+{% block extra_css %}
+.settings-page,
+.settings-stack,
+.settings-card,
+.settings-messages {
+    display: grid;
+    gap: 14px;
+}
 
-  <div class="settings-card">
-    <h2>Profile</h2>
-    <p>Manage your public Heartly identity.</p>
+.settings-message {
+    padding: 12px 14px;
+    border-radius: 18px;
+    color: #ffffff;
+    background: linear-gradient(135deg, var(--heartly-primary, #ff3f72), var(--heartly-primary-2, #ff7b9c));
+    font-size: 0.85rem;
+    font-weight: 900;
+}
 
-    <div class="settings-info-list">
-      <div>
-        <span>Username</span>
-        <strong>{{ request.user.username }}</strong>
-      </div>
+.settings-message.error {
+    background: linear-gradient(135deg, #d92f63, #ff5f8e);
+}
 
-      <div>
-        <span>Email</span>
-        <strong>{{ request.user.email|default:"No email added" }}</strong>
-      </div>
-    </div>
-  </div>
+.settings-card-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
 
-  <div class="settings-card settings-menu-card">
-    <a href="/profile/" class="settings-menu-item">
-      <span class="settings-menu-left">
-        <span class="settings-menu-icon">👤</span>
-        <span>Edit Profile</span>
-      </span>
-      <span class="settings-chevron">›</span>
-    </a>
+.settings-card-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 18px;
+    display: grid;
+    place-items: center;
+    color: #ffffff;
+    background: linear-gradient(135deg, var(--heartly-primary, #ff3f72), var(--heartly-primary-2, #ff7b9c));
+    font-size: 1.25rem;
+}
 
-    <a href="/accounts/password/change/" class="settings-menu-item">
-      <span class="settings-menu-left">
-        <span class="settings-menu-icon">🔐</span>
-        <span>Change Password</span>
-      </span>
-      <span class="settings-chevron">›</span>
-    </a>
+.settings-card-head h2 {
+    margin: 0;
+    color: var(--heartly-text, #111827);
+    font-size: 1.25rem;
+    font-weight: 950;
+}
 
-    <a href="/accounts/logout/" class="settings-menu-item danger-link">
-      <span class="settings-menu-left">
-        <span class="settings-menu-icon">🚪</span>
-        <span>Log Out</span>
-      </span>
-      <span class="settings-chevron">›</span>
-    </a>
-  </div>
+.settings-card-head p {
+    margin: 6px 0 0;
+    color: var(--heartly-muted, #6b7280);
+    font-size: 0.9rem;
+}
 
-</section>
+.settings-info-list,
+.settings-list {
+    display: grid;
+    gap: 10px;
+}
 
-{% include "accounts/settings_shared_styles.html" %}
+.settings-info-item {
+    padding: 14px;
+    border-radius: 18px;
+    background: var(--heartly-card-soft, rgba(255, 63, 114, 0.08));
+    border: 1px solid var(--heartly-border, #e5e7eb);
+}
+
+.settings-info-item span {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--heartly-muted, #6b7280);
+    font-size: 0.78rem;
+    font-weight: 800;
+}
+
+.settings-info-item strong {
+    color: var(--heartly-text, #111827);
+    font-size: 0.95rem;
+    font-weight: 950;
+    overflow-wrap: anywhere;
+}
+
+.settings-item {
+    min-width: 0;
+    padding: 14px;
+    border-radius: 22px;
+    display: grid;
+    grid-template-columns: 44px 1fr auto;
+    align-items: center;
+    gap: 12px;
+    color: var(--heartly-text, #111827);
+    background: var(--heartly-card-soft, rgba(255, 63, 114, 0.08));
+    border: 1px solid var(--heartly-border, #e5e7eb);
+    text-decoration: none !important;
+}
+
+.settings-item:hover {
+    background: var(--heartly-primary-soft, rgba(255, 63, 114, 0.12));
+}
+
+.settings-item-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 16px;
+    display: grid;
+    place-items: center;
+    background: var(--heartly-accent-soft, rgba(255, 63, 114, 0.10));
+    font-size: 1.1rem;
+}
+
+.settings-item-text strong {
+    display: block;
+    color: var(--heartly-text, #111827);
+    font-size: 0.94rem;
+    font-weight: 950;
+}
+
+.settings-item-text span {
+    display: block;
+    margin-top: 4px;
+    color: var(--heartly-muted, #6b7280);
+    font-size: 0.8rem;
+    line-height: 1.35;
+}
+
+.settings-item-arrow {
+    color: var(--heartly-muted, #6b7280);
+    font-size: 1.7rem;
+    font-weight: 800;
+}
+
+.danger-link strong {
+    color: #d92f63;
+}
+
+@media (max-width: 430px) {
+    .settings-item {
+        grid-template-columns: 40px 1fr auto;
+        gap: 10px;
+        padding: 12px;
+    }
+
+    .settings-item-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 14px;
+    }
+}
 {% endblock %}

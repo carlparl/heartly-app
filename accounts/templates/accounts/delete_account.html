@@ -1,0 +1,181 @@
+{% extends "heartly/base.html" %}
+
+{% block title %}Delete Account - Heartly{% endblock %}
+
+{% block content %}
+<div class="delete-account-page">
+    <div class="delete-account-card">
+        <p class="delete-kicker">Danger zone</p>
+
+        <h1>Delete your account</h1>
+
+        <p class="delete-warning">
+            This permanently deletes your Heartly account. You will lose access to your profile,
+            posts, matches, chats, and account data connected to this user.
+        </p>
+
+        {% if messages %}
+            <div class="delete-messages">
+                {% for message in messages %}
+                    <div class="delete-message {{ message.tags }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <form method="post" class="delete-form">
+            {% csrf_token %}
+
+            {% if request.user.has_usable_password %}
+                <div class="delete-field">
+                    <label for="password">Password</label>
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        placeholder="Enter your password"
+                        autocomplete="current-password"
+                        required
+                    >
+                </div>
+            {% endif %}
+
+            <div class="delete-field">
+                <label for="confirm_delete">Type DELETE to confirm</label>
+                <input
+                    type="text"
+                    id="confirm_delete"
+                    name="confirm_delete"
+                    placeholder="DELETE"
+                    autocomplete="off"
+                    required
+                >
+            </div>
+
+            <button type="submit" class="delete-button">
+                Permanently delete account
+            </button>
+
+            <a href="{% url 'settings' %}" class="cancel-link">Cancel</a>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+.delete-account-page {
+    min-height: 80vh;
+    display: grid;
+    place-items: center;
+    padding: 40px 18px;
+}
+
+.delete-account-card {
+    width: 100%;
+    max-width: 520px;
+    padding: 36px;
+    border-radius: 28px;
+    background: var(--heartly-card, #ffffff);
+    border: 1px solid rgba(255, 79, 123, 0.18);
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.08);
+}
+
+.delete-kicker {
+    margin: 0 0 8px;
+    color: #e0355f;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.delete-account-card h1 {
+    margin: 0 0 12px;
+    color: var(--heartly-text, #1f1f1f);
+    font-size: 2rem;
+    line-height: 1.1;
+}
+
+.delete-warning {
+    margin: 0 0 24px;
+    color: var(--heartly-muted, #666666);
+    line-height: 1.6;
+}
+
+.delete-form {
+    display: grid;
+    gap: 18px;
+}
+
+.delete-field {
+    display: grid;
+    gap: 8px;
+}
+
+.delete-field label {
+    color: var(--heartly-text, #1f1f1f);
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.delete-field input {
+    width: 100%;
+    min-height: 52px;
+    padding: 0 16px;
+    border-radius: 14px;
+    border: 1.5px solid #d7d1d6;
+    background: #ffffff;
+    color: #181018;
+    outline: none;
+    font-size: 0.95rem;
+    box-sizing: border-box;
+}
+
+.delete-field input:focus {
+    border-color: #ff4f7b;
+    box-shadow: 0 0 0 4px rgba(255, 79, 123, 0.16);
+}
+
+.delete-button {
+    min-height: 52px;
+    border: none;
+    border-radius: 14px;
+    background: #e0355f;
+    color: #ffffff;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.delete-button:hover {
+    background: #c52249;
+}
+
+.cancel-link {
+    text-align: center;
+    color: var(--heartly-muted, #666666);
+    text-decoration: none;
+    font-weight: 700;
+}
+
+.cancel-link:hover {
+    color: #ff4f7b;
+}
+
+.delete-message {
+    padding: 12px 14px;
+    border-radius: 12px;
+    margin-bottom: 14px;
+    background: #fff0f4;
+    color: #c52249;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+@media (max-width: 520px) {
+    .delete-account-card {
+        padding: 28px 22px;
+        border-radius: 22px;
+    }
+}
+{% endblock %}
