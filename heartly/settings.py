@@ -321,7 +321,7 @@ STORAGES = {
         "BACKEND": (
             "django.contrib.staticfiles.storage.StaticFilesStorage"
             if DEBUG
-            else "whitenoise.storage.CompressedManifestStaticFilesStorage"
+            else "whitenoise.storage.CompressedStaticFilesStorage"
         ),
     },
 }
@@ -351,15 +351,6 @@ elif MEDIA_STORAGE_BACKEND != "local":
         "Invalid MEDIA_STORAGE_BACKEND. Use one of: local, cloudinary, s3."
     )
 
-# ============================================================
-# DJANGO 6 + django-cloudinary-storage COMPATIBILITY
-# ============================================================
-# django-cloudinary-storage still checks these legacy names during collectstatic.
-# In Django 6, STORAGES is the real configuration; these lines only prevent
-# AttributeError during collectstatic and keep static files on WhiteNoise/local.
-
-STATICFILES_STORAGE = STORAGES["staticfiles"]["BACKEND"]
-DEFAULT_FILE_STORAGE = STORAGES["default"]["BACKEND"]
 
 # ============================================================
 # FILE UPLOAD LIMITS
@@ -569,3 +560,10 @@ else:
         "DJANGO_SECURE_HSTS_PRELOAD",
         False,
     )
+
+# ============================================================
+# DJANGO 6 + django-cloudinary-storage COMPATIBILITY
+# ============================================================
+
+STATICFILES_STORAGE = STORAGES["staticfiles"]["BACKEND"]
+DEFAULT_FILE_STORAGE = STORAGES["default"]["BACKEND"]
