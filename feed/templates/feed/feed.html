@@ -724,7 +724,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function getCsrfToken(form) {
         const tokenInput = form.querySelector("input[name='csrfmiddlewaretoken']");
-        return tokenInput ? tokenInput.value : "";
+        if (tokenInput && tokenInput.value) {
+            return tokenInput.value;
+        }
+
+        const cookieMatch = document.cookie.match(/(?:^|; )csrftoken=([^;]+)/);
+        return cookieMatch ? decodeURIComponent(cookieMatch[1]) : "";
     }
 
     function openModal(modal) {
@@ -758,6 +763,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const video = document.createElement("video");
             video.src = fileUrl;
             video.controls = true;
+            video.preload = "metadata";
             mediaPreview.appendChild(video);
         }
 
@@ -767,6 +773,7 @@ document.addEventListener("DOMContentLoaded", function () {
     async function submitAjaxForm(form) {
         const response = await fetch(form.action, {
             method: "POST",
+            credentials: "same-origin",
             headers: {
                 "X-CSRFToken": getCsrfToken(form),
                 "X-Requested-With": "XMLHttpRequest",
@@ -774,19 +781,68 @@ document.addEventListener("DOMContentLoaded", function () {
             body: new FormData(form),
         });
 
+        const rawText = await response.text();
         let data = {};
 
         try {
-            data = await response.json();
+            data = JSON.parse(rawText);
         } catch (error) {
             data = {};
         }
 
         if (!response.ok || data.success === false) {
-            throw new Error(data.error || "Action failed.");
+            console.error("Heartly feed request failed", {
+                status: response.status,
+                url: form.action,
+                response: rawText,
+            });
+
+            throw new Error(
+                data.error ||
+                `Server error ${response.status}. Check Render logs.`
+            );
         }
 
         return data;
+    }
+
+    function makeCommentRow(commentData) {
+        const row = document.createElement("div");
+        row.className = "feed-comment";
+
+        const avatar = document.createElement("div");
+        avatar.className = "feed-comment-avatar";
+
+        const authorName = commentData.user || "User";
+        const photoUrl = commentData.photo_url || "";
+
+        if (photoUrl) {
+            const image = document.createElement("img");
+            image.src = `${photoUrl}?v=${commentData.photo_version || Date.now()}`;
+            image.alt = authorName;
+            avatar.appendChild(image);
+        } else {
+            const initial = document.createElement("span");
+            initial.textContent = authorName.charAt(0).toUpperCase();
+            avatar.appendChild(initial);
+        }
+
+        const body = document.createElement("div");
+        body.className = "feed-comment-body";
+
+        const strong = document.createElement("strong");
+        strong.textContent = authorName;
+
+        const paragraph = document.createElement("p");
+        paragraph.textContent = commentData.content || commentData.text || "";
+
+        body.appendChild(strong);
+        body.appendChild(paragraph);
+
+        row.appendChild(avatar);
+        row.appendChild(body);
+
+        return row;
     }
 
     if (openComposerBtn) {
@@ -877,7 +933,7 @@ document.addEventListener("DOMContentLoaded", function () {
     document.querySelectorAll("[data-comment-toggle]").forEach(function (button) {
         button.addEventListener("click", function () {
             const postCard = button.closest(".feed-post-card");
-            const comments = postCard.querySelector("[data-comments]");
+            const comments = postCard ? postCard.querySelector("[data-comments]") : null;
 
             if (comments) {
                 comments.scrollIntoView({
@@ -930,11 +986,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 const data = await submitAjaxForm(form);
 
                 if (button) {
-                    button.classList.toggle("active", data.liked);
+                    button.classList.toggle("active", Boolean(data.liked));
                 }
 
                 if (countSpan) {
-                    countSpan.textContent = data.likes_count;
+                    countSpan.textContent = data.likes_count ?? data.total_likes ?? "0";
                 }
             } catch (error) {
                 alert(error.message);
@@ -949,47 +1005,24 @@ document.addEventListener("DOMContentLoaded", function () {
             const input = form.querySelector("input[name='content']");
             const postCard = form.closest(".feed-post-card");
             const commentsSection = form.closest("[data-comments]");
-            const commentToggleCount = postCard.querySelector("[data-comment-toggle] span:last-child");
+            const commentToggleCount = postCard ? postCard.querySelector("[data-comment-toggle] span:last-child") : null;
 
-            if (!input || !input.value.trim()) {
+            if (!input || !input.value.trim() || !commentsSection) {
                 return;
             }
 
             try {
                 const data = await submitAjaxForm(form);
-
                 const emptyMessage = commentsSection.querySelector(".feed-no-comments");
 
                 if (emptyMessage) {
                     emptyMessage.remove();
                 }
 
-                const commentRow = document.createElement("div");
-                commentRow.className = "feed-comment";
-
-                const photoUrl = data.comment.photo_url || "";
-                const authorName = data.comment.user || "User";
-                const content = data.comment.content || data.comment.text || "";
-
-                commentRow.innerHTML = `
-                    <div class="feed-comment-avatar">
-                        ${
-                            photoUrl
-                                ? `<img src="${photoUrl}?v=${data.comment.photo_version || Date.now()}" alt="${authorName}">`
-                                : `<span>${authorName.charAt(0).toUpperCase()}</span>`
-                        }
-                    </div>
-
-                    <div class="feed-comment-body">
-                        <strong>${authorName}</strong>
-                        <p>${content}</p>
-                    </div>
-                `;
-
-                commentsSection.insertBefore(commentRow, form);
+                commentsSection.insertBefore(makeCommentRow(data.comment || {}), form);
 
                 if (commentToggleCount) {
-                    commentToggleCount.textContent = data.comments_count;
+                    commentToggleCount.textContent = data.comments_count ?? data.total_comments ?? "0";
                 }
 
                 input.value = "";

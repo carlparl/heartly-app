@@ -24,13 +24,8 @@ class Post(models.Model):
         null=True,
     )
 
+    # Keep both flags because older parts of your app may still reference them.
     hidden_by_moderation = models.BooleanField(default=False)
-    moderation_note = models.TextField(blank=True)
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    edited_at = models.DateTimeField(blank=True, null=True)
-
     is_hidden = models.BooleanField(default=False)
     hidden_at = models.DateTimeField(blank=True, null=True)
     hidden_by = models.ForeignKey(
@@ -42,23 +37,28 @@ class Post(models.Model):
     )
     moderation_note = models.TextField(blank=True)
 
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    edited_at = models.DateTimeField(blank=True, null=True)
+
     class Meta:
         ordering = ["-created_at"]
 
     def __str__(self):
         if self.content:
             return f"{self.user} - {self.content[:40]}"
-
         return f"{self.user} - media post"
 
     def hide(self, moderator=None, note=""):
         self.is_hidden = True
+        self.hidden_by_moderation = True
         self.hidden_at = timezone.now()
         self.hidden_by = moderator
         self.moderation_note = note
         self.save(
             update_fields=[
                 "is_hidden",
+                "hidden_by_moderation",
                 "hidden_at",
                 "hidden_by",
                 "moderation_note",
@@ -67,12 +67,14 @@ class Post(models.Model):
 
     def unhide(self):
         self.is_hidden = False
+        self.hidden_by_moderation = False
         self.hidden_at = None
         self.hidden_by = None
         self.moderation_note = ""
         self.save(
             update_fields=[
                 "is_hidden",
+                "hidden_by_moderation",
                 "hidden_at",
                 "hidden_by",
                 "moderation_note",
@@ -193,7 +195,6 @@ class PostReport(models.Model):
 
     reviewed_at = models.DateTimeField(blank=True, null=True)
     moderator_note = models.TextField(blank=True)
-
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
