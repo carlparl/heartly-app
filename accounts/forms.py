@@ -1,10 +1,9 @@
 from datetime import date
 
 from django import forms
-from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 
-
-User = get_user_model()
+from .models import CustomUser
 
 
 class CustomSignupForm(forms.Form):
@@ -12,44 +11,71 @@ class CustomSignupForm(forms.Form):
         max_length=150,
         required=True,
         label="Full name",
-        widget=forms.TextInput(attrs={
-            "placeholder": "Your full name",
-            "autocomplete": "name",
-        }),
+        widget=forms.TextInput(
+            attrs={
+                "placeholder": "Your full name",
+                "autocomplete": "name",
+                "class": "heartly-input",
+            }
+        ),
     )
 
     phone_number = forms.CharField(
         max_length=20,
         required=False,
         label="Phone number",
-        widget=forms.TextInput(attrs={
-            "placeholder": "Optional phone number",
-            "autocomplete": "tel",
-        }),
+        widget=forms.TextInput(
+            attrs={
+                "placeholder": "Optional phone number",
+                "autocomplete": "tel",
+                "class": "heartly-input",
+            }
+        ),
     )
 
     gender = forms.ChoiceField(
+        choices=[("", "Select your gender")] + CustomUser.GENDER_CHOICES,
         required=True,
         label="Gender",
-        choices=[("", "Choose your gender")] + list(User.GENDER_CHOICES),
-        widget=forms.Select(),
+        widget=forms.Select(
+            attrs={
+                "class": "heartly-input",
+            }
+        ),
     )
 
     interested_in = forms.ChoiceField(
+        choices=[("", "Who are you interested in?")] + CustomUser.INTERESTED_IN_CHOICES,
         required=True,
-        label="What do you need from Heartly?",
-        choices=[("", "Choose one")] + list(User.INTERESTED_IN_CHOICES),
-        widget=forms.Select(),
+        label="Interested in",
+        widget=forms.Select(
+            attrs={
+                "class": "heartly-input",
+            }
+        ),
     )
 
     date_of_birth = forms.DateField(
         required=True,
         label="Date of birth",
-        widget=forms.DateInput(attrs={
-            "type": "date",
-            "autocomplete": "bday",
-        }),
+        widget=forms.DateInput(
+            attrs={
+                "type": "date",
+                "class": "heartly-input",
+            }
+        ),
     )
+
+    def clean_full_name(self):
+        full_name = self.cleaned_data.get("full_name", "").strip()
+
+        if len(full_name.split()) < 2:
+            raise ValidationError("Enter your first and last name.")
+
+        return full_name
+
+    def clean_phone_number(self):
+        return self.cleaned_data.get("phone_number", "").strip()
 
     def clean_date_of_birth(self):
         dob = self.cleaned_data.get("date_of_birth")
@@ -59,151 +85,34 @@ class CustomSignupForm(forms.Form):
 
         today = date.today()
 
+        if dob >= today:
+            raise ValidationError("Enter a valid date of birth.")
+
         age = (
             today.year
             - dob.year
             - ((today.month, today.day) < (dob.month, dob.day))
         )
 
-        if age < 13:
-            raise forms.ValidationError("You must be at least 13 to use Heartly.")
+        if age < 18:
+            raise ValidationError("You must be at least 18 years old to create a Heartly account.")
 
-        if age > 120:
-            raise forms.ValidationError("Enter a valid date of birth.")
+        if age > 100:
+            raise ValidationError("Enter a valid date of birth.")
 
         return dob
 
     def signup(self, request, user):
+        """
+        Called by django-allauth after the main account fields are validated.
+        This saves Heartly-specific fields onto CustomUser.
+        """
         user.full_name = self.cleaned_data["full_name"]
         user.phone_number = self.cleaned_data.get("phone_number", "")
         user.gender = self.cleaned_data["gender"]
         user.interested_in = self.cleaned_data["interested_in"]
         user.date_of_birth = self.cleaned_data["date_of_birth"]
+
         user.save()
 
-
-class AccountSettingsForm(forms.ModelForm):
-    class Meta:
-        model = User
-        fields = [
-            "username",
-            "email",
-            "full_name",
-            "phone_number",
-            "gender",
-            "interested_in",
-            "date_of_birth",
-        ]
-
-        widgets = {
-            "username": forms.TextInput(attrs={
-                "class": "heartly-input",
-                "placeholder": "Username",
-                "autocomplete": "username",
-            }),
-            "email": forms.EmailInput(attrs={
-                "class": "heartly-input",
-                "placeholder": "Email address",
-                "autocomplete": "email",
-            }),
-            "full_name": forms.TextInput(attrs={
-                "class": "heartly-input",
-                "placeholder": "Full name",
-                "autocomplete": "name",
-            }),
-            "phone_number": forms.TextInput(attrs={
-                "class": "heartly-input",
-                "placeholder": "Phone number",
-                "autocomplete": "tel",
-            }),
-            "gender": forms.Select(attrs={
-                "class": "heartly-input",
-            }),
-            "interested_in": forms.Select(attrs={
-                "class": "heartly-input",
-            }),
-            "date_of_birth": forms.DateInput(attrs={
-                "class": "heartly-input",
-                "type": "date",
-                "autocomplete": "bday",
-            }),
-        }
-
-    def __init__(self, *args, **kwargs):
-        self.user = kwargs.pop("user", None)
-        super().__init__(*args, **kwargs)
-
-    def clean_username(self):
-        username = self.cleaned_data.get("username", "").strip()
-
-        if not username:
-            raise forms.ValidationError("Username is required.")
-
-        query = User.objects.filter(username__iexact=username)
-
-        if self.user:
-            query = query.exclude(pk=self.user.pk)
-
-        if query.exists():
-            raise forms.ValidationError("This username is already taken.")
-
-        return username
-
-    def clean_email(self):
-        email = self.cleaned_data.get("email", "").strip().lower()
-
-        if not email:
-            raise forms.ValidationError("Email is required.")
-
-        query = User.objects.filter(email__iexact=email)
-
-        if self.user:
-            query = query.exclude(pk=self.user.pk)
-
-        if query.exists():
-            raise forms.ValidationError("This email is already used by another account.")
-
-        return email
-
-    def clean_date_of_birth(self):
-        dob = self.cleaned_data.get("date_of_birth")
-
-        if not dob:
-            return dob
-
-        today = date.today()
-
-        age = (
-            today.year
-            - dob.year
-            - ((today.month, today.day) < (dob.month, dob.day))
-        )
-
-        if age < 13:
-            raise forms.ValidationError("You must be at least 13 to use Heartly.")
-
-        if age > 120:
-            raise forms.ValidationError("Enter a valid date of birth.")
-
-        return dob
-
-
-class VerifyEmailCodeForm(forms.Form):
-    code = forms.CharField(
-        max_length=6,
-        min_length=6,
-        widget=forms.TextInput(attrs={
-            "class": "heartly-input verification-code-input",
-            "placeholder": "Enter 6-digit code",
-            "inputmode": "numeric",
-            "autocomplete": "one-time-code",
-        }),
-    )
-
-    def clean_code(self):
-        code = self.cleaned_data["code"].strip()
-
-        if not code.isdigit():
-            raise forms.ValidationError("Enter digits only.")
-
-        return code
+        return user

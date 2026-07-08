@@ -397,15 +397,21 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 LOGIN_URL = "/accounts/login/"
-
 LOGIN_REDIRECT_URL = "/post-login-redirect/"
-
 LOGOUT_REDIRECT_URL = "/"
 
 ACCOUNT_LOGOUT_REDIRECT_URL = "/"
-
 ACCOUNT_SIGNUP_REDIRECT_URL = "/post-login-redirect/"
 
+# New allauth-style settings
+ACCOUNT_LOGIN_METHODS = {"email"}
+ACCOUNT_SIGNUP_FIELDS = [
+    "email*",
+    "password1*",
+    "password2*",
+]
+
+# Heartly custom signup fields are handled here.
 ACCOUNT_SIGNUP_FORM_CLASS = "accounts.forms.CustomSignupForm"
 
 ACCOUNT_EMAIL_VERIFICATION = os.environ.get(
@@ -414,11 +420,8 @@ ACCOUNT_EMAIL_VERIFICATION = os.environ.get(
 )
 
 ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
-
 ACCOUNT_LOGOUT_ON_GET = False
-
 ACCOUNT_SESSION_REMEMBER = True
-
 
 # ============================================================
 # EMAIL
