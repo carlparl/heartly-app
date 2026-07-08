@@ -24,7 +24,7 @@ class Post(models.Model):
         null=True,
     )
 
-    # Keep both flags because older parts of your app may still reference them.
+    # Keep both flags because older parts of Heartly may still reference them.
     hidden_by_moderation = models.BooleanField(default=False)
     is_hidden = models.BooleanField(default=False)
     hidden_at = models.DateTimeField(blank=True, null=True)

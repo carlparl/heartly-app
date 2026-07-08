@@ -2,7 +2,6 @@ from django.conf import settings
 from django.db import models
 from django.db.models import Q
 
-
 class ChatThread(models.Model):
     user_one = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -210,6 +209,63 @@ class Call(models.Model):
             models.Index(fields=["receiver", "started_at"]),
             models.Index(fields=["status"]),
         ]
+
+    def __str__(self):
+        return f"{self.call_type} call from {self.caller} to {self.receiver}"
+    
+class CallSession(models.Model):
+    CALL_AUDIO = "audio"
+    CALL_VIDEO = "video"
+
+    CALL_TYPE_CHOICES = [
+        (CALL_AUDIO, "Audio"),
+        (CALL_VIDEO, "Video"),
+    ]
+
+    STATUS_RINGING = "ringing"
+    STATUS_ACCEPTED = "accepted"
+    STATUS_DECLINED = "declined"
+    STATUS_ENDED = "ended"
+    STATUS_MISSED = "missed"
+
+    STATUS_CHOICES = [
+        (STATUS_RINGING, "Ringing"),
+        (STATUS_ACCEPTED, "Accepted"),
+        (STATUS_DECLINED, "Declined"),
+        (STATUS_ENDED, "Ended"),
+        (STATUS_MISSED, "Missed"),
+    ]
+
+    thread = models.ForeignKey(
+        "ChatThread",
+        on_delete=models.CASCADE,
+        related_name="call_sessions",
+    )
+    caller = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="outgoing_calls",
+    )
+    receiver = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="incoming_calls",
+    )
+    call_type = models.CharField(
+        max_length=10,
+        choices=CALL_TYPE_CHOICES,
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default=STATUS_RINGING,
+    )
+    started_at = models.DateTimeField(auto_now_add=True)
+    accepted_at = models.DateTimeField(null=True, blank=True)
+    ended_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-started_at"]
 
     def __str__(self):
         return f"{self.call_type} call from {self.caller} to {self.receiver}"

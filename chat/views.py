@@ -1,24 +1,28 @@
 from pathlib import Path
 
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from django.apps import apps
 from django.db.models import Q
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from asgiref.sync import async_to_sync
-from channels.layers import get_channel_layer
-from django.contrib.auth import get_user_model
-from django.http import JsonResponse
-from django.urls import reverse
-
-from profiles.models import Profile, UserBlock
 from profiles.blocking import user_is_hidden_for
+from profiles.models import Profile, UserBlock
 
-from .models import ChatAttachment, ChatMessage, ChatReport, ChatThread
-
+from .models import (
+    CallSession,
+    ChatAttachment,
+    ChatMessage,
+    ChatReport,
+    ChatThread,
+)
 
 try:
     from profiles.blocking import hidden_user_ids_for, block_exists_between
@@ -33,15 +37,6 @@ except Exception:
 
 
 User = get_user_model()
-
-try:
-    from notifications.models import Notification
-except Exception:
-    Notification = None
-
-
-User = get_user_model()
-
 
 MAX_IMAGE_SIZE = 8 * 1024 * 1024
 MAX_VIDEO_SIZE = 50 * 1024 * 1024
@@ -58,6 +53,9 @@ ALLOWED_VIDEO_TYPES = {
     "video/mp4",
     "video/webm",
     "video/quicktime",
+    "video/x-m4v",
+    "video/3gpp",
+    "video/3gpp2",
 }
 
 ALLOWED_FILE_TYPES = {
@@ -85,6 +83,9 @@ ALLOWED_VIDEO_EXTENSIONS = {
     ".mp4",
     ".webm",
     ".mov",
+    ".m4v",
+    ".3gp",
+    ".3g2",
 }
 
 ALLOWED_FILE_EXTENSIONS = {
@@ -181,6 +182,19 @@ def validate_upload(uploaded_file, allowed_types, allowed_extensions, max_size):
 
 def model_has_field(model, field_name):
     return any(field.name == field_name for field in model._meta.fields)
+
+
+def get_user_display_name(user):
+    if hasattr(user, "profile"):
+        profile = user.profile
+
+        if getattr(profile, "display_name", ""):
+            return profile.display_name
+
+        if getattr(profile, "name", ""):
+            return profile.name
+
+    return user.get_full_name() or user.username
 
 
 def create_message_notification(message):
@@ -528,22 +542,6 @@ def block_thread_user(request, thread_id):
     messages.success(request, "User blocked.")
     return redirect("chat:chat_home")
 
-def model_has_field(model, field_name):
-    return any(field.name == field_name for field in model._meta.fields)
-
-
-def get_user_display_name(user):
-    if hasattr(user, "profile"):
-        profile = user.profile
-
-        if getattr(profile, "display_name", ""):
-            return profile.display_name
-
-        if getattr(profile, "name", ""):
-            return profile.name
-
-    return user.get_full_name() or user.username
-
 
 def create_chat_report_staff_alert(report):
     if Notification is None:
@@ -602,6 +600,126 @@ def create_chat_report_staff_alert(report):
             except Exception:
                 pass
 
+
+@login_required
+def start_call(request, thread_id, call_type):
+    thread = get_object_or_404(
+        ChatThread.objects.select_related("user_one", "user_two"),
+        id=thread_id,
+    )
+
+    if not thread.has_user(request.user):
+        messages.error(request, "You do not have access to this chat.")
+        return redirect("chat:chat_home")
+
+    other_user = thread.other_user(request.user)
+
+    if blocked_between(request.user, other_user):
+        messages.error(request, "This call is not available.")
+        return redirect("chat:chat_home")
+
+    if call_type not in [CallSession.CALL_AUDIO, CallSession.CALL_VIDEO]:
+        messages.error(request, "Invalid call type.")
+        return redirect("chat:chat_room", thread_id=thread.id)
+
+    call = CallSession.objects.create(
+        thread=thread,
+        caller=request.user,
+        receiver=other_user,
+        call_type=call_type,
+        status=CallSession.STATUS_RINGING,
+    )
+
+    return redirect("chat:call_room", call_id=call.id)
+
+
+@login_required
+def call_room(request, call_id):
+    call = get_object_or_404(
+        CallSession.objects.select_related("thread", "caller", "receiver"),
+        id=call_id,
+    )
+
+    thread = call.thread
+
+    if not thread.has_user(request.user):
+        messages.error(request, "You do not have access to this call.")
+        return redirect("chat:chat_home")
+
+    other_user = call.receiver if request.user == call.caller else call.caller
+
+    return render(
+        request,
+        "chat/call_room.html",
+        {
+            "call": call,
+            "thread": thread,
+            "call_type": call.call_type,
+            "other_user": other_user,
+            "other_user_name": get_display_name(other_user),
+            "other_user_photo": get_photo_url(other_user),
+        },
+    )
+
+
+@login_required
+@require_POST
+def accept_call(request, call_id):
+    call = get_object_or_404(
+        CallSession.objects.select_related("thread", "caller", "receiver"),
+        id=call_id,
+    )
+
+    if request.user != call.receiver:
+        messages.error(request, "Only the receiver can accept this call.")
+        return redirect("chat:chat_room", thread_id=call.thread.id)
+
+    if call.status == CallSession.STATUS_RINGING:
+        call.status = CallSession.STATUS_ACCEPTED
+        call.accepted_at = timezone.now()
+        call.save(update_fields=["status", "accepted_at"])
+
+    return redirect("chat:call_room", call_id=call.id)
+
+
+@login_required
+@require_POST
+def decline_call(request, call_id):
+    call = get_object_or_404(
+        CallSession.objects.select_related("thread", "caller", "receiver"),
+        id=call_id,
+    )
+
+    if request.user not in [call.caller, call.receiver]:
+        messages.error(request, "You do not have access to this call.")
+        return redirect("chat:chat_home")
+
+    call.status = CallSession.STATUS_DECLINED
+    call.ended_at = timezone.now()
+    call.save(update_fields=["status", "ended_at"])
+
+    return redirect("chat:chat_room", thread_id=call.thread.id)
+
+
+@login_required
+@require_POST
+def end_call(request, call_id):
+    call = get_object_or_404(
+        CallSession.objects.select_related("thread", "caller", "receiver"),
+        id=call_id,
+    )
+
+    if request.user not in [call.caller, call.receiver]:
+        messages.error(request, "You do not have access to this call.")
+        return redirect("chat:chat_home")
+
+    call.status = CallSession.STATUS_ENDED
+    call.ended_at = timezone.now()
+    call.save(update_fields=["status", "ended_at"])
+
+    return redirect("chat:chat_room", thread_id=call.thread.id)
+
+
 @login_required
 @require_POST
 def report_thread_user(request, thread_id):
@@ -644,6 +762,267 @@ def report_thread_user(request, thread_id):
 
     messages.success(request, "Chat reported.")
     return redirect("chat:chat_room", thread.id)
+
+
+def optional_chat_model(model_name):
+    try:
+        return apps.get_model("chat", model_name)
+    except LookupError:
+        return None
+
+
+def set_available_boolean_fields(instance, field_names):
+    changed = []
+
+    for field_name in field_names:
+        if model_has_field(instance.__class__, field_name):
+            setattr(instance, field_name, True)
+            changed.append(field_name)
+
+    if model_has_field(instance.__class__, "hidden_at"):
+        instance.hidden_at = timezone.now()
+        changed.append("hidden_at")
+
+    if model_has_field(instance.__class__, "deleted_at"):
+        instance.deleted_at = timezone.now()
+        changed.append("deleted_at")
+
+    if model_has_field(instance.__class__, "cleared_at"):
+        instance.cleared_at = timezone.now()
+        changed.append("cleared_at")
+
+    if changed:
+        instance.save(update_fields=list(dict.fromkeys(changed)))
+
+    return bool(changed)
+
+
+def hide_messages_for_user(thread, user, message_ids=None):
+    MessageState = optional_chat_model("ChatMessageUserState")
+
+    qs = ChatMessage.objects.filter(thread=thread)
+
+    if message_ids is not None:
+        qs = qs.filter(id__in=message_ids)
+
+    if MessageState is None:
+        return qs.delete()[0]
+
+    count = 0
+
+    for message in qs:
+        state, created = MessageState.objects.get_or_create(
+            message=message,
+            user=user,
+        )
+
+        changed = set_available_boolean_fields(
+            state,
+            [
+                "hidden_for_me",
+                "deleted_for_me",
+                "is_hidden",
+                "is_deleted",
+                "is_cleared",
+            ],
+        )
+
+        if not changed:
+            state.save()
+
+        count += 1
+
+    return count
+
+
+@login_required
+@require_POST
+def clear_chat_for_me(request, thread_id):
+    thread = get_object_or_404(ChatThread, id=thread_id)
+
+    if not thread.has_user(request.user):
+        messages.error(request, "This chat is not available.")
+        return redirect("chat:chat_home")
+
+    ThreadState = optional_chat_model("ChatThreadUserState")
+
+    if ThreadState is not None:
+        state, created = ThreadState.objects.get_or_create(
+            thread=thread,
+            user=request.user,
+        )
+
+        set_available_boolean_fields(
+            state,
+            [
+                "cleared_for_me",
+                "hidden_for_me",
+                "deleted_for_me",
+                "is_cleared",
+                "is_hidden",
+                "is_deleted",
+            ],
+        )
+
+    hidden_count = hide_messages_for_user(thread, request.user)
+
+    messages.success(request, "Chat cleared." if hidden_count else "Chat is already clear.")
+    return redirect("chat:chat_room", thread_id=thread.id)
+
+
+@login_required
+@require_POST
+def delete_chat_for_me(request, thread_id):
+    thread = get_object_or_404(ChatThread, id=thread_id)
+
+    if not thread.has_user(request.user):
+        messages.error(request, "This chat is not available.")
+        return redirect("chat:chat_home")
+
+    ThreadState = optional_chat_model("ChatThreadUserState")
+
+    if ThreadState is not None:
+        state, created = ThreadState.objects.get_or_create(
+            thread=thread,
+            user=request.user,
+        )
+        set_available_boolean_fields(
+            state,
+            [
+                "deleted_for_me",
+                "hidden_for_me",
+                "is_deleted",
+                "is_hidden",
+            ],
+        )
+        hide_messages_for_user(thread, request.user)
+        messages.success(request, "Chat deleted for you.")
+        return redirect("chat:chat_home")
+
+    thread.delete()
+    messages.success(request, "Chat deleted.")
+    return redirect("chat:chat_home")
+
+
+@login_required
+def open_message_attachment(request, message_id):
+    message = get_object_or_404(
+        ChatMessage.objects.select_related("thread", "sender").prefetch_related("attachments"),
+        id=message_id,
+    )
+
+    thread = message.thread
+
+    if not thread.has_user(request.user):
+        messages.error(request, "This attachment is not available.")
+        return redirect("chat:chat_home")
+
+    attachment = message.attachments.first()
+
+    if not attachment or not getattr(attachment, "file", None):
+        messages.error(request, "Attachment not found.")
+        return redirect("chat:chat_room", thread_id=thread.id)
+
+    if request.user != message.sender:
+        changed = []
+
+        for field_name in ["opened_at", "viewed_at", "seen_at"]:
+            if model_has_field(attachment.__class__, field_name):
+                setattr(attachment, field_name, timezone.now())
+                changed.append(field_name)
+
+        for field_name in ["is_opened", "is_viewed", "has_been_opened"]:
+            if model_has_field(attachment.__class__, field_name):
+                setattr(attachment, field_name, True)
+                changed.append(field_name)
+
+        if changed:
+            attachment.save(update_fields=list(dict.fromkeys(changed)))
+
+    return redirect(attachment.file.url)
+
+
+@login_required
+@require_POST
+def delete_selected_messages_for_me(request):
+    selected_ids = request.POST.getlist("message_ids")
+    next_url = request.POST.get("next") or request.META.get("HTTP_REFERER") or reverse("chat:chat_home")
+
+    if not selected_ids:
+        messages.error(request, "Select at least one message.")
+        return redirect(next_url)
+
+    messages_qs = ChatMessage.objects.filter(
+        id__in=selected_ids,
+    ).filter(
+        Q(thread__user_one=request.user) | Q(thread__user_two=request.user)
+    )
+
+    grouped = {}
+    for message in messages_qs.select_related("thread"):
+        grouped.setdefault(message.thread, []).append(message.id)
+
+    deleted_count = 0
+    for thread, message_ids in grouped.items():
+        deleted_count += hide_messages_for_user(thread, request.user, message_ids)
+
+    if deleted_count:
+        messages.success(request, "Selected messages deleted for you.")
+    else:
+        messages.error(request, "No valid messages selected.")
+
+    return redirect(next_url)
+
+
+@login_required
+@require_POST
+def delete_selected_messages_for_everyone(request):
+    selected_ids = request.POST.getlist("message_ids")
+    next_url = request.POST.get("next") or request.META.get("HTTP_REFERER") or reverse("chat:chat_home")
+
+    if not selected_ids:
+        messages.error(request, "Select at least one message.")
+        return redirect(next_url)
+
+    qs = ChatMessage.objects.filter(
+        id__in=selected_ids,
+        sender=request.user,
+    ).filter(
+        Q(thread__user_one=request.user) | Q(thread__user_two=request.user)
+    )
+
+    soft_fields = [
+        "deleted_for_everyone",
+        "is_deleted_for_everyone",
+        "is_deleted",
+    ]
+
+    can_soft_delete = any(model_has_field(ChatMessage, field_name) for field_name in soft_fields)
+
+    if can_soft_delete:
+        update_data = {}
+
+        for field_name in soft_fields:
+            if model_has_field(ChatMessage, field_name):
+                update_data[field_name] = True
+
+        if model_has_field(ChatMessage, "text"):
+            update_data["text"] = ""
+
+        if model_has_field(ChatMessage, "deleted_at"):
+            update_data["deleted_at"] = timezone.now()
+
+        deleted_count = qs.update(**update_data)
+    else:
+        deleted_count, deleted_objects = qs.delete()
+
+    if deleted_count:
+        messages.success(request, "Selected messages deleted for everyone.")
+    else:
+        messages.error(request, "You can only delete messages you sent.")
+
+    return redirect(next_url)
+
 
 @login_required
 @require_POST

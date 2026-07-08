@@ -38,13 +38,13 @@
                     Select messages
                 </button>
 
-                <button type="button" data-disabled-feature="Audio calls are not connected on this template yet.">
+               <a href="{% url 'chat:start_call' conversation.id 'audio' %}" class="chat-menu-item">
                     Audio call
-                </button>
+                </a>
 
-                <button type="button" data-disabled-feature="Video calls are not connected on this template yet.">
+                <a href="{% url 'chat:start_call' conversation.id 'video' %}" class="chat-menu-item">
                     Video call
-                </button>
+                </a>
 
                 <button type="button" id="openReportModalBtn">
                     Report

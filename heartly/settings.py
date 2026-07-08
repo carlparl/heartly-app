@@ -274,23 +274,15 @@ USE_TZ = True
 # ============================================================
 
 STATIC_URL = "/static/"
-
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-STATIC_DIR = BASE_DIR / "static"
+# Optional: only keep this if you actually have a project-level static folder.
+STATICFILES_DIRS = [
 
-if STATIC_DIR.exists():
-    STATICFILES_DIRS = [
-        STATIC_DIR,
-    ]
-
-
-# ============================================================
-# MEDIA FILES
-# ============================================================
+    BASE_DIR / "static",
+] if (BASE_DIR / "static").exists() else []
 
 MEDIA_URL = "/media/"
-
 MEDIA_ROOT = BASE_DIR / "media"
 
 
@@ -304,13 +296,6 @@ CLOUDINARY_STORAGE = {
     "API_SECRET": os.environ.get("CLOUDINARY_API_SECRET", ""),
 }
 
-
-# ============================================================
-# STORAGE: STATIC + MEDIA
-# ============================================================
-
-# Options: local, cloudinary, s3
-# Use cloudinary for uploaded profile pictures, feed images, and videos.
 MEDIA_STORAGE_BACKEND = os.environ.get("MEDIA_STORAGE_BACKEND", "cloudinary").strip().lower()
 
 STORAGES = {
@@ -318,9 +303,6 @@ STORAGES = {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
     },
     "staticfiles": {
-        # Use plain static storage for Render.
-        # WhiteNoise middleware will still serve the files, but collectstatic will not
-        # run WhiteNoise compression/post-processing that is failing on Django admin assets.
         "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
     },
 }
@@ -346,31 +328,17 @@ elif MEDIA_STORAGE_BACKEND == "s3":
     }
 
 elif MEDIA_STORAGE_BACKEND != "local":
-    raise RuntimeError(
-        "Invalid MEDIA_STORAGE_BACKEND. Use one of: local, cloudinary, s3."
-    )
-
-# ============================================================
-# DJANGO 6 + django-cloudinary-storage COMPATIBILITY
-# ============================================================
-# django-cloudinary-storage still checks these legacy names during collectstatic.
-# In Django 6, STORAGES is the real configuration; these lines only prevent
-# AttributeError during collectstatic and keep static files on WhiteNoise/local.
+    raise RuntimeError("Invalid MEDIA_STORAGE_BACKEND. Use one of: local, cloudinary, s3.")
 
 STATICFILES_STORAGE = STORAGES["staticfiles"]["BACKEND"]
 DEFAULT_FILE_STORAGE = STORAGES["default"]["BACKEND"]
 
-# ============================================================
-# FILE UPLOAD LIMITS
-# ============================================================
+DATA_UPLOAD_MAX_MEMORY_SIZE = int(os.environ.get("DJANGO_DATA_UPLOAD_MAX_MEMORY_SIZE", 70 * 1024 * 1024))
+FILE_UPLOAD_MAX_MEMORY_SIZE = int(os.environ.get("DJANGO_FILE_UPLOAD_MAX_MEMORY_SIZE", 70 * 1024 * 1024))
 
-DATA_UPLOAD_MAX_MEMORY_SIZE = int(
-    os.environ.get("DJANGO_DATA_UPLOAD_MAX_MEMORY_SIZE", 50 * 1024 * 1024)
-)
+HEARTLY_MAX_IMAGE_UPLOAD_SIZE = int(os.environ.get("HEARTLY_MAX_IMAGE_UPLOAD_SIZE", 15 * 1024 * 1024))
+HEARTLY_MAX_VIDEO_UPLOAD_SIZE = int(os.environ.get("HEARTLY_MAX_VIDEO_UPLOAD_SIZE", 60 * 1024 * 1024))
 
-FILE_UPLOAD_MAX_MEMORY_SIZE = int(
-    os.environ.get("DJANGO_FILE_UPLOAD_MAX_MEMORY_SIZE", 50 * 1024 * 1024)
-)
 
 
 # ============================================================
