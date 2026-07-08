@@ -1,277 +1,168 @@
-from asgiref.sync import async_to_sync
-
-from channels.layers import get_channel_layer
 from django.contrib import messages
-from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from django.db.models import Q
-from django.http import JsonResponse
+from django.core.paginator import Paginator
+from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from profiles.models import Profile
-
-from .models import Comment, Post, PostLike, PostReport
-from .validators import validate_feed_uploads
-
-try:
-    from profiles.blocking import hidden_user_ids_for
-except Exception:
-    hidden_user_ids_for = None
-
-try:
-    from notifications.models import Notification
-except Exception:
-    Notification = None
+from .models import Comment, Post, PostLike
+from .validators import validate_image_upload, validate_video_upload
 
 
-User = get_user_model()
+POSTS_PER_PAGE = 12
 
 
-def is_ajax(request):
-    return request.headers.get("X-Requested-With") == "XMLHttpRequest"
+def _safe_file_url(file_field):
+    if not file_field:
+        return ""
+    try:
+        return file_field.url
+    except Exception:
+        return ""
 
 
-def ajax_or_message_error(request, message, status=400):
-    if is_ajax(request):
-        return JsonResponse({"success": False, "error": message}, status=status)
-
-    messages.error(request, message)
-    return None
-
-
-def back_to_feed(request):
-    return request.META.get("HTTP_REFERER") or reverse("feed:feed_home")
+def _safe_profile(user):
+    try:
+        return user.profile
+    except Exception:
+        return None
 
 
-def model_has_field(model, field_name):
-    return any(field.name == field_name for field in model._meta.fields)
+def username_for(user):
+    """Return the public username label used in feed and comments."""
+    username = (getattr(user, "username", "") or "").strip()
+    if username:
+        return username
+
+    email = (getattr(user, "email", "") or "").strip()
+    if email and "@" in email:
+        return email.split("@", 1)[0]
+
+    if email:
+        return email
+
+    return "heartly_user"
 
 
-def get_profile(user):
-    profile, created = Profile.objects.get_or_create(user=user)
-    return profile
+def display_name_for(user):
+    """Prefer profile display name, then full name, then username/email fallback."""
+    profile = _safe_profile(user)
+
+    for attr in ("display_name", "name"):
+        value = (getattr(profile, attr, "") or "").strip() if profile else ""
+        if value:
+            return value
+
+    full_name = ""
+    try:
+        full_name = (user.get_full_name() or "").strip()
+    except Exception:
+        full_name = ""
+
+    if full_name:
+        return full_name
+
+    username = username_for(user)
+    if username:
+        return username
+
+    return "Heartly user"
 
 
-def get_display_name(user):
-    profile = get_profile(user)
+def avatar_url_for(user):
+    """Return the active profile image URL for a user, supporting old field names too."""
+    profile = _safe_profile(user)
 
-    return (
-        getattr(profile, "display_name", "")
-        or getattr(profile, "name", "")
-        or user.get_full_name()
-        or user.username
-        or getattr(user, "email", "User")
-    )
+    for attr in ("profile_picture", "photo", "avatar", "image"):
+        field = getattr(profile, attr, None) if profile else None
+        url = _safe_file_url(field)
+        if url:
+            return url
 
-
-def get_profile_photo_url(user):
-    profile = get_profile(user)
-
-    for field_name in ["profile_picture", "photo", "avatar", "image"]:
-        image_field = getattr(profile, field_name, None)
-
-        if image_field:
-            try:
-                return image_field.url
-            except Exception:
-                pass
+    # Some projects store profile image directly on the custom user model.
+    for attr in ("profile_picture", "avatar", "photo"):
+        field = getattr(user, attr, None)
+        url = _safe_file_url(field)
+        if url:
+            return url
 
     return ""
 
 
-def feed_post_url(post):
-    return reverse("feed:feed_home") + f"?post={post.id}#post-{post.id}"
+def initials_for(name):
+    clean = (name or "H").strip()
+    if not clean:
+        return "H"
+    parts = clean.split()
+    if len(parts) >= 2:
+        return f"{parts[0][0]}{parts[1][0]}".upper()
+    return clean[:2].upper()
 
 
-def create_notification_safe(
-    *,
-    recipient,
-    actor,
-    notification_type,
-    title,
-    message,
-    url,
-    related_object_type,
-    related_object_id,
-):
-    if Notification is None:
-        return None
-
-    if recipient == actor:
-        return None
-
-    data = {
-        "recipient": recipient,
-        "actor": actor,
-        "notification_type": notification_type,
-        "title": title,
-        "message": message,
-        "url": url,
-        "related_object_type": related_object_type,
-        "related_object_id": related_object_id,
-    }
-
-    allowed_data = {
-        key: value
-        for key, value in data.items()
-        if model_has_field(Notification, key)
-    }
-
-    try:
-        return Notification.objects.create(**allowed_data)
-    except Exception:
-        return None
+def decorate_user_identity(target, user):
+    """Attach template-ready identity fields to posts and comments."""
+    name = display_name_for(user)
+    username = username_for(user)
+    target.display_name = name
+    target.username = username
+    target.username_label = f"@{username}" if username else ""
+    target.avatar_url = avatar_url_for(user)
+    target.avatar_initials = initials_for(name or username)
+    return target
 
 
-def send_live_feed_notification(
-    *,
-    recipient,
-    actor,
-    notification_type,
-    title,
-    message,
-    url,
-    post_id,
-):
-    channel_layer = get_channel_layer()
-
-    if not channel_layer:
-        return
-
-    try:
-        async_to_sync(channel_layer.group_send)(
-            f"heartly_user_{recipient.id}",
-            {
-                "type": "notification.event",
-                "payload": {
-                    "type": "feed_notification",
-                    "notification_type": notification_type,
-                    "title": title,
-                    "message": message,
-                    "actor_id": actor.id,
-                    "actor_name": get_display_name(actor),
-                    "actor_photo": get_profile_photo_url(actor),
-                    "url": url,
-                    "post_id": post_id,
-                },
-            },
-        )
-    except Exception:
-        return
-
-
-def notify_post_owner(post, actor, notification_type, title, message):
-    if post.user == actor:
-        return
-
-    url = feed_post_url(post)
-
-    notification = create_notification_safe(
-        recipient=post.user,
-        actor=actor,
-        notification_type=notification_type,
-        title=title,
-        message=message,
-        url=url,
-        related_object_type="feed.post",
-        related_object_id=post.id,
+def enrich_posts(posts, viewer):
+    viewer_like_ids = set(
+        PostLike.objects.filter(user=viewer, post__in=posts).values_list("post_id", flat=True)
     )
 
-    if notification:
-        send_live_feed_notification(
-            recipient=post.user,
-            actor=actor,
-            notification_type=notification_type,
-            title=title,
-            message=message,
-            url=url,
-            post_id=post.id,
-        )
-
-
-def notify_staff_about_report(post, reporter, report):
-    staff_users = User.objects.filter(is_staff=True, is_active=True).exclude(id=reporter.id)
-
-    for staff_user in staff_users:
-        url = reverse("feed:feed_home") + f"?report={report.id}#post-{post.id}"
-
-        notification_type = getattr(Notification, "TYPE_REPORT", "report") if Notification else "report"
-
-        notification = create_notification_safe(
-            recipient=staff_user,
-            actor=reporter,
-            notification_type=notification_type,
-            title="Post report",
-            message=f"{get_display_name(reporter)} reported a post.",
-            url=url,
-            related_object_type="feed.postreport",
-            related_object_id=report.id,
-        )
-
-        if notification:
-            send_live_feed_notification(
-                recipient=staff_user,
-                actor=reporter,
-                notification_type=notification_type,
-                title="Post report",
-                message=f"{get_display_name(reporter)} reported a post.",
-                url=url,
-                post_id=post.id,
-            )
-
-
-def attach_feed_display_data(posts, request_user):
     for post in posts:
-        liked = post.likes.filter(user=request_user).exists()
-        post.is_liked = liked
-        post.is_liked_by_user = liked
-        post.author_name = get_display_name(post.user)
-        post.author_photo = get_profile_photo_url(post.user)
+        decorate_user_identity(post, post.user)
+        post.is_liked_by_user = post.id in viewer_like_ids
+        post.likes_count = post.likes.count()
 
-        for comment in post.comments.all():
-            comment.author_name = get_display_name(comment.user)
-            comment.author_photo = get_profile_photo_url(comment.user)
+        comments = list(post.comments.all())
+        for comment in comments:
+            decorate_user_identity(comment, comment.user)
 
-    return posts
+        post.comments_count = len(comments)
+        post.visible_comments = comments[:3]
+        post.image_url = _safe_file_url(post.image)
+        post.video_url = _safe_file_url(post.video)
+        yield post
 
 
 @login_required
 def feed_home(request):
-    query = request.GET.get("q", "").strip()
-    hidden_ids = hidden_user_ids_for(request.user) if hidden_user_ids_for else set()
-
-    posts = (
-        Post.objects
-        .select_related("user")
-        .prefetch_related("likes", "comments__user")
+    posts_qs = (
+        Post.objects.select_related("user")
+        .prefetch_related(
+            "likes",
+            Prefetch(
+                "comments",
+                queryset=Comment.objects.select_related("user").order_by("created_at"),
+            ),
+        )
         .order_by("-created_at")
     )
 
-    if hidden_ids:
-        posts = posts.exclude(user_id__in=hidden_ids)
-
-    if query:
-        posts = posts.filter(
-            Q(content__icontains=query)
-            | Q(user__username__icontains=query)
-            | Q(user__first_name__icontains=query)
-            | Q(user__last_name__icontains=query)
-        )
-
-    posts = attach_feed_display_data(posts, request.user)
+    paginator = Paginator(posts_qs, POSTS_PER_PAGE)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+    posts = list(enrich_posts(list(page_obj.object_list), request.user))
 
     return render(
         request,
         "feed/feed.html",
         {
             "posts": posts,
-            "request_user_name": get_display_name(request.user),
-            "request_user_photo": get_profile_photo_url(request.user),
-            "focus_post_id": request.GET.get("post"),
-            "search_query": query,
+            "page_obj": page_obj,
+            "viewer_name": display_name_for(request.user),
+            "viewer_username": username_for(request.user),
+            "viewer_avatar_url": avatar_url_for(request.user),
+            "viewer_initials": initials_for(display_name_for(request.user)),
         },
     )
 
@@ -279,30 +170,36 @@ def feed_home(request):
 @login_required
 @require_POST
 def create_post(request):
-    content = request.POST.get("content", "").strip()
+    content = (request.POST.get("content") or "").strip()
     image = request.FILES.get("image")
     video = request.FILES.get("video")
 
-    ok, error_message = validate_feed_uploads(image=image, video=video)
-    if not ok:
-        response = ajax_or_message_error(request, error_message)
-        return response or redirect("feed:feed_home")
+    if image and video:
+        messages.error(request, "Please upload either an image or a video, not both.")
+        return redirect("feed:feed_home")
 
     if not content and not image and not video:
-        response = ajax_or_message_error(request, "Write something or add media before posting.")
-        return response or redirect("feed:feed_home")
+        messages.error(request, "Write something or attach media before posting.")
+        return redirect("feed:feed_home")
 
-    post = Post.objects.create(
+    image_error = validate_image_upload(image)
+    if image_error:
+        messages.error(request, image_error)
+        return redirect("feed:feed_home")
+
+    video_error = validate_video_upload(video)
+    if video_error:
+        messages.error(request, video_error)
+        return redirect("feed:feed_home")
+
+    Post.objects.create(
         user=request.user,
         content=content,
-        image=image,
-        video=video,
+        image=image if image else None,
+        video=video if video else None,
     )
 
-    if is_ajax(request):
-        return JsonResponse({"success": True, "post_id": post.id})
-
-    messages.success(request, "Post created.")
+    messages.success(request, "Post shared.")
     return redirect("feed:feed_home")
 
 
@@ -311,63 +208,42 @@ def create_post(request):
 def edit_post(request, post_id):
     post = get_object_or_404(Post, id=post_id, user=request.user)
 
-    content = request.POST.get("content", "").strip()
+    content = (request.POST.get("content") or "").strip()
     image = request.FILES.get("image")
     video = request.FILES.get("video")
-    remove_media = request.POST.get("remove_media") in ["on", "1", "true", "True"]
+    remove_image = request.POST.get("remove_image") == "1"
+    remove_video = request.POST.get("remove_video") == "1"
 
-    ok, error_message = validate_feed_uploads(image=image, video=video)
-    if not ok:
-        response = ajax_or_message_error(request, error_message)
-        return response or redirect("feed:feed_home")
+    if image and video:
+        messages.error(request, "Please upload either an image or a video, not both.")
+        return redirect("feed:feed_home")
+
+    image_error = validate_image_upload(image)
+    if image_error:
+        messages.error(request, image_error)
+        return redirect("feed:feed_home")
+
+    video_error = validate_video_upload(video)
+    if video_error:
+        messages.error(request, video_error)
+        return redirect("feed:feed_home")
 
     post.content = content
 
-    if remove_media:
-        if post.image:
-            post.image.delete(save=False)
-
-        if post.video:
-            post.video.delete(save=False)
-
+    if remove_image:
         post.image = None
+    if remove_video:
         post.video = None
 
     if image:
-        if post.image:
-            post.image.delete(save=False)
-
-        if post.video:
-            post.video.delete(save=False)
-
         post.image = image
         post.video = None
-
     if video:
-        if post.image:
-            post.image.delete(save=False)
-
-        if post.video:
-            post.video.delete(save=False)
-
         post.video = video
         post.image = None
 
-    if not post.content and not post.image and not post.video:
-        response = ajax_or_message_error(request, "A post cannot be empty.")
-        return response or redirect("feed:feed_home")
-
     post.edited_at = timezone.now()
     post.save()
-
-    if is_ajax(request):
-        return JsonResponse(
-            {
-                "success": True,
-                "post_id": post.id,
-                "content": post.content,
-            }
-        )
 
     messages.success(request, "Post updated.")
     return redirect("feed:feed_home")
@@ -377,120 +253,35 @@ def edit_post(request, post_id):
 @require_POST
 def delete_post(request, post_id):
     post = get_object_or_404(Post, id=post_id, user=request.user)
-
-    if post.image:
-        post.image.delete(save=False)
-
-    if post.video:
-        post.video.delete(save=False)
-
     post.delete()
-
-    if is_ajax(request):
-        return JsonResponse({"success": True, "post_id": post_id})
-
     messages.success(request, "Post deleted.")
     return redirect("feed:feed_home")
 
 
 @login_required
 @require_POST
-def toggle_like(request, post_id):
-    post = get_object_or_404(Post, id=post_id)
-
-    like, created = PostLike.objects.get_or_create(
-        post=post,
-        user=request.user,
-    )
-
-    if created:
-        liked = True
-
-        notify_post_owner(
-            post=post,
-            actor=request.user,
-            notification_type=getattr(Notification, "TYPE_LIKE", "like") if Notification else "like",
-            title="New like",
-            message=f"{get_display_name(request.user)} liked your post.",
-        )
-    else:
-        like.delete()
-        liked = False
-
-    likes_count = post.likes.count()
-
-    if is_ajax(request):
-        return JsonResponse(
-            {
-                "success": True,
-                "liked": liked,
-                "likes_count": likes_count,
-                "total_likes": likes_count,
-            }
-        )
-
-    return redirect(back_to_feed(request))
-
-
-@login_required
-@require_POST
 def like_post(request, post_id):
-    return toggle_like(request, post_id)
+    post = get_object_or_404(Post, id=post_id)
+    like, created = PostLike.objects.get_or_create(post=post, user=request.user)
+
+    if not created:
+        like.delete()
+
+    return redirect(request.POST.get("next") or reverse("feed:feed_home"))
 
 
 @login_required
 @require_POST
-def add_comment(request, post_id):
+def comment_post(request, post_id):
     post = get_object_or_404(Post, id=post_id)
-
-    content = (
-        request.POST.get("content", "").strip()
-        or request.POST.get("text", "").strip()
-    )
+    content = (request.POST.get("content") or request.POST.get("comment") or "").strip()
 
     if not content:
-        if is_ajax(request):
-            return JsonResponse({"success": False, "error": "Comment cannot be empty."}, status=400)
-
         messages.error(request, "Comment cannot be empty.")
-        return redirect(back_to_feed(request))
+        return redirect("feed:feed_home")
 
-    comment = Comment.objects.create(
-        post=post,
-        user=request.user,
-        content=content,
-    )
-
-    notify_post_owner(
-        post=post,
-        actor=request.user,
-        notification_type=getattr(Notification, "TYPE_COMMENT", "comment") if Notification else "comment",
-        title="New comment",
-        message=f"{get_display_name(request.user)} commented on your post.",
-    )
-
-    comments_count = post.comments.count()
-
-    if is_ajax(request):
-        return JsonResponse(
-            {
-                "success": True,
-                "comment_id": comment.id,
-                "comment": {
-                    "id": comment.id,
-                    "user": get_display_name(request.user),
-                    "content": comment.content,
-                    "text": comment.content,
-                    "photo_url": get_profile_photo_url(request.user),
-                    "photo_version": int(timezone.now().timestamp()),
-                },
-                "comments_count": comments_count,
-                "total_comments": comments_count,
-            }
-        )
-
-    messages.success(request, "Comment added.")
-    return redirect(back_to_feed(request))
+    Comment.objects.create(post=post, user=request.user, content=content)
+    return redirect("feed:feed_home")
 
 
 @login_required
@@ -498,45 +289,10 @@ def add_comment(request, post_id):
 def report_post(request, post_id):
     post = get_object_or_404(Post, id=post_id)
 
-    if post.user == request.user:
-        if is_ajax(request):
-            return JsonResponse({"success": False, "error": "You cannot report your own post."}, status=400)
-
+    if post.user_id == request.user.id:
         messages.error(request, "You cannot report your own post.")
         return redirect("feed:feed_home")
 
-    reason = request.POST.get("reason", "other").strip() or "other"
-    details = request.POST.get("details", "").strip()
-
-    valid_reasons = [choice[0] for choice in PostReport.REASON_CHOICES]
-
-    if reason not in valid_reasons:
-        reason = "other"
-
-    report, created = PostReport.objects.get_or_create(
-        post=post,
-        reporter=request.user,
-        defaults={
-            "reason": reason,
-            "details": details,
-        },
-    )
-
-    if not created:
-        report.reason = reason
-        report.details = details
-        report.reviewed = False
-        report.status = PostReport.STATUS_PENDING
-        report.save(update_fields=["reason", "details", "reviewed", "status"])
-
-    notify_staff_about_report(
-        post=post,
-        reporter=request.user,
-        report=report,
-    )
-
-    if is_ajax(request):
-        return JsonResponse({"success": True, "message": "Post reported."})
-
-    messages.success(request, "Post reported.")
+    # Lightweight compatibility handler. Add a PostReport model later if you need staff review storage.
+    messages.success(request, "Post reported. Our team will review it.")
     return redirect("feed:feed_home")

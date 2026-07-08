@@ -1,40 +1,86 @@
 from django.contrib import admin
 
-from .models import Comment, Post, PostLike, PostReport
+from .models import Comment, Post, PostLike
 
 
 @admin.register(Post)
 class PostAdmin(admin.ModelAdmin):
-    list_display = ("id", "user", "has_image", "has_video", "is_hidden", "created_at")
-    list_filter = ("is_hidden", "hidden_by_moderation", "created_at")
-    search_fields = ("content", "user__username", "user__email")
-    readonly_fields = ("created_at", "updated_at", "edited_at")
+    list_display = (
+        "id",
+        "user",
+        "short_content",
+        "created_at",
+        "updated_at",
+    )
+    list_filter = (
+        "created_at",
+        "updated_at",
+    )
+    search_fields = (
+        "content",
+        "user__email",
+        "user__username",
+    )
+    readonly_fields = (
+        "created_at",
+        "updated_at",
+    )
+    ordering = ("-created_at",)
 
-    def has_image(self, obj):
-        return bool(obj.image)
+    def short_content(self, obj):
+        if not obj.content:
+            return "Media post"
+        return obj.content[:80]
 
-    has_image.boolean = True
-
-    def has_video(self, obj):
-        return bool(obj.video)
-
-    has_video.boolean = True
+    short_content.short_description = "Content"
 
 
 @admin.register(PostLike)
 class PostLikeAdmin(admin.ModelAdmin):
-    list_display = ("id", "post", "user", "created_at")
-    search_fields = ("post__content", "user__username", "user__email")
+    list_display = (
+        "id",
+        "post",
+        "user",
+        "created_at",
+    )
+    list_filter = (
+        "created_at",
+    )
+    search_fields = (
+        "user__email",
+        "user__username",
+        "post__content",
+    )
+    ordering = ("-created_at",)
 
 
 @admin.register(Comment)
 class CommentAdmin(admin.ModelAdmin):
-    list_display = ("id", "post", "user", "created_at")
-    search_fields = ("content", "user__username", "user__email")
+    list_display = (
+        "id",
+        "post",
+        "user",
+        "short_content",
+        "created_at",
+        "updated_at",
+    )
+    list_filter = (
+        "created_at",
+        "updated_at",
+    )
+    search_fields = (
+        "content",
+        "user__email",
+        "user__username",
+        "post__content",
+    )
+    readonly_fields = (
+        "created_at",
+        "updated_at",
+    )
+    ordering = ("-created_at",)
 
+    def short_content(self, obj):
+        return obj.content[:80] if obj.content else ""
 
-@admin.register(PostReport)
-class PostReportAdmin(admin.ModelAdmin):
-    list_display = ("id", "post", "reporter", "reason", "status", "reviewed", "created_at")
-    list_filter = ("reason", "status", "reviewed", "created_at")
-    search_fields = ("post__content", "reporter__username", "reporter__email", "details")
+    short_content.short_description = "Comment"

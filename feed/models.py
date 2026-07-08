@@ -2,84 +2,78 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
+from cloudinary_storage.storage import MediaCloudinaryStorage, VideoMediaCloudinaryStorage
+
 
 class Post(models.Model):
+    """
+    Heartly feed post.
+
+    Compatibility rules:
+    - The database already uses feed_post.user_id, so keep the field name `user`.
+    - `author` is provided as a Python alias only, so older code using post.author still works.
+    - Images use Cloudinary image storage directly.
+    - Videos use Cloudinary video storage directly.
+    """
+
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="feed_posts",
     )
-
     content = models.TextField(blank=True)
 
     image = models.ImageField(
         upload_to="feed/images/",
+        storage=MediaCloudinaryStorage(),
         blank=True,
         null=True,
     )
-
     video = models.FileField(
         upload_to="feed/videos/",
+        storage=VideoMediaCloudinaryStorage(),
         blank=True,
         null=True,
     )
-
-    # Keep both flags because older parts of Heartly may still reference them.
-    hidden_by_moderation = models.BooleanField(default=False)
-    is_hidden = models.BooleanField(default=False)
-    hidden_at = models.DateTimeField(blank=True, null=True)
-    hidden_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        blank=True,
-        null=True,
-        related_name="hidden_feed_posts",
-    )
-    moderation_note = models.TextField(blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    edited_at = models.DateTimeField(blank=True, null=True)
+    edited_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["-created_at"]
 
     def __str__(self):
-        if self.content:
-            return f"{self.user} - {self.content[:40]}"
-        return f"{self.user} - media post"
+        name = getattr(self.user, "email", None) or getattr(self.user, "username", "User")
+        preview = (self.content or "Media post").strip()
+        if len(preview) > 48:
+            preview = preview[:45] + "..."
+        return f"{name}: {preview}"
 
-    def hide(self, moderator=None, note=""):
-        self.is_hidden = True
-        self.hidden_by_moderation = True
-        self.hidden_at = timezone.now()
-        self.hidden_by = moderator
-        self.moderation_note = note
-        self.save(
-            update_fields=[
-                "is_hidden",
-                "hidden_by_moderation",
-                "hidden_at",
-                "hidden_by",
-                "moderation_note",
-            ]
-        )
+    @property
+    def author(self):
+        """Backward-compatible alias for older views/templates."""
+        return self.user
 
-    def unhide(self):
-        self.is_hidden = False
-        self.hidden_by_moderation = False
-        self.hidden_at = None
-        self.hidden_by = None
-        self.moderation_note = ""
-        self.save(
-            update_fields=[
-                "is_hidden",
-                "hidden_by_moderation",
-                "hidden_at",
-                "hidden_by",
-                "moderation_note",
-            ]
-        )
+    @author.setter
+    def author(self, value):
+        self.user = value
+
+    @property
+    def has_media(self):
+        return bool(self.image or self.video)
+
+    @property
+    def like_count(self):
+        return self.likes.count()
+
+    @property
+    def comment_count(self):
+        return self.comments.count()
+
+    def mark_edited(self):
+        self.edited_at = timezone.now()
+        self.save(update_fields=["content", "image", "video", "edited_at", "updated_at"])
 
 
 class PostLike(models.Model):
@@ -88,13 +82,11 @@ class PostLike(models.Model):
         on_delete=models.CASCADE,
         related_name="likes",
     )
-
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name="post_likes",
+        related_name="feed_likes",
     )
-
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -111,143 +103,75 @@ class Comment(models.Model):
         on_delete=models.CASCADE,
         related_name="comments",
     )
-
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="feed_comments",
     )
-
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
-    edited_at = models.DateTimeField(blank=True, null=True)
+
+    # Existing database column is feed_comment.edited_at.
+    # Python code can safely use comment.updated_at.
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        db_column="edited_at",
+        null=True,
+        blank=True,
+    )
 
     class Meta:
         ordering = ["created_at"]
 
     def __str__(self):
-        return f"{self.user} on post {self.post_id}"
+        preview = (self.content or "").strip()
+        if len(preview) > 48:
+            preview = preview[:45] + "..."
+        return f"{self.user}: {preview}"
+
+    @property
+    def edited_at(self):
+        """Backward-compatible alias for old templates/admin code."""
+        return self.updated_at
+
+    @edited_at.setter
+    def edited_at(self, value):
+        self.updated_at = value
 
 
 class PostReport(models.Model):
+    REASON_OTHER = "other"
     REASON_SPAM = "spam"
     REASON_HARASSMENT = "harassment"
+    REASON_IMPERSONATION = "impersonation"
     REASON_INAPPROPRIATE = "inappropriate"
-    REASON_FAKE = "fake"
-    REASON_OTHER = "other"
 
     REASON_CHOICES = [
-        (REASON_SPAM, "Spam or misleading"),
-        (REASON_HARASSMENT, "Harassment or bullying"),
-        (REASON_INAPPROPRIATE, "Inappropriate content"),
-        (REASON_FAKE, "Fake profile or scam"),
         (REASON_OTHER, "Other"),
-    ]
-
-    STATUS_PENDING = "pending"
-    STATUS_REVIEWED = "reviewed"
-    STATUS_ACTIONED = "actioned"
-    STATUS_DISMISSED = "dismissed"
-
-    STATUS_CHOICES = [
-        (STATUS_PENDING, "Pending"),
-        (STATUS_REVIEWED, "Reviewed"),
-        (STATUS_ACTIONED, "Action taken"),
-        (STATUS_DISMISSED, "Dismissed"),
+        (REASON_SPAM, "Spam"),
+        (REASON_HARASSMENT, "Harassment"),
+        (REASON_IMPERSONATION, "Impersonation"),
+        (REASON_INAPPROPRIATE, "Inappropriate content"),
     ]
 
     post = models.ForeignKey(
         Post,
         on_delete=models.CASCADE,
-        related_name="feed_reports",
-        related_query_name="feed_report",
+        related_name="reports",
     )
-
     reporter = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name="submitted_feed_reports",
+        related_name="feed_post_reports",
     )
-
-    reason = models.CharField(
-        max_length=40,
-        choices=REASON_CHOICES,
-        default=REASON_OTHER,
-    )
-
+    reason = models.CharField(max_length=40, choices=REASON_CHOICES, default=REASON_OTHER)
     details = models.TextField(blank=True)
-
-    status = models.CharField(
-        max_length=20,
-        choices=STATUS_CHOICES,
-        default=STATUS_PENDING,
-    )
-
-    reviewed = models.BooleanField(default=False)
-
-    reviewed_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        blank=True,
-        null=True,
-        related_name="reviewed_feed_reports",
-    )
-
-    reviewed_at = models.DateTimeField(blank=True, null=True)
-    moderator_note = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    reviewed = models.BooleanField(default=False)
 
     class Meta:
         ordering = ["-created_at"]
         unique_together = ("post", "reporter")
 
     def __str__(self):
-        return f"{self.reporter} reported post {self.post_id}"
-
-    def mark_reviewed(self, moderator=None, note=""):
-        self.reviewed = True
-        self.status = self.STATUS_REVIEWED
-        self.reviewed_by = moderator
-        self.reviewed_at = timezone.now()
-        self.moderator_note = note
-        self.save(
-            update_fields=[
-                "reviewed",
-                "status",
-                "reviewed_by",
-                "reviewed_at",
-                "moderator_note",
-            ]
-        )
-
-    def mark_actioned(self, moderator=None, note=""):
-        self.reviewed = True
-        self.status = self.STATUS_ACTIONED
-        self.reviewed_by = moderator
-        self.reviewed_at = timezone.now()
-        self.moderator_note = note
-        self.save(
-            update_fields=[
-                "reviewed",
-                "status",
-                "reviewed_by",
-                "reviewed_at",
-                "moderator_note",
-            ]
-        )
-
-    def dismiss(self, moderator=None, note=""):
-        self.reviewed = True
-        self.status = self.STATUS_DISMISSED
-        self.reviewed_by = moderator
-        self.reviewed_at = timezone.now()
-        self.moderator_note = note
-        self.save(
-            update_fields=[
-                "reviewed",
-                "status",
-                "reviewed_by",
-                "reviewed_at",
-                "moderator_note",
-            ]
-        )
+        return f"Report on post {self.post_id} by {self.reporter}"

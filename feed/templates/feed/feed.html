@@ -1,744 +1,820 @@
 {% extends "heartly/base.html" %}
 {% load static %}
 
-{% block title %}Feed - Heartly{% endblock %}
-
 {% block content %}
 <style>
-    .feed-page {
-        max-width: 620px;
-        min-height: 100vh;
+    :root {
+        --feed-bg: #070b12;
+        --feed-card: #101722;
+        --feed-card-soft: #151e2b;
+        --feed-text: #f8fafc;
+        --feed-muted: #94a3b8;
+        --feed-line: rgba(255, 255, 255, 0.08);
+        --feed-brand: #14b8a6;
+        --feed-pink: #e83e7c;
+        --feed-shadow: 0 18px 48px rgba(0, 0, 0, 0.24);
+    }
+
+    .feed-shell {
+        width: min(100%, 560px);
         margin: 0 auto;
-        padding: 16px 12px 96px;
-        background: var(--heartly-bg, #ffffff);
-        color: var(--heartly-text, #111827);
+        min-height: 100vh;
+        padding: 0 14px 92px;
+        color: var(--feed-text);
     }
 
     .feed-header {
         position: sticky;
-        top: calc(var(--heartly-topbar-height, 0px));
-        z-index: 800;
-        margin: -16px -12px 14px;
-        padding: 14px 14px 12px;
+        top: 0;
+        z-index: 20;
+        margin: 0 -14px 14px;
+        padding: 14px 18px;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        background: var(--heartly-card, #ffffff);
-        border-bottom: 1px solid var(--heartly-border, #e5e7eb);
+        gap: 12px;
+        background: rgba(7, 11, 18, 0.92);
+        backdrop-filter: blur(18px);
+        border-bottom: 1px solid var(--feed-line);
     }
 
-    .feed-header h1 {
-        margin: 0;
-        font-size: 24px;
-        font-weight: 950;
-        letter-spacing: -0.04em;
+    .feed-brand-wrap {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
     }
 
-    .feed-header p {
-        margin: 2px 0 0;
-        color: var(--heartly-muted, #6b7280);
-        font-size: 13px;
-        font-weight: 650;
-    }
-
-    .feed-create-btn {
-        width: 42px;
-        height: 42px;
-        border: none;
-        border-radius: 50%;
+    .feed-logo,
+    .feed-avatar,
+    .comment-avatar {
         display: grid;
         place-items: center;
-        background: var(--heartly-primary, #ec4899);
-        color: #ffffff;
-        font-size: 28px;
-        font-weight: 800;
-        cursor: pointer;
-        box-shadow: 0 14px 26px rgba(236, 72, 153, 0.26);
+        overflow: hidden;
+        border-radius: 999px;
+        background: linear-gradient(135deg, var(--feed-brand), var(--feed-pink));
+        color: #fff;
+        font-weight: 900;
+        flex: 0 0 auto;
+    }
+
+    .feed-logo {
+        width: 48px;
+        height: 48px;
+        font-size: 20px;
+    }
+
+    .feed-avatar {
+        width: 46px;
+        height: 46px;
+        font-size: 13px;
+    }
+
+    .comment-avatar {
+        width: 28px;
+        height: 28px;
+        font-size: 10px;
+    }
+
+    .feed-logo img,
+    .feed-avatar img,
+    .comment-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    .feed-title {
+        min-width: 0;
+    }
+
+    .feed-title h1 {
+        margin: 0;
+        font-size: 18px;
+        line-height: 1.05;
+        font-weight: 900;
+        letter-spacing: -0.02em;
+    }
+
+    .feed-title p {
+        margin: 4px 0 0;
+        color: var(--feed-muted);
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .feed-header-actions {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .feed-icon-btn {
+        width: 42px;
+        height: 42px;
+        border: 0;
+        border-radius: 16px;
+        background: var(--feed-card-soft);
+        color: var(--feed-text);
+        display: grid;
+        place-items: center;
+        text-decoration: none;
+        font-weight: 900;
     }
 
     .feed-messages {
         display: grid;
         gap: 8px;
-        margin-bottom: 12px;
+        margin-bottom: 14px;
     }
 
     .feed-message {
+        padding: 12px 14px;
         border-radius: 16px;
-        padding: 10px 12px;
-        background: var(--heartly-card-soft, rgba(236, 72, 153, 0.08));
-        color: var(--heartly-text, #111827);
+        background: rgba(20, 184, 166, 0.12);
+        border: 1px solid rgba(20, 184, 166, 0.28);
+        color: var(--feed-text);
         font-size: 13px;
-        font-weight: 750;
+        font-weight: 700;
     }
 
-    .feed-message.error {
-        background: rgba(239, 68, 68, 0.12);
-        color: #ef4444;
-    }
-
-    .feed-list {
-        display: grid;
-        gap: 14px;
-    }
-
-    .feed-post-card {
+    .composer-card,
+    .feed-card {
+        background: var(--feed-card);
+        border: 1px solid var(--feed-line);
         border-radius: 24px;
-        overflow: hidden;
-        background: var(--heartly-card, #ffffff);
-        border: 1px solid var(--heartly-border, #e5e7eb);
-        box-shadow: var(--heartly-shadow-soft, 0 12px 30px rgba(15, 23, 42, 0.08));
+        box-shadow: var(--feed-shadow);
     }
 
-    .feed-post-card.focused {
-        outline: 3px solid rgba(236, 72, 153, 0.28);
+    .composer-card {
+        padding: 14px;
+        margin-bottom: 16px;
     }
 
-    .feed-post-head {
-        padding: 13px 13px 8px;
+    .composer-top {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .composer-input {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .composer-input textarea {
+        width: 100%;
+        min-height: 74px;
+        resize: vertical;
+        border: 0;
+        outline: 0;
+        background: var(--feed-card-soft);
+        color: var(--feed-text);
+        border-radius: 18px;
+        padding: 14px 15px;
+        font: inherit;
+        line-height: 1.35;
+    }
+
+    .composer-input textarea::placeholder,
+    .comment-form input::placeholder {
+        color: #8b97a8;
+    }
+
+    .composer-actions {
+        margin-top: 12px;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 12px;
-    }
-
-    .feed-author,
-    .feed-composer-author {
-        min-width: 0;
-        display: flex;
-        align-items: center;
         gap: 10px;
+        flex-wrap: wrap;
     }
 
-    .feed-author-avatar {
-        width: 42px;
-        height: 42px;
-        border-radius: 50%;
-        display: grid;
-        place-items: center;
-        flex-shrink: 0;
-        overflow: hidden;
-        background: linear-gradient(135deg, var(--heartly-primary, #ec4899), var(--heartly-accent, #ef4444));
-        color: #ffffff;
-        font-size: 15px;
-        font-weight: 950;
-    }
-
-    .feed-author-avatar img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-
-    .feed-author-copy {
-        min-width: 0;
-        display: grid;
-        gap: 2px;
-    }
-
-    .feed-author-copy strong,
-    .feed-composer-author strong {
-        color: var(--heartly-text, #111827);
-        font-size: 14px;
-        font-weight: 900;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
-    .feed-author-copy small {
-        color: var(--heartly-muted, #6b7280);
-        font-size: 12px;
-        font-weight: 650;
-    }
-
-    .feed-post-menu {
-        position: relative;
-    }
-
-    .feed-menu-btn {
-        width: 36px;
-        height: 36px;
-        border: none;
-        border-radius: 50%;
-        display: grid;
-        place-items: center;
-        background: transparent;
-        color: var(--heartly-text, #111827);
-        font-size: 20px;
-        font-weight: 950;
-        cursor: pointer;
-    }
-
-    .feed-menu-panel {
-        position: absolute;
-        top: 40px;
-        right: 0;
-        z-index: 10;
-        min-width: 150px;
-        display: none;
-        overflow: hidden;
-        border-radius: 16px;
-        background: var(--heartly-card, #ffffff);
-        border: 1px solid var(--heartly-border, #e5e7eb);
-        box-shadow: var(--heartly-shadow-soft, 0 12px 30px rgba(15, 23, 42, 0.08));
-    }
-
-    .feed-menu-panel.active {
-        display: block;
-    }
-
-    .feed-menu-panel button {
-        width: 100%;
-        border: none;
-        padding: 12px 13px;
-        display: block;
-        background: transparent;
-        color: var(--heartly-text, #111827);
-        text-align: left;
-        font-size: 13px;
-        font-weight: 850;
-        cursor: pointer;
-    }
-
-    .feed-menu-panel form {
-        margin: 0;
-    }
-
-    .feed-post-content {
-        margin: 0;
-        padding: 2px 14px 12px;
-        color: var(--heartly-text, #111827);
-        font-size: 14.5px;
-        font-weight: 520;
-        line-height: 1.5;
-        white-space: pre-wrap;
-        overflow-wrap: anywhere;
-    }
-
-    .feed-media {
-        width: 100%;
-        background: #000000;
-    }
-
-    .feed-media img,
-    .feed-media video {
-        width: 100%;
-        max-height: 620px;
-        display: block;
-        object-fit: contain;
-        background: #000000;
-    }
-
-    .feed-post-actions {
-        padding: 10px 12px 6px;
+    .media-picks {
         display: flex;
+        gap: 8px;
         align-items: center;
-        gap: 12px;
+        flex-wrap: wrap;
     }
 
-    .feed-post-actions form {
-        margin: 0;
-    }
-
-    .feed-action-btn {
-        min-width: 48px;
-        border: none;
-        border-radius: 999px;
-        padding: 8px 10px;
+    .media-pick {
+        cursor: pointer;
         display: inline-flex;
         align-items: center;
         gap: 7px;
-        background: var(--heartly-card-soft, rgba(236, 72, 153, 0.08));
-        color: var(--heartly-text, #111827);
+        padding: 10px 12px;
+        border-radius: 999px;
+        color: var(--feed-text);
+        background: var(--feed-card-soft);
+        border: 1px solid var(--feed-line);
         font-size: 13px;
-        font-weight: 850;
-        cursor: pointer;
+        font-weight: 800;
     }
 
-    .feed-action-btn.active {
-        color: var(--heartly-primary, #ec4899);
+    .media-pick input {
+        display: none;
     }
 
-    .feed-comments {
-        padding: 4px 12px 13px;
-        display: grid;
-        gap: 9px;
-    }
-
-    .feed-comment {
-        display: flex;
-        align-items: flex-start;
-        gap: 8px;
-    }
-
-    .feed-comment-avatar {
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        display: grid;
-        place-items: center;
-        flex-shrink: 0;
-        overflow: hidden;
-        background: linear-gradient(135deg, var(--heartly-primary, #ec4899), var(--heartly-accent, #ef4444));
-        color: #ffffff;
-        font-size: 11px;
-        font-weight: 950;
-    }
-
-    .feed-comment-avatar img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-
-    .feed-comment-body {
-        min-width: 0;
-        padding: 8px 10px;
-        border-radius: 15px;
-        background: var(--heartly-card-soft, rgba(236, 72, 153, 0.08));
-    }
-
-    .feed-comment-body strong {
-        display: block;
-        color: var(--heartly-text, #111827);
-        font-size: 12px;
+    .feed-submit,
+    .comment-submit {
+        border: 0;
+        border-radius: 999px;
+        background: var(--feed-brand);
+        color: #fff;
         font-weight: 900;
+        cursor: pointer;
+        box-shadow: 0 10px 24px rgba(20, 184, 166, 0.24);
     }
 
-    .feed-comment-body p {
-        margin: 2px 0 0;
-        color: var(--heartly-text, #111827);
-        font-size: 13px;
-        line-height: 1.35;
-        overflow-wrap: anywhere;
+    .feed-submit {
+        padding: 12px 18px;
+        min-width: 74px;
     }
 
-    .feed-no-comments {
-        margin: 0;
-        color: var(--heartly-muted, #6b7280);
+    .feed-file-name {
+        width: 100%;
+        display: none;
+        margin-top: 8px;
+        color: var(--feed-muted);
         font-size: 12px;
         font-weight: 700;
     }
 
-    .feed-comment-form {
+    .feed-list {
+        display: grid;
+        gap: 16px;
+    }
+
+    .feed-card {
+        overflow: hidden;
+    }
+
+    .post-head {
+        padding: 14px;
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 10px;
+    }
+
+    .post-user {
         display: flex;
         align-items: center;
-        gap: 8px;
-    }
-
-    .feed-comment-form input {
-        flex: 1;
+        gap: 11px;
         min-width: 0;
-        border: none;
-        border-radius: 999px;
-        padding: 10px 12px;
-        background: var(--heartly-card-soft, rgba(236, 72, 153, 0.08));
-        color: var(--heartly-text, #111827);
-        outline: none;
-        font-size: 13px;
     }
 
-    .feed-comment-form button {
-        border: none;
-        border-radius: 999px;
-        padding: 9px 12px;
-        background: var(--heartly-primary, #ec4899);
-        color: #ffffff;
-        font-size: 12px;
+    .post-user-meta {
+        min-width: 0;
+    }
+
+    .post-name {
+        display: block;
+        color: var(--feed-text);
+        font-size: 14px;
         font-weight: 900;
-        cursor: pointer;
+        line-height: 1.1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 280px;
     }
 
-    .feed-empty {
-        margin-top: 60px;
-        text-align: center;
-        color: var(--heartly-muted, #6b7280);
+    .post-time {
+        display: block;
+        margin-top: 4px;
+        color: var(--feed-muted);
+        font-size: 12px;
+        font-weight: 700;
     }
 
-    .feed-empty div {
-        width: 74px;
-        height: 74px;
-        margin: 0 auto 16px;
-        border-radius: 50%;
+    .post-menu {
+        position: relative;
+    }
+
+    .post-menu summary {
+        list-style: none;
+        width: 40px;
+        height: 40px;
+        border-radius: 14px;
         display: grid;
         place-items: center;
-        background: var(--heartly-card-soft, rgba(236, 72, 153, 0.08));
-        color: var(--heartly-primary, #ec4899);
-        font-size: 36px;
+        cursor: pointer;
+        color: var(--feed-text);
+        background: transparent;
+        font-weight: 900;
     }
 
-    .feed-empty h2 {
-        margin: 0;
-        color: var(--heartly-text, #111827);
-        font-size: 18px;
-        font-weight: 950;
-    }
-
-    .feed-modal {
-        position: fixed;
-        inset: 0;
-        z-index: 2100;
-        display: grid;
-        place-items: end center;
-        padding: 12px;
-        background: rgba(0, 0, 0, 0.46);
-    }
-
-    .feed-modal[hidden] {
+    .post-menu summary::-webkit-details-marker {
         display: none;
     }
 
-    .feed-modal-card {
-        width: min(100%, 560px);
-        max-height: min(92vh, 680px);
-        overflow: auto;
-        border-radius: 26px;
-        padding: 0 14px 14px;
-        background: var(--heartly-card, #ffffff);
-        color: var(--heartly-text, #111827);
-        box-shadow: var(--heartly-shadow-soft, 0 12px 30px rgba(15, 23, 42, 0.08));
-    }
-
-    .feed-modal-head {
-        position: sticky;
-        top: 0;
-        z-index: 2;
-        margin: 0 -14px 12px;
-        padding: 13px 14px;
+    .post-menu-panel {
+        position: absolute;
+        right: 0;
+        top: 44px;
+        z-index: 12;
+        min-width: 148px;
+        padding: 8px;
+        border-radius: 16px;
+        background: #0b111b;
+        border: 1px solid var(--feed-line);
+        box-shadow: 0 18px 44px rgba(0, 0, 0, 0.38);
         display: grid;
-        grid-template-columns: 1fr auto 1fr;
-        align-items: center;
-        background: var(--heartly-card, #ffffff);
-        border-bottom: 1px solid var(--heartly-border, #e5e7eb);
+        gap: 6px;
     }
 
-    .feed-modal-head strong {
-        font-size: 14px;
-        font-weight: 950;
-    }
-
-    .feed-modal-head button {
-        border: none;
-        background: transparent;
-        color: var(--heartly-primary, #ec4899);
-        font-size: 14px;
-        font-weight: 900;
-        cursor: pointer;
-    }
-
-    .feed-modal-head button:first-child {
-        justify-self: start;
-    }
-
-    .feed-modal-head button:last-child {
-        justify-self: end;
-    }
-
-    .feed-modal-card textarea {
+    .post-menu-panel button {
         width: 100%;
-        resize: vertical;
-        min-height: 120px;
-        border: none;
-        outline: none;
-        padding: 14px 0;
+        text-align: left;
+        border: 0;
+        border-radius: 12px;
         background: transparent;
-        color: var(--heartly-text, #111827);
-        font-size: 18px;
+        color: var(--feed-text);
+        padding: 10px 12px;
+        cursor: pointer;
+        font-weight: 800;
+    }
+
+    .post-menu-panel button:hover {
+        background: var(--feed-card-soft);
+    }
+
+    .post-menu-panel .danger {
+        color: #fb7185;
+    }
+
+    .post-content {
+        padding: 0 14px 12px;
+        color: var(--feed-text);
+        font-size: 15px;
         line-height: 1.45;
+        font-weight: 550;
+        word-break: break-word;
     }
 
-    .feed-composer-tools {
+    .post-media {
+        width: 100%;
+        background: #020617;
+        border-top: 1px solid var(--feed-line);
+        border-bottom: 1px solid var(--feed-line);
+        overflow: hidden;
+    }
+
+    .post-image,
+    .post-video {
+        width: 100%;
+        max-height: 620px;
+        display: block;
+        object-fit: cover;
+        background: #020617;
+    }
+
+    .post-video {
+        min-height: 230px;
+    }
+
+    .media-error {
+        display: none;
+        padding: 18px 14px;
+        color: var(--feed-muted);
+        font-size: 13px;
+        font-weight: 700;
+        text-align: center;
+    }
+
+    .post-stats {
+        padding: 12px 14px 0;
         display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        padding-top: 10px;
+        gap: 12px;
+        align-items: center;
+        color: var(--feed-muted);
+        font-size: 13px;
+        font-weight: 800;
     }
 
-    .feed-composer-tools label,
-    .feed-composer-tools button {
-        border: 1px solid var(--heartly-border, #e5e7eb);
+    .post-actions {
+        padding: 10px 14px 12px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        border-bottom: 1px solid var(--feed-line);
+    }
+
+    .action-form {
+        margin: 0;
+    }
+
+    .action-btn {
+        border: 0;
+        background: var(--feed-card-soft);
+        color: var(--feed-text);
         border-radius: 999px;
         padding: 10px 13px;
-        background: var(--heartly-card-soft, rgba(236, 72, 153, 0.08));
-        color: var(--heartly-text, #111827);
-        font-size: 13px;
+        min-width: 60px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
         font-weight: 900;
         cursor: pointer;
     }
 
-    .feed-media-preview {
-        display: none;
-        margin: 12px 0;
-        overflow: hidden;
-        border-radius: 20px;
-        background: #000000;
+    .action-btn.active {
+        color: #ff4d8d;
+        background: rgba(232, 62, 124, 0.14);
     }
 
-    .feed-media-preview.active {
-        display: block;
+    .comments-box {
+        padding: 12px 14px 14px;
     }
 
-    .feed-media-preview img,
-    .feed-media-preview video {
-        width: 100%;
-        max-height: 380px;
-        display: block;
-        object-fit: contain;
-        background: #000000;
-    }
-
-    .feed-preview-error {
-        display: none;
-        margin-top: 10px;
-        border-radius: 14px;
-        padding: 10px 12px;
-        background: rgba(239, 68, 68, 0.12);
-        color: #ef4444;
-        font-size: 13px;
-        font-weight: 850;
-    }
-
-    .feed-preview-error.active {
-        display: block;
-    }
-
-    .feed-remove-media {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 10px 0;
-        color: var(--heartly-muted, #6b7280);
+    .comment-empty {
+        margin: 0 0 10px;
+        color: var(--feed-muted);
         font-size: 13px;
         font-weight: 750;
     }
 
-    @media (max-width: 520px) {
-        .feed-page {
+    .comment-list {
+        display: grid;
+        gap: 9px;
+        margin-bottom: 12px;
+    }
+
+    .comment-item {
+        display: flex;
+        gap: 9px;
+        align-items: flex-start;
+    }
+
+    .comment-bubble {
+        flex: 1;
+        min-width: 0;
+        background: var(--feed-card-soft);
+        border-radius: 15px;
+        padding: 9px 11px;
+        color: var(--feed-text);
+        font-size: 13px;
+        line-height: 1.35;
+    }
+
+    .comment-bubble strong {
+        display: block;
+        font-size: 12px;
+        margin-bottom: 3px;
+    }
+
+    .comment-form {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+    }
+
+    .comment-form input {
+        flex: 1;
+        min-width: 0;
+        border: 0;
+        outline: 0;
+        background: var(--feed-card-soft);
+        color: var(--feed-text);
+        border-radius: 999px;
+        padding: 12px 14px;
+        font: inherit;
+        font-size: 14px;
+    }
+
+    .comment-submit {
+        padding: 11px 16px;
+    }
+
+    .empty-feed {
+        padding: 36px 18px;
+        text-align: center;
+        color: var(--feed-muted);
+        background: var(--feed-card);
+        border: 1px solid var(--feed-line);
+        border-radius: 24px;
+    }
+
+    .pager {
+        margin: 18px 0;
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+    }
+
+    .pager a {
+        color: var(--feed-text);
+        text-decoration: none;
+        background: var(--feed-card-soft);
+        border-radius: 999px;
+        padding: 10px 14px;
+        font-weight: 800;
+    }
+
+    .edit-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 80;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 18px;
+        background: rgba(2, 6, 23, 0.74);
+        backdrop-filter: blur(8px);
+    }
+
+    .edit-modal.open {
+        display: flex;
+    }
+
+    .edit-card {
+        width: min(100%, 500px);
+        background: var(--feed-card);
+        border: 1px solid var(--feed-line);
+        border-radius: 24px;
+        padding: 16px;
+        box-shadow: var(--feed-shadow);
+    }
+
+    .edit-card h2 {
+        margin: 0 0 12px;
+        font-size: 18px;
+    }
+
+    .edit-card textarea {
+        width: 100%;
+        min-height: 130px;
+        resize: vertical;
+        border: 0;
+        outline: 0;
+        color: var(--feed-text);
+        background: var(--feed-card-soft);
+        border-radius: 18px;
+        padding: 14px;
+        font: inherit;
+    }
+
+    .edit-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 12px;
+    }
+
+    .edit-actions button {
+        border: 0;
+        border-radius: 999px;
+        padding: 11px 16px;
+        font-weight: 900;
+        cursor: pointer;
+    }
+
+    .edit-cancel {
+        background: var(--feed-card-soft);
+        color: var(--feed-text);
+    }
+
+    .edit-save {
+        background: var(--feed-brand);
+        color: #fff;
+    }
+
+    @media (prefers-color-scheme: light) {
+        :root {
+            --feed-bg: #f6f7fb;
+            --feed-card: #ffffff;
+            --feed-card-soft: #f1f5f9;
+            --feed-text: #0f172a;
+            --feed-muted: #64748b;
+            --feed-line: rgba(15, 23, 42, 0.08);
+            --feed-shadow: 0 18px 44px rgba(15, 23, 42, 0.08);
+        }
+        .feed-header {
+            background: rgba(246, 247, 251, 0.92);
+        }
+        .post-menu-panel {
+            background: #ffffff;
+        }
+    }
+
+    body {
+        background: var(--feed-bg);
+    }
+
+    @media (max-width: 430px) {
+        .feed-shell {
             padding-left: 10px;
             padding-right: 10px;
         }
-
         .feed-header {
             margin-left: -10px;
             margin-right: -10px;
         }
-
-        .feed-modal {
-            padding: 8px;
-        }
-
-        .feed-modal-card {
-            border-radius: 24px 24px 18px 18px;
+        .post-name {
+            max-width: 190px;
         }
     }
 </style>
 
-<div class="feed-page">
+<div class="feed-shell">
+    <header class="feed-header">
+        <div class="feed-brand-wrap">
+            <div class="feed-logo">♥</div>
+            <div class="feed-title">
+                <h1>Heartly</h1>
+                <p>Your social companion</p>
+            </div>
+        </div>
+        <div class="feed-header-actions">
+            <a href="{% url 'notifications:notifications_home' %}" class="feed-icon-btn" aria-label="Notifications">🔔</a>
+            <a href="{% url 'settings' %}" class="feed-icon-btn" aria-label="Settings">⚙</a>
+        </div>
+    </header>
+
     {% if messages %}
-        <section class="feed-messages">
+        <div class="feed-messages">
             {% for message in messages %}
-                <div class="feed-message {{ message.tags }}">{{ message }}</div>
+                <div class="feed-message">{{ message }}</div>
             {% endfor %}
-        </section>
+        </div>
     {% endif %}
 
-    <header class="feed-header">
-        <div>
-            <h1>Feed</h1>
-            <p>Share moments, photos, and videos.</p>
+    <form method="post" action="{% url 'feed:create_post' %}" enctype="multipart/form-data" class="composer-card" id="postComposer">
+        {% csrf_token %}
+        <div class="composer-top">
+            <div class="feed-avatar">
+                {% if viewer_avatar_url %}
+                    <img src="{{ viewer_avatar_url }}" alt="{{ viewer_name }}">
+                {% else %}
+                    {{ viewer_initials }}
+                {% endif %}
+            </div>
+            <div class="composer-input">
+                <textarea name="content" placeholder="What's happening?" maxlength="1200"></textarea>
+            </div>
         </div>
-
-        <button type="button" class="feed-create-btn" id="openComposerBtn" aria-label="Create post">+</button>
-    </header>
+        <div class="composer-actions">
+            <div class="media-picks">
+                <label class="media-pick">
+                    📷 Photo
+                    <input type="file" name="image" id="composerImage" accept="image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif">
+                </label>
+                <label class="media-pick">
+                    🎥 Video
+                    <input type="file" name="video" id="composerVideo" accept="video/mp4,video/webm,video/quicktime,video/x-m4v,video/3gpp,video/3gpp2,.mp4,.mov,.m4v,.webm,.3gp,.3g2">
+                </label>
+                <span class="feed-file-name" id="composerFileName"></span>
+            </div>
+            <button type="submit" class="feed-submit">Post</button>
+        </div>
+    </form>
 
     <section class="feed-list">
         {% for post in posts %}
-            <article class="feed-post-card {% if focus_post_id == post.id|stringformat:'s' %}focused{% endif %}" id="post-{{ post.id }}">
-                <header class="feed-post-head">
-                    <div class="feed-author">
-                        <div class="feed-author-avatar">
-                            {% if post.author_photo %}
-                                <img src="{{ post.author_photo }}" alt="{{ post.author_name }}">
+            <article class="feed-card" id="post-{{ post.id }}">
+                <header class="post-head">
+                    <div class="post-user">
+                        <div class="feed-avatar">
+                            {% if post.avatar_url %}
+                                <img src="{{ post.avatar_url }}" alt="{{ post.display_name }}">
                             {% else %}
-                                <span>{{ post.author_name|default:"U"|first|upper }}</span>
+                                {{ post.avatar_initials }}
                             {% endif %}
                         </div>
-
-                        <div class="feed-author-copy">
-                            <strong>{{ post.author_name|default:post.user.username }}</strong>
-                            <small>
-                                {{ post.created_at|timesince }} ago
-                                {% if post.edited_at %} · edited{% endif %}
-                            </small>
+                        <div class="post-user-meta">
+                            <span class="post-name">{{ post.display_name }}</span>
+                            <span class="post-time">{{ post.created_at|timesince }} ago{% if post.edited_at %} · edited{% endif %}</span>
                         </div>
                     </div>
 
-                    <div class="feed-post-menu">
-                        <button type="button" class="feed-menu-btn" data-menu-button aria-label="Post options">•••</button>
-
-                        <div class="feed-menu-panel" data-menu-panel>
-                            {% if post.user == request.user %}
-                                <button type="button" data-edit-button data-edit-url="{% url 'feed:edit_post' post.id %}" data-content="{{ post.content|default:''|escapejs }}">
-                                    Edit
-                                </button>
-
+                    <details class="post-menu">
+                        <summary aria-label="Post options">•••</summary>
+                        <div class="post-menu-panel">
+                            {% if post.user_id == request.user.id %}
+                                <button type="button" data-edit-button data-edit-url="{% url 'feed:edit_post' post.id %}" data-content="{{ post.content|default:''|escapejs }}">Edit</button>
                                 <form method="post" action="{% url 'feed:delete_post' post.id %}">
                                     {% csrf_token %}
-                                    <button type="submit">Delete</button>
+                                    <button type="submit" class="danger" onclick="return confirm('Delete this post?')">Delete</button>
                                 </form>
                             {% else %}
                                 <form method="post" action="{% url 'feed:report_post' post.id %}">
                                     {% csrf_token %}
-                                    <input type="hidden" name="reason" value="other">
-                                    <input type="hidden" name="details" value="">
-                                    <button type="submit">Report</button>
+                                    <button type="submit" class="danger">Report</button>
                                 </form>
                             {% endif %}
                         </div>
-                    </div>
+                    </details>
                 </header>
 
                 {% if post.content %}
-                    <p class="feed-post-content">{{ post.content }}</p>
+                    <div class="post-content">{{ post.content|linebreaksbr }}</div>
                 {% endif %}
 
-                {% if post.image %}
-                    <div class="feed-media">
-                        <img src="{{ post.image.url }}" alt="Post image" loading="lazy">
+                {% if post.image_url %}
+                    <div class="post-media">
+                        <img src="{{ post.image_url }}" alt="Post image" class="post-image" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                        <div class="media-error">Image could not be loaded. New Cloudinary uploads should display here.</div>
                     </div>
                 {% endif %}
 
-                {% if post.video %}
-                    <div class="feed-media">
-                        <video controls playsinline preload="metadata">
-                            <source src="{{ post.video.url }}">
+                {% if post.video_url %}
+                    <div class="post-media">
+                        <video class="post-video" controls playsinline preload="metadata" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                            <source src="{{ post.video_url }}">
                             Your browser does not support video playback.
                         </video>
+                        <div class="media-error">Video could not be loaded. Try a smaller MP4/MOV/WebM upload.</div>
                     </div>
                 {% endif %}
 
-                <section class="feed-post-actions">
-                    <form method="post" action="{% url 'feed:toggle_like' post.id %}" class="feed-like-form">
+                <div class="post-stats">
+                    <span>♥ {{ post.likes_count }}</span>
+                    <span>💬 {{ post.comments_count }}</span>
+                </div>
+
+                <section class="post-actions">
+                    <form method="post" action="{% url 'feed:like_post' post.id %}" class="action-form">
                         {% csrf_token %}
-                        <button type="submit" class="feed-action-btn {% if post.is_liked or post.is_liked_by_user %}active{% endif %}">
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}#post-{{ post.id }}">
+                        <button type="submit" class="action-btn {% if post.is_liked_by_user %}active{% endif %}">
                             <span>♥</span>
-                            <span data-like-count>{{ post.likes.count }}</span>
+                            <span>{{ post.likes_count }}</span>
                         </button>
                     </form>
-
-                    <button type="button" class="feed-action-btn" data-comment-toggle>
+                    <button type="button" class="action-btn" data-focus-comment="comment-{{ post.id }}">
                         <span>💬</span>
-                        <span>{{ post.comments.count }}</span>
+                        <span>{{ post.comments_count }}</span>
                     </button>
                 </section>
 
-                <section class="feed-comments" data-comments>
-                    {% for comment in post.comments.all %}
-                        <div class="feed-comment">
-                            <div class="feed-comment-avatar">
-                                {% if comment.author_photo %}
-                                    <img src="{{ comment.author_photo }}" alt="{{ comment.author_name }}">
-                                {% else %}
-                                    <span>{{ comment.author_name|default:"U"|first|upper }}</span>
-                                {% endif %}
-                            </div>
-
-                            <div class="feed-comment-body">
-                                <strong>{{ comment.author_name|default:comment.user.username }}</strong>
-                                <p>{{ comment.content }}</p>
-                            </div>
+                <section class="comments-box">
+                    {% if post.comments.all %}
+                        <div class="comment-list">
+                            {% for comment in post.comments.all|slice:":3" %}
+                                <div class="comment-item">
+                                    <div class="comment-avatar">{{ comment.user.email|default:comment.user.username|default:"U"|slice:":1"|upper }}</div>
+                                    <div class="comment-bubble">
+                                        <strong>{{ comment.user.get_full_name|default:comment.user.email|default:comment.user.username|default:"User" }}</strong>
+                                        {{ comment.content|linebreaksbr }}
+                                    </div>
+                                </div>
+                            {% endfor %}
                         </div>
-                    {% empty %}
-                        <p class="feed-no-comments">No comments yet.</p>
-                    {% endfor %}
+                    {% else %}
+                        <p class="comment-empty">No comments yet.</p>
+                    {% endif %}
 
-                    <form method="post" action="{% url 'feed:add_comment' post.id %}" class="feed-comment-form">
+                    <form method="post" action="{% url 'feed:comment_post' post.id %}" class="comment-form">
                         {% csrf_token %}
-                        <input type="text" name="content" placeholder="Add a comment..." maxlength="600" autocomplete="off">
-                        <button type="submit">Post</button>
+                        <input id="comment-{{ post.id }}" type="text" name="content" placeholder="Add a comment..." maxlength="500">
+                        <button type="submit" class="comment-submit">Post</button>
                     </form>
                 </section>
             </article>
         {% empty %}
-            <section class="feed-empty">
-                <div>♡</div>
+            <div class="empty-feed">
                 <h2>No posts yet</h2>
-                <p>Be the first to share something on Heartly.</p>
-            </section>
+                <p>Share the first update on Heartly.</p>
+            </div>
         {% endfor %}
     </section>
 
-    <div class="feed-modal" id="composerModal" hidden>
-        <form method="post" action="{% url 'feed:create_post' %}" enctype="multipart/form-data" class="feed-modal-card" id="createPostForm">
+    {% if page_obj.has_other_pages %}
+        <nav class="pager">
+            {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}">Previous</a>
+            {% endif %}
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}">Next</a>
+            {% endif %}
+        </nav>
+    {% endif %}
+</div>
+
+<div class="edit-modal" id="editModal" aria-hidden="true">
+    <div class="edit-card">
+        <h2>Edit post</h2>
+        <form method="post" enctype="multipart/form-data" id="editForm">
             {% csrf_token %}
-
-            <div class="feed-modal-head">
-                <button type="button" id="closeComposerBtn">Cancel</button>
-                <strong>Create post</strong>
-                <button type="submit">Post</button>
-            </div>
-
-            <div class="feed-composer-author">
-                <div class="feed-author-avatar">
-                    {% if request_user_photo %}
-                        <img src="{{ request_user_photo }}" alt="{{ request_user_name }}">
-                    {% else %}
-                        <span>{{ request_user_name|default:"U"|first|upper }}</span>
-                    {% endif %}
+            <textarea name="content" id="editContent" maxlength="1200"></textarea>
+            <div class="composer-actions">
+                <div class="media-picks">
+                    <label class="media-pick">
+                        Replace photo
+                        <input type="file" name="image" accept="image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif">
+                    </label>
+                    <label class="media-pick">
+                        Replace video
+                        <input type="file" name="video" accept="video/mp4,video/webm,video/quicktime,video/x-m4v,video/3gpp,video/3gpp2,.mp4,.mov,.m4v,.webm,.3gp,.3g2">
+                    </label>
                 </div>
-
-                <strong>{{ request_user_name|default:request.user.username }}</strong>
             </div>
-
-            <textarea name="content" rows="5" maxlength="2000" placeholder="What's happening?"></textarea>
-
-            <div class="feed-preview-error" data-preview-error></div>
-            <div class="feed-media-preview" data-media-preview></div>
-
-            <div class="feed-composer-tools">
-                <label>
-                    Photo
-                    <input type="file" name="image" id="imageInput" accept="image/jpeg,image/png,image/webp,image/gif,image/avif,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.gif,.avif,.heic,.heif" hidden>
-                </label>
-
-                <label>
-                    Video
-                    <input type="file" name="video" id="videoInput" accept="video/*,video/mp4,video/webm,video/quicktime,.mp4,.mov,.m4v,.webm,.3gp,.3g2,.avi,.mkv,.mpeg,.mpg,.ogv" hidden>
-                </label>
-            </div>
-        </form>
-    </div>
-
-    <div class="feed-modal" id="editModal" hidden>
-        <form method="post" enctype="multipart/form-data" class="feed-modal-card" id="editPostForm">
-            {% csrf_token %}
-
-            <div class="feed-modal-head">
-                <button type="button" id="closeEditBtn">Cancel</button>
-                <strong>Edit post</strong>
-                <button type="submit">Save</button>
-            </div>
-
-            <textarea name="content" rows="5" maxlength="2000" id="editContentInput" placeholder="Update your post..."></textarea>
-
-            <label class="feed-remove-media">
-                <input type="checkbox" name="remove_media">
-                Remove current media
-            </label>
-
-            <div class="feed-preview-error" data-preview-error></div>
-            <div class="feed-media-preview" data-media-preview></div>
-
-            <div class="feed-composer-tools">
-                <label>
-                    Replace photo
-                    <input type="file" name="image" accept="image/jpeg,image/png,image/webp,image/gif,image/avif,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.gif,.avif,.heic,.heif" hidden>
-                </label>
-
-                <label>
-                    Replace video
-                    <input type="file" name="video" accept="video/*,video/mp4,video/webm,video/quicktime,.mp4,.mov,.m4v,.webm,.3gp,.3g2,.avi,.mkv,.mpeg,.mpg,.ogv" hidden>
-                </label>
+            <div class="edit-actions">
+                <button type="button" class="edit-cancel" id="editCancel">Cancel</button>
+                <button type="submit" class="edit-save">Save</button>
             </div>
         </form>
     </div>
@@ -746,238 +822,95 @@
 
 <script>
 (function () {
-    const imageExtensions = ["jpg", "jpeg", "png", "gif", "webp", "avif", "heic", "heif"];
-    const videoExtensions = ["mp4", "mov", "m4v", "webm", "3gp", "3g2", "avi", "mkv", "mpeg", "mpg", "ogv"];
-    const maxImageSize = 15 * 1024 * 1024;
-    const maxVideoSize = 60 * 1024 * 1024;
+    const imageInput = document.getElementById('composerImage');
+    const videoInput = document.getElementById('composerVideo');
+    const fileName = document.getElementById('composerFileName');
 
-    const composerModal = document.getElementById("composerModal");
-    const editModal = document.getElementById("editModal");
-    const createForm = document.getElementById("createPostForm");
-    const editForm = document.getElementById("editPostForm");
-    const editContentInput = document.getElementById("editContentInput");
-
-    function getExtension(file) {
-        const parts = (file.name || "").toLowerCase().split(".");
-        return parts.length > 1 ? parts.pop() : "";
-    }
-
-    function isFallbackMime(file) {
-        return !file.type || file.type === "application/octet-stream";
-    }
-
-    function isImageFile(file) {
-        return file && imageExtensions.includes(getExtension(file)) && (file.type.startsWith("image/") || isFallbackMime(file));
-    }
-
-    function isVideoFile(file) {
-        return file && videoExtensions.includes(getExtension(file)) && (file.type.startsWith("video/") || isFallbackMime(file));
-    }
-
-    function showError(form, message) {
-        const errorBox = form.querySelector("[data-preview-error]");
-        if (!errorBox) return;
-        errorBox.textContent = message;
-        errorBox.classList.add("active");
-    }
-
-    function clearError(form) {
-        const errorBox = form.querySelector("[data-preview-error]");
-        if (!errorBox) return;
-        errorBox.textContent = "";
-        errorBox.classList.remove("active");
-    }
-
-    function clearPreview(form) {
-        const preview = form.querySelector("[data-media-preview]");
-        if (!preview) return;
-        preview.innerHTML = "";
-        preview.classList.remove("active");
-    }
-
-    function showPreview(form, file, type) {
-        const preview = form.querySelector("[data-media-preview]");
-        if (!preview) return;
-
-        const objectUrl = URL.createObjectURL(file);
-        preview.innerHTML = "";
-
-        if (type === "image") {
-            const img = document.createElement("img");
-            img.src = objectUrl;
-            img.alt = "Selected image preview";
-            img.onload = function () {
-                URL.revokeObjectURL(objectUrl);
-            };
-            preview.appendChild(img);
+    function showFileName(file, label) {
+        if (!fileName) return;
+        if (!file) {
+            fileName.style.display = 'none';
+            fileName.textContent = '';
+            return;
         }
-
-        if (type === "video") {
-            const video = document.createElement("video");
-            video.src = objectUrl;
-            video.controls = true;
-            video.playsInline = true;
-            video.preload = "metadata";
-            preview.appendChild(video);
-        }
-
-        preview.classList.add("active");
+        fileName.style.display = 'inline-block';
+        fileName.textContent = label + ': ' + file.name;
     }
 
-    function setupMediaInputs(form) {
-        if (!form) return;
-
-        const imageInput = form.querySelector('input[name="image"]');
-        const videoInput = form.querySelector('input[name="video"]');
-
-        if (imageInput) {
-            imageInput.addEventListener("change", function () {
-                const file = this.files[0];
-                clearError(form);
-                clearPreview(form);
-
-                if (!file) return;
-
-                if (file.size > maxImageSize) {
-                    this.value = "";
-                    showError(form, "Image is too large. Please choose an image under 15MB.");
-                    return;
-                }
-
-                if (!isImageFile(file)) {
-                    this.value = "";
-                    showError(form, "Invalid photo file. Please choose JPG, PNG, WEBP, GIF, AVIF, HEIC, or HEIF.");
-                    return;
-                }
-
-                if (videoInput) videoInput.value = "";
-                showPreview(form, file, "image");
-            });
-        }
-
-        if (videoInput) {
-            videoInput.addEventListener("change", function () {
-                const file = this.files[0];
-                clearError(form);
-                clearPreview(form);
-
-                if (!file) return;
-
-                if (file.size > maxVideoSize) {
-                    this.value = "";
-                    showError(form, "Video is too large. Please choose a video under 60MB.");
-                    return;
-                }
-
-                if (!isVideoFile(file)) {
-                    this.value = "";
-                    showError(form, "Invalid video file. Please choose MP4, MOV, M4V, WEBM, 3GP, 3G2, AVI, MKV, MPEG, or OGV.");
-                    return;
-                }
-
-                if (imageInput) imageInput.value = "";
-                showPreview(form, file, "video");
-            });
-        }
+    function isImage(file) {
+        return file && (/^image\//.test(file.type) || /\.(jpg|jpeg|png|webp|gif)$/i.test(file.name));
     }
 
-    function openModal(modal) {
-        if (!modal) return;
-        modal.hidden = false;
-        document.body.style.overflow = "hidden";
+    function isVideo(file) {
+        return file && (/^video\//.test(file.type) || /\.(mp4|mov|m4v|webm|3gp|3g2)$/i.test(file.name));
     }
 
-    function closeModal(modal) {
-        if (!modal) return;
-        modal.hidden = true;
-        document.body.style.overflow = "";
-
-        const form = modal.querySelector("form");
-        if (form) {
-            form.reset();
-            clearError(form);
-            clearPreview(form);
-        }
+    if (imageInput) {
+        imageInput.addEventListener('change', function () {
+            const file = this.files[0];
+            if (!file) return showFileName(null, '');
+            if (!isImage(file)) {
+                this.value = '';
+                alert('Please select a valid image file.');
+                return;
+            }
+            if (videoInput) videoInput.value = '';
+            showFileName(file, 'Photo');
+        });
     }
 
-    document.getElementById("openComposerBtn")?.addEventListener("click", function () {
-        openModal(composerModal);
+    if (videoInput) {
+        videoInput.addEventListener('change', function () {
+            const file = this.files[0];
+            if (!file) return showFileName(null, '');
+            if (!isVideo(file)) {
+                this.value = '';
+                alert('Please select a valid video file.');
+                return;
+            }
+            if (imageInput) imageInput.value = '';
+            showFileName(file, 'Video');
+        });
+    }
+
+    document.querySelectorAll('[data-focus-comment]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            const input = document.getElementById(button.dataset.focusComment);
+            if (input) input.focus();
+        });
     });
 
-    document.getElementById("closeComposerBtn")?.addEventListener("click", function () {
-        closeModal(composerModal);
+    const modal = document.getElementById('editModal');
+    const editForm = document.getElementById('editForm');
+    const editContent = document.getElementById('editContent');
+    const editCancel = document.getElementById('editCancel');
+
+    document.querySelectorAll('[data-edit-button]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            if (!modal || !editForm || !editContent) return;
+            editForm.action = button.dataset.editUrl;
+            editContent.value = button.dataset.content || '';
+            modal.classList.add('open');
+            modal.setAttribute('aria-hidden', 'false');
+            editContent.focus();
+        });
     });
 
-    document.getElementById("closeEditBtn")?.addEventListener("click", function () {
-        closeModal(editModal);
-    });
+    if (editCancel) {
+        editCancel.addEventListener('click', function () {
+            modal.classList.remove('open');
+            modal.setAttribute('aria-hidden', 'true');
+        });
+    }
 
-    [composerModal, editModal].forEach(function (modal) {
-        modal?.addEventListener("click", function (event) {
+    if (modal) {
+        modal.addEventListener('click', function (event) {
             if (event.target === modal) {
-                closeModal(modal);
+                modal.classList.remove('open');
+                modal.setAttribute('aria-hidden', 'true');
             }
         });
-    });
-
-    document.querySelectorAll("[data-menu-button]").forEach(function (button) {
-        button.addEventListener("click", function (event) {
-            event.stopPropagation();
-            const panel = this.closest(".feed-post-menu")?.querySelector("[data-menu-panel]");
-            document.querySelectorAll("[data-menu-panel]").forEach(function (otherPanel) {
-                if (otherPanel !== panel) otherPanel.classList.remove("active");
-            });
-            panel?.classList.toggle("active");
-        });
-    });
-
-    document.addEventListener("click", function (event) {
-        if (!event.target.closest(".feed-post-menu")) {
-            document.querySelectorAll("[data-menu-panel]").forEach(function (panel) {
-                panel.classList.remove("active");
-            });
-        }
-    });
-
-    document.querySelectorAll("[data-edit-button]").forEach(function (button) {
-        button.addEventListener("click", function () {
-            if (!editForm || !editContentInput) return;
-            editForm.action = this.dataset.editUrl || "";
-            editContentInput.value = this.dataset.content || "";
-            openModal(editModal);
-            document.querySelectorAll("[data-menu-panel]").forEach(function (panel) {
-                panel.classList.remove("active");
-            });
-        });
-    });
-
-    document.querySelectorAll(".feed-like-form").forEach(function (form) {
-        form.addEventListener("submit", function (event) {
-            event.preventDefault();
-
-            fetch(form.action, {
-                method: "POST",
-                body: new FormData(form),
-                headers: {
-                    "X-Requested-With": "XMLHttpRequest"
-                }
-            })
-            .then(function (response) { return response.json(); })
-            .then(function (data) {
-                if (!data.success) return;
-                const button = form.querySelector("button");
-                const count = form.querySelector("[data-like-count]");
-                button?.classList.toggle("active", data.liked);
-                if (count) count.textContent = data.likes_count;
-            })
-            .catch(function () {
-                form.submit();
-            });
-        });
-    });
-
-    setupMediaInputs(createForm);
-    setupMediaInputs(editForm);
+    }
 })();
 </script>
 {% endblock %}

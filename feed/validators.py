@@ -3,95 +3,80 @@ from pathlib import Path
 from django.conf import settings
 
 
-IMAGE_EXTENSIONS = {
+ALLOWED_IMAGE_CONTENT_TYPES = {
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/gif",
+}
+
+ALLOWED_IMAGE_EXTENSIONS = {
     ".jpg",
     ".jpeg",
     ".png",
-    ".gif",
     ".webp",
-    ".avif",
-    ".heic",
-    ".heif",
+    ".gif",
 }
 
-VIDEO_EXTENSIONS = {
+ALLOWED_VIDEO_CONTENT_TYPES = {
+    "video/mp4",
+    "video/webm",
+    "video/quicktime",
+    "video/x-m4v",
+    "video/3gpp",
+    "video/3gpp2",
+}
+
+ALLOWED_VIDEO_EXTENSIONS = {
     ".mp4",
     ".mov",
     ".m4v",
     ".webm",
     ".3gp",
     ".3g2",
-    ".avi",
-    ".mkv",
-    ".mpeg",
-    ".mpg",
-    ".ogv",
 }
 
-IMAGE_MIME_PREFIXES = ("image/",)
-VIDEO_MIME_PREFIXES = ("video/",)
-
-# Mobile browsers sometimes send empty MIME or application/octet-stream.
-FALLBACK_MIME_TYPES = {"", "application/octet-stream"}
-
-MAX_IMAGE_SIZE = int(getattr(settings, "HEARTLY_MAX_IMAGE_UPLOAD_SIZE", 15 * 1024 * 1024))
-MAX_VIDEO_SIZE = int(getattr(settings, "HEARTLY_MAX_VIDEO_UPLOAD_SIZE", 60 * 1024 * 1024))
+DEFAULT_MAX_IMAGE_SIZE = 15 * 1024 * 1024
+DEFAULT_MAX_VIDEO_SIZE = 60 * 1024 * 1024
 
 
-def upload_extension(upload):
-    return Path(getattr(upload, "name", "")).suffix.lower()
+def _extension(uploaded_file):
+    return Path(getattr(uploaded_file, "name", "") or "").suffix.lower()
 
 
-def upload_content_type(upload):
-    return (getattr(upload, "content_type", "") or "").lower()
+def _content_type(uploaded_file):
+    return (getattr(uploaded_file, "content_type", "") or "").lower()
 
 
-def valid_image_upload(upload):
-    if not upload:
-        return True
+def validate_image_upload(uploaded_file):
+    if not uploaded_file:
+        return None
 
-    ext = upload_extension(upload)
-    content_type = upload_content_type(upload)
+    content_type = _content_type(uploaded_file)
+    extension = _extension(uploaded_file)
+    max_size = int(getattr(settings, "HEARTLY_MAX_IMAGE_UPLOAD_SIZE", DEFAULT_MAX_IMAGE_SIZE))
 
-    if ext not in IMAGE_EXTENSIONS:
-        return False
+    if content_type not in ALLOWED_IMAGE_CONTENT_TYPES and extension not in ALLOWED_IMAGE_EXTENSIONS:
+        return "Invalid image file. Please upload JPG, PNG, WEBP, or GIF."
 
-    return content_type.startswith(IMAGE_MIME_PREFIXES) or content_type in FALLBACK_MIME_TYPES
+    if uploaded_file.size > max_size:
+        return "Image is too large. Please upload a smaller image."
 
-
-def valid_video_upload(upload):
-    if not upload:
-        return True
-
-    ext = upload_extension(upload)
-    content_type = upload_content_type(upload)
-
-    if ext not in VIDEO_EXTENSIONS:
-        return False
-
-    return content_type.startswith(VIDEO_MIME_PREFIXES) or content_type in FALLBACK_MIME_TYPES
+    return None
 
 
-def validate_feed_uploads(*, image=None, video=None):
-    """
-    Returns (ok, message). Keeps image and video validation fully separate.
-    """
+def validate_video_upload(uploaded_file):
+    if not uploaded_file:
+        return None
 
-    if image and video:
-        return False, "Choose either a photo or a video, not both."
+    content_type = _content_type(uploaded_file)
+    extension = _extension(uploaded_file)
+    max_size = int(getattr(settings, "HEARTLY_MAX_VIDEO_UPLOAD_SIZE", DEFAULT_MAX_VIDEO_SIZE))
 
-    if image:
-        if image.size > MAX_IMAGE_SIZE:
-            return False, "Image is too large. Please upload an image under 15MB."
+    if content_type not in ALLOWED_VIDEO_CONTENT_TYPES and extension not in ALLOWED_VIDEO_EXTENSIONS:
+        return "Invalid video file. Please upload MP4, MOV, M4V, WEBM, 3GP, or 3G2."
 
-        if not valid_image_upload(image):
-            return False, "Invalid photo file. Please upload JPG, PNG, WEBP, GIF, AVIF, HEIC, or HEIF."
+    if uploaded_file.size > max_size:
+        return "Video is too large. Please upload a smaller video."
 
-    if video:
-        if video.size > MAX_VIDEO_SIZE:
-            return False, "Video is too large. Please upload a video under 60MB."
-
-        if not valid_video_upload(video):
-            return False, "Invalid video file. Please upload MP4, MOV, M4V, WEBM, 3GP, 3G2, AVI, MKV, MPEG, or OGV."
-
-    return True, ""
+    return None
