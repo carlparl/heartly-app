@@ -168,18 +168,53 @@
 
             <textarea name="content" rows="5" maxlength="2000" placeholder="What's happening?"></textarea>
 
-            <div class="feed-media-preview" id="mediaPreview" hidden></div>
+            <div class="attachment-preview" id="createAttachmentPreview" hidden></div>
 
-            <div class="feed-composer-tools">
-                <label>
-                    Photo
-                    <input type="file" name="image" id="imageInput" accept="image/jpeg,image/png,image/webp,image/gif" hidden>
-                </label>
+            <div class="feed-form-error" id="createFormError" hidden></div>
 
-                <label>
-                    Video
-                    <input type="file" name="video" id="videoInput" accept="video/mp4,video/webm,video/quicktime" hidden>
-                </label>
+            <div class="attachment-area">
+                <button type="button" class="attachment-main-btn" id="openCreateAttachmentTray" aria-label="Add attachment">
+                    📎
+                </button>
+
+                <div class="attachment-tray" id="createAttachmentTray" hidden>
+                    <label class="attachment-option camera-option">
+                        <span>📷</span>
+                        <strong>Camera</strong>
+                        <input
+                            type="file"
+                            name="camera_image"
+                            id="createCameraInput"
+                            accept="image/*"
+                            capture="environment"
+                            hidden
+                        >
+                    </label>
+
+                    <label class="attachment-option photo-option">
+                        <span>🖼️</span>
+                        <strong>Photo</strong>
+                        <input
+                            type="file"
+                            name="image"
+                            id="createPhotoInput"
+                            accept="image/jpeg,image/png,image/webp,image/gif"
+                            hidden
+                        >
+                    </label>
+
+                    <label class="attachment-option video-option">
+                        <span>🎥</span>
+                        <strong>Video</strong>
+                        <input
+                            type="file"
+                            name="video"
+                            id="createVideoInput"
+                            accept="video/*"
+                            hidden
+                        >
+                    </label>
+                </div>
             </div>
         </form>
     </div>
@@ -201,16 +236,53 @@
                 Remove current media
             </label>
 
-            <div class="feed-composer-tools">
-                <label>
-                    Replace photo
-                    <input type="file" name="image" accept="image/jpeg,image/png,image/webp,image/gif" hidden>
-                </label>
+            <div class="attachment-preview" id="editAttachmentPreview" hidden></div>
 
-                <label>
-                    Replace video
-                    <input type="file" name="video" accept="video/mp4,video/webm,video/quicktime" hidden>
-                </label>
+            <div class="feed-form-error" id="editFormError" hidden></div>
+
+            <div class="attachment-area">
+                <button type="button" class="attachment-main-btn" id="openEditAttachmentTray" aria-label="Replace attachment">
+                    📎
+                </button>
+
+                <div class="attachment-tray" id="editAttachmentTray" hidden>
+                    <label class="attachment-option camera-option">
+                        <span>📷</span>
+                        <strong>Camera</strong>
+                        <input
+                            type="file"
+                            name="camera_image"
+                            id="editCameraInput"
+                            accept="image/*"
+                            capture="environment"
+                            hidden
+                        >
+                    </label>
+
+                    <label class="attachment-option photo-option">
+                        <span>🖼️</span>
+                        <strong>Photo</strong>
+                        <input
+                            type="file"
+                            name="image"
+                            id="editPhotoInput"
+                            accept="image/jpeg,image/png,image/webp,image/gif"
+                            hidden
+                        >
+                    </label>
+
+                    <label class="attachment-option video-option">
+                        <span>🎥</span>
+                        <strong>Video</strong>
+                        <input
+                            type="file"
+                            name="video"
+                            id="editVideoInput"
+                            accept="video/*"
+                            hidden
+                        >
+                    </label>
+                </div>
             </div>
         </form>
     </div>
@@ -703,28 +775,194 @@
     align-items: center;
     gap: 8px;
 }
+
+/* WhatsApp-style attachment tray */
+.attachment-area {
+    position: relative;
+    margin-top: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.attachment-main-btn {
+    width: 48px;
+    height: 48px;
+    border: none;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--heartly-card-soft, rgba(236, 72, 153, 0.10));
+    color: var(--heartly-text, #111827);
+    font-size: 22px;
+    cursor: pointer;
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+}
+
+.attachment-main-btn:hover {
+    background: var(--heartly-primary, #ec4899);
+    color: #ffffff;
+}
+
+.attachment-tray {
+    position: absolute;
+    left: 0;
+    bottom: 58px;
+    z-index: 60;
+    width: min(280px, calc(100vw - 48px));
+    padding: 12px;
+    border-radius: 26px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    background: var(--heartly-card, #ffffff);
+    border: 1px solid var(--heartly-border, #e5e7eb);
+    box-shadow: 0 22px 50px rgba(0, 0, 0, 0.22);
+}
+
+.attachment-tray[hidden] {
+    display: none;
+}
+
+.attachment-option {
+    min-height: 86px;
+    border-radius: 20px;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 6px;
+    background: var(--heartly-card-soft, rgba(236, 72, 153, 0.08));
+    color: var(--heartly-text, #111827);
+    cursor: pointer;
+    text-align: center;
+    border: 1px solid transparent;
+    user-select: none;
+}
+
+.attachment-option:hover {
+    transform: translateY(-1px);
+    border-color: rgba(236, 72, 153, 0.25);
+}
+
+.attachment-option span {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    color: #ffffff;
+    font-size: 22px;
+}
+
+.attachment-option strong {
+    font-size: 12px;
+    font-weight: 950;
+}
+
+.camera-option span {
+    background: linear-gradient(135deg, #8b5cf6, #6366f1);
+}
+
+.photo-option span {
+    background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.video-option span {
+    background: linear-gradient(135deg, #ec4899, #ef4444);
+}
+
+.attachment-preview {
+    position: relative;
+    margin-top: 12px;
+    overflow: hidden;
+    border-radius: 22px;
+    background: #000000;
+    border: 1px solid var(--heartly-border, #e5e7eb);
+}
+
+.attachment-preview[hidden] {
+    display: none;
+}
+
+.attachment-preview img,
+.attachment-preview video {
+    width: 100%;
+    max-height: 440px;
+    display: block;
+    object-fit: cover;
+}
+
+.remove-attachment-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: rgba(0, 0, 0, 0.66);
+    color: #ffffff;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.feed-form-error {
+    margin-top: 12px;
+    padding: 12px 14px;
+    border-radius: 16px;
+    background: #fff0f4;
+    color: #c52249;
+    border: 1px solid rgba(197, 34, 73, 0.16);
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1.45;
+}
+
+.feed-form-error[hidden] {
+    display: none;
+}
+
+@media (max-width: 420px) {
+    .attachment-tray {
+        width: min(264px, calc(100vw - 36px));
+    }
+
+    .attachment-option {
+        min-height: 78px;
+    }
+}
+
 {% endblock %}
 
 {% block extra_js %}
 <script>
 document.addEventListener("DOMContentLoaded", function () {
+    const MAX_VIDEO_SIZE = 50 * 1024 * 1024;
+    const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
+
     const composerModal = document.getElementById("composerModal");
     const openComposerBtn = document.getElementById("openComposerBtn");
     const closeComposerBtn = document.getElementById("closeComposerBtn");
     const createPostForm = document.getElementById("createPostForm");
-
-    const imageInput = document.getElementById("imageInput");
-    const videoInput = document.getElementById("videoInput");
-    const mediaPreview = document.getElementById("mediaPreview");
+    const createFormError = document.getElementById("createFormError");
 
     const editModal = document.getElementById("editModal");
     const closeEditBtn = document.getElementById("closeEditBtn");
     const editPostForm = document.getElementById("editPostForm");
     const editContentInput = document.getElementById("editContentInput");
+    const editFormError = document.getElementById("editFormError");
 
     function getCsrfToken(form) {
         const tokenInput = form.querySelector("input[name='csrfmiddlewaretoken']");
-        return tokenInput ? tokenInput.value : "";
+        if (tokenInput && tokenInput.value) {
+            return tokenInput.value;
+        }
+
+        const cookieMatch = document.cookie.match(/(?:^|; )csrftoken=([^;]+)/);
+        return cookieMatch ? decodeURIComponent(cookieMatch[1]) : "";
     }
 
     function openModal(modal) {
@@ -739,34 +977,237 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    function showPreview(file, type) {
-        if (!file || !mediaPreview) {
+    function showFormError(errorBox, message) {
+        const cleanMessage = message || "Action failed. Check the Django terminal for the exact error.";
+
+        if (errorBox) {
+            errorBox.textContent = cleanMessage;
+            errorBox.hidden = false;
+        }
+
+        alert(cleanMessage);
+    }
+
+    function clearFormError(errorBox) {
+        if (errorBox) {
+            errorBox.textContent = "";
+            errorBox.hidden = true;
+        }
+    }
+
+    function setSubmitLoading(form, loading) {
+        if (!form) {
             return;
         }
 
-        const fileUrl = URL.createObjectURL(file);
-        mediaPreview.innerHTML = "";
-
-        if (type === "image") {
-            const image = document.createElement("img");
-            image.src = fileUrl;
-            image.alt = file.name;
-            mediaPreview.appendChild(image);
+        const submitButton = form.querySelector("button[type='submit']");
+        if (!submitButton) {
+            return;
         }
+
+        if (loading) {
+            submitButton.dataset.originalText = submitButton.textContent;
+            submitButton.textContent = "Posting...";
+            submitButton.disabled = true;
+        } else {
+            submitButton.textContent = submitButton.dataset.originalText || "Post";
+            submitButton.disabled = false;
+        }
+    }
+
+    function resetPreview(preview, inputs) {
+        if (preview) {
+            preview.innerHTML = "";
+            preview.hidden = true;
+        }
+
+        inputs.forEach(function (input) {
+            if (input) {
+                input.value = "";
+            }
+        });
+    }
+
+    function fileSizeError(file, type) {
+        if (!file) {
+            return "";
+        }
+
+        if (type === "video" && file.size > MAX_VIDEO_SIZE) {
+            return "Video is too large. Use a video under 50 MB.";
+        }
+
+        if (type === "image" && file.size > MAX_IMAGE_SIZE) {
+            return "Image is too large. Use an image under 10 MB.";
+        }
+
+        return "";
+    }
+
+    function showAttachmentPreview(file, type, preview, inputs, errorBox) {
+        if (!file || !preview) {
+            return;
+        }
+
+        const sizeError = fileSizeError(file, type);
+        if (sizeError) {
+            resetPreview(preview, inputs);
+            showFormError(errorBox, sizeError);
+            return;
+        }
+
+        clearFormError(errorBox);
+
+        const fileUrl = URL.createObjectURL(file);
+        preview.innerHTML = "";
+
+        const removeButton = document.createElement("button");
+        removeButton.type = "button";
+        removeButton.className = "remove-attachment-btn";
+        removeButton.textContent = "×";
+        removeButton.setAttribute("aria-label", "Remove attachment");
+
+        removeButton.addEventListener("click", function () {
+            URL.revokeObjectURL(fileUrl);
+            resetPreview(preview, inputs);
+        });
 
         if (type === "video") {
             const video = document.createElement("video");
             video.src = fileUrl;
             video.controls = true;
-            mediaPreview.appendChild(video);
+            video.preload = "metadata";
+            preview.appendChild(video);
+        } else {
+            const image = document.createElement("img");
+            image.src = fileUrl;
+            image.alt = file.name || "Selected attachment";
+            preview.appendChild(image);
         }
 
-        mediaPreview.hidden = false;
+        preview.appendChild(removeButton);
+        preview.hidden = false;
     }
 
-    async function submitAjaxForm(form) {
+    function setupAttachmentTray(options) {
+        const button = document.getElementById(options.buttonId);
+        const tray = document.getElementById(options.trayId);
+        const preview = document.getElementById(options.previewId);
+        const cameraInput = document.getElementById(options.cameraInputId);
+        const photoInput = document.getElementById(options.photoInputId);
+        const videoInput = document.getElementById(options.videoInputId);
+        const errorBox = document.getElementById(options.errorBoxId);
+        const inputs = [cameraInput, photoInput, videoInput];
+
+        function closeTray() {
+            if (tray) {
+                tray.hidden = true;
+            }
+        }
+
+        function clearOtherInputs(activeInput) {
+            inputs.forEach(function (input) {
+                if (input && input !== activeInput) {
+                    input.value = "";
+                }
+            });
+        }
+
+        if (button && tray) {
+            button.addEventListener("click", function (event) {
+                event.stopPropagation();
+                tray.hidden = !tray.hidden;
+            });
+
+            tray.addEventListener("click", function (event) {
+                event.stopPropagation();
+            });
+
+            document.addEventListener("click", function () {
+                closeTray();
+            });
+        }
+
+        if (cameraInput) {
+            cameraInput.addEventListener("change", function () {
+                const file = cameraInput.files[0];
+                clearOtherInputs(cameraInput);
+                showAttachmentPreview(file, "image", preview, inputs, errorBox);
+                closeTray();
+            });
+        }
+
+        if (photoInput) {
+            photoInput.addEventListener("change", function () {
+                const file = photoInput.files[0];
+                clearOtherInputs(photoInput);
+                showAttachmentPreview(file, "image", preview, inputs, errorBox);
+                closeTray();
+            });
+        }
+
+        if (videoInput) {
+            videoInput.addEventListener("change", function () {
+                const file = videoInput.files[0];
+                clearOtherInputs(videoInput);
+                showAttachmentPreview(file, "video", preview, inputs, errorBox);
+                closeTray();
+            });
+        }
+
+        return function () {
+            resetPreview(preview, inputs);
+            clearFormError(errorBox);
+            closeTray();
+        };
+    }
+
+    const resetCreateAttachments = setupAttachmentTray({
+        buttonId: "openCreateAttachmentTray",
+        trayId: "createAttachmentTray",
+        previewId: "createAttachmentPreview",
+        cameraInputId: "createCameraInput",
+        photoInputId: "createPhotoInput",
+        videoInputId: "createVideoInput",
+        errorBoxId: "createFormError",
+    });
+
+    const resetEditAttachments = setupAttachmentTray({
+        buttonId: "openEditAttachmentTray",
+        trayId: "editAttachmentTray",
+        previewId: "editAttachmentPreview",
+        cameraInputId: "editCameraInput",
+        photoInputId: "editPhotoInput",
+        videoInputId: "editVideoInput",
+        errorBoxId: "editFormError",
+    });
+
+    function extractDjangoError(rawText) {
+        if (!rawText) {
+            return "";
+        }
+
+        const exceptionMatch = rawText.match(/Exception Value:\s*<\/th>\s*<td>\s*<pre>([\s\S]*?)<\/pre>/i);
+        if (exceptionMatch && exceptionMatch[1]) {
+            return exceptionMatch[1].replace(/<[^>]*>/g, "").trim();
+        }
+
+        const titleMatch = rawText.match(/<title>([\s\S]*?)<\/title>/i);
+        if (titleMatch && titleMatch[1]) {
+            return titleMatch[1].replace(/\s+/g, " ").trim();
+        }
+
+        if (rawText.length < 240) {
+            return rawText.trim();
+        }
+
+        return "";
+    }
+
+    async function submitAjaxForm(form, errorBox) {
         const response = await fetch(form.action, {
             method: "POST",
+            credentials: "same-origin",
             headers: {
                 "X-CSRFToken": getCsrfToken(form),
                 "X-Requested-With": "XMLHttpRequest",
@@ -774,23 +1215,66 @@ document.addEventListener("DOMContentLoaded", function () {
             body: new FormData(form),
         });
 
+        const rawText = await response.text();
         let data = {};
 
         try {
-            data = await response.json();
+            data = JSON.parse(rawText);
         } catch (error) {
             data = {};
         }
 
         if (!response.ok || data.success === false) {
-            throw new Error(data.error || "Action failed.");
+            const serverError = data.error || data.message || extractDjangoError(rawText);
+            console.error("Feed request failed", {
+                status: response.status,
+                url: form.action,
+                response: rawText,
+            });
+
+            throw new Error(serverError || `Server error ${response.status}. Check the Django terminal.`);
         }
 
         return data;
     }
 
+    function validateFormBeforeSubmit(form) {
+        const text = form.querySelector("textarea[name='content']");
+        const imageInput = form.querySelector("input[name='image']");
+        const cameraInput = form.querySelector("input[name='camera_image']");
+        const videoInput = form.querySelector("input[name='video']");
+
+        const hasText = text && text.value.trim();
+        const imageFile = imageInput && imageInput.files[0];
+        const cameraFile = cameraInput && cameraInput.files[0];
+        const videoFile = videoInput && videoInput.files[0];
+
+        if (!hasText && !imageFile && !cameraFile && !videoFile) {
+            return "Write something or add media before posting.";
+        }
+
+        if ((imageFile || cameraFile) && videoFile) {
+            return "Choose either a photo or a video, not both.";
+        }
+
+        if (videoFile && videoFile.size > MAX_VIDEO_SIZE) {
+            return "Video is too large. Use a video under 50 MB.";
+        }
+
+        if (imageFile && imageFile.size > MAX_IMAGE_SIZE) {
+            return "Image is too large. Use an image under 10 MB.";
+        }
+
+        if (cameraFile && cameraFile.size > MAX_IMAGE_SIZE) {
+            return "Image is too large. Use an image under 10 MB.";
+        }
+
+        return "";
+    }
+
     if (openComposerBtn) {
         openComposerBtn.addEventListener("click", function () {
+            clearFormError(createFormError);
             openModal(composerModal);
         });
     }
@@ -798,6 +1282,7 @@ document.addEventListener("DOMContentLoaded", function () {
     if (closeComposerBtn) {
         closeComposerBtn.addEventListener("click", function () {
             closeModal(composerModal);
+            resetCreateAttachments();
         });
     }
 
@@ -805,34 +1290,7 @@ document.addEventListener("DOMContentLoaded", function () {
         composerModal.addEventListener("click", function (event) {
             if (event.target === composerModal) {
                 closeModal(composerModal);
-            }
-        });
-    }
-
-    if (imageInput) {
-        imageInput.addEventListener("change", function () {
-            const file = imageInput.files[0];
-
-            if (file) {
-                if (videoInput) {
-                    videoInput.value = "";
-                }
-
-                showPreview(file, "image");
-            }
-        });
-    }
-
-    if (videoInput) {
-        videoInput.addEventListener("change", function () {
-            const file = videoInput.files[0];
-
-            if (file) {
-                if (imageInput) {
-                    imageInput.value = "";
-                }
-
-                showPreview(file, "video");
+                resetCreateAttachments();
             }
         });
     }
@@ -840,12 +1298,23 @@ document.addEventListener("DOMContentLoaded", function () {
     if (createPostForm) {
         createPostForm.addEventListener("submit", async function (event) {
             event.preventDefault();
+            clearFormError(createFormError);
+
+            const formError = validateFormBeforeSubmit(createPostForm);
+            if (formError) {
+                showFormError(createFormError, formError);
+                return;
+            }
+
+            setSubmitLoading(createPostForm, true);
 
             try {
-                await submitAjaxForm(createPostForm);
+                await submitAjaxForm(createPostForm, createFormError);
                 window.location.href = "{% url 'feed:feed_home' %}";
             } catch (error) {
-                alert(error.message);
+                showFormError(createFormError, error.message);
+            } finally {
+                setSubmitLoading(createPostForm, false);
             }
         });
     }
@@ -877,13 +1346,10 @@ document.addEventListener("DOMContentLoaded", function () {
     document.querySelectorAll("[data-comment-toggle]").forEach(function (button) {
         button.addEventListener("click", function () {
             const postCard = button.closest(".feed-post-card");
-            const comments = postCard.querySelector("[data-comments]");
+            const comments = postCard ? postCard.querySelector("[data-comments]") : null;
 
             if (comments) {
-                comments.scrollIntoView({
-                    behavior: "smooth",
-                    block: "nearest",
-                });
+                comments.scrollIntoView({ behavior: "smooth", block: "nearest" });
             }
         });
     });
@@ -895,12 +1361,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
             if (editPostForm) {
                 editPostForm.action = url;
+                editPostForm.reset();
             }
 
             if (editContentInput) {
                 editContentInput.value = content;
             }
 
+            resetEditAttachments();
+            clearFormError(editFormError);
             openModal(editModal);
         });
     });
@@ -908,6 +1377,7 @@ document.addEventListener("DOMContentLoaded", function () {
     if (closeEditBtn) {
         closeEditBtn.addEventListener("click", function () {
             closeModal(editModal);
+            resetEditAttachments();
         });
     }
 
@@ -915,6 +1385,7 @@ document.addEventListener("DOMContentLoaded", function () {
         editModal.addEventListener("click", function (event) {
             if (event.target === editModal) {
                 closeModal(editModal);
+                resetEditAttachments();
             }
         });
     }
@@ -927,7 +1398,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const countSpan = form.querySelector("[data-like-count]");
 
             try {
-                const data = await submitAjaxForm(form);
+                const data = await submitAjaxForm(form, null);
 
                 if (button) {
                     button.classList.toggle("active", data.liked);
@@ -949,15 +1420,14 @@ document.addEventListener("DOMContentLoaded", function () {
             const input = form.querySelector("input[name='content']");
             const postCard = form.closest(".feed-post-card");
             const commentsSection = form.closest("[data-comments]");
-            const commentToggleCount = postCard.querySelector("[data-comment-toggle] span:last-child");
+            const commentToggleCount = postCard ? postCard.querySelector("[data-comment-toggle] span:last-child") : null;
 
             if (!input || !input.value.trim()) {
                 return;
             }
 
             try {
-                const data = await submitAjaxForm(form);
-
+                const data = await submitAjaxForm(form, null);
                 const emptyMessage = commentsSection.querySelector(".feed-no-comments");
 
                 if (emptyMessage) {
@@ -971,15 +1441,12 @@ document.addEventListener("DOMContentLoaded", function () {
                 const authorName = data.comment.user || "User";
                 const content = data.comment.content || data.comment.text || "";
 
-                commentRow.innerHTML = `
-                    <div class="feed-comment-avatar">
-                        ${
-                            photoUrl
-                                ? `<img src="${photoUrl}?v=${data.comment.photo_version || Date.now()}" alt="${authorName}">`
-                                : `<span>${authorName.charAt(0).toUpperCase()}</span>`
-                        }
-                    </div>
+                const avatarHtml = photoUrl
+                    ? `<img src="${photoUrl}?v=${data.comment.photo_version || Date.now()}" alt="${authorName}">`
+                    : `<span>${authorName.charAt(0).toUpperCase()}</span>`;
 
+                commentRow.innerHTML = `
+                    <div class="feed-comment-avatar">${avatarHtml}</div>
                     <div class="feed-comment-body">
                         <strong>${authorName}</strong>
                         <p>${content}</p>
@@ -1013,7 +1480,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
 
                 try {
-                    const data = await submitAjaxForm(form);
+                    const data = await submitAjaxForm(form, null);
                     const postCard = document.getElementById("post-" + data.post_id) || form.closest(".feed-post-card");
 
                     if (postCard) {
@@ -1028,7 +1495,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             if (action.includes("/report/")) {
                 try {
-                    await submitAjaxForm(form);
+                    await submitAjaxForm(form, null);
                     alert("Post reported.");
 
                     const panel = form.closest("[data-menu-panel]");
@@ -1046,9 +1513,18 @@ document.addEventListener("DOMContentLoaded", function () {
     if (editPostForm) {
         editPostForm.addEventListener("submit", async function (event) {
             event.preventDefault();
+            clearFormError(editFormError);
+
+            const formError = validateFormBeforeSubmit(editPostForm);
+            if (formError) {
+                showFormError(editFormError, formError);
+                return;
+            }
+
+            setSubmitLoading(editPostForm, true);
 
             try {
-                const data = await submitAjaxForm(editPostForm);
+                const data = await submitAjaxForm(editPostForm, editFormError);
                 const postCard = document.getElementById("post-" + data.post_id);
 
                 if (postCard) {
@@ -1061,8 +1537,12 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
 
                 closeModal(editModal);
+                resetEditAttachments();
+                window.location.href = "{% url 'feed:feed_home' %}";
             } catch (error) {
-                alert(error.message);
+                showFormError(editFormError, error.message);
+            } finally {
+                setSubmitLoading(editPostForm, false);
             }
         });
     }

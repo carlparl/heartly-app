@@ -1,138 +1,222 @@
 {% extends "heartly/base.html" %}
 {% load static %}
 
-{% block title %}Chat - Heartly{% endblock %}
+{% block title %}Chat with {{ other_user_name|default:"Heartly User" }} - Heartly{% endblock %}
 
 {% block content %}
-<div class="ig-room-page">
+<div class="heartly-page chat-room-page" id="chatRoomPage">
 
-    <header class="ig-room-header">
-        <a href="{% url 'chat:chat_home' %}" class="ig-room-back" aria-label="Back">‹</a>
+    <header class="chat-room-header">
+        <a href="{% url 'chat:chat_home' %}" class="chat-back-btn" aria-label="Back to chats">
+            ‹
+        </a>
 
-        <a href="{% url 'profiles:public_profile' other_user.id %}" class="ig-room-user">
-            <div class="ig-room-avatar">
+        <button type="button" class="chat-user-button" id="profilePreviewBtn">
+            <div class="chat-user-avatar">
                 {% if other_user_photo %}
-                    <img src="{{ other_user_photo }}" alt="">
+                    <img src="{{ other_user_photo }}" alt="{{ other_user_name|default:'Heartly User' }}">
                 {% else %}
                     <span>{{ other_user_name|default:"U"|first|upper }}</span>
                 {% endif %}
             </div>
 
-            <div class="ig-room-user-copy">
+            <div class="chat-user-copy">
                 <strong>{{ other_user_name|default:"Heartly User" }}</strong>
                 <small>Heartly chat</small>
             </div>
-        </a>
+        </button>
 
-        <details class="ig-room-menu">
+        <details class="chat-options">
             <summary aria-label="Chat options">•••</summary>
 
-            <div class="ig-room-menu-list">
-                <button type="button" onclick="openProfilePreview()">Profile preview</button>
-                <a href="{% url 'profiles:public_profile' other_user.id %}">View profile</a>
-                <button type="button" onclick="toggleSelectMode()">Select messages</button>
-                <button type="button" onclick="startCall('audio')">Audio call</button>
-                <button type="button" onclick="startCall('video')">Video call</button>
-                <button type="button" onclick="openReportModal()">Report</button>
+            <div class="chat-options-menu">
+                <button type="button" id="openProfilePreviewBtn">
+                    Profile preview
+                </button>
+
+                <button type="button" id="toggleSelectModeBtn">
+                    Select messages
+                </button>
+
+                <button type="button" data-disabled-feature="Audio calls are not connected on this template yet.">
+                    Audio call
+                </button>
+
+                <button type="button" data-disabled-feature="Video calls are not connected on this template yet.">
+                    Video call
+                </button>
+
+                <button type="button" id="openReportModalBtn">
+                    Report
+                </button>
 
                 <form method="post" action="{% url 'chat:block_thread_user' thread.id %}">
                     {% csrf_token %}
-                    <button type="submit" onclick="return confirm('Block this user?')">Block</button>
+                    <button type="submit" class="danger" onclick="return confirm('Block this user? You will no longer receive messages from them.');">
+                        Block user
+                    </button>
                 </form>
             </div>
         </details>
     </header>
 
-    <main class="ig-room-messages" id="roomMessages">
+    {% if messages %}
+        <section class="chat-alerts">
+            {% for message in messages %}
+                <div class="chat-alert {{ message.tags }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </section>
+    {% endif %}
+
+    <main class="chat-messages" id="chatMessages">
         {% for message in chat_messages %}
-            <article class="ig-message-row {% if message.sender == request.user %}mine{% else %}theirs{% endif %}">
+            <article class="chat-message-row {% if message.sender == request.user %}mine{% else %}theirs{% endif %}">
                 {% if message.sender == request.user %}
                     <input
                         type="checkbox"
                         name="message_ids"
                         value="{{ message.id }}"
                         form="deleteSelectedForm"
-                        class="ig-message-check"
+                        class="message-check"
+                        aria-label="Select message"
                     >
                 {% endif %}
 
-                <div class="ig-bubble">
+                {% if message.sender != request.user %}
+                    <div class="message-avatar">
+                        {% if other_user_photo %}
+                            <img src="{{ other_user_photo }}" alt="">
+                        {% else %}
+                            <span>{{ other_user_name|default:"U"|first|upper }}</span>
+                        {% endif %}
+                    </div>
+                {% endif %}
+
+                <div class="message-bubble">
                     {% for attachment in message.attachments.all %}
-                        <div class="ig-attachment">
+                        <div class="message-attachment">
                             {% if attachment.attachment_type == "image" %}
-                                <img src="{{ attachment.file.url }}" alt="" class="ig-attachment-image" loading="lazy">
+                                <a href="{{ attachment.file.url }}" target="_blank" rel="noopener" class="image-attachment-link">
+                                    <img src="{{ attachment.file.url }}" alt="{{ attachment.original_filename|default:'Image attachment' }}" class="image-attachment" loading="lazy">
+                                </a>
                             {% elif attachment.attachment_type == "video" %}
-                                <video src="{{ attachment.file.url }}" controls class="ig-attachment-video" preload="metadata"></video>
+                                <video src="{{ attachment.file.url }}" controls preload="metadata" class="video-attachment"></video>
                             {% elif attachment.attachment_type == "file" %}
-                                <a href="{{ attachment.file.url }}" download class="ig-file-card">
-                                    <span class="ig-file-icon">📎</span>
-                                    <span class="ig-file-name">{{ attachment.original_filename|default:"Download file" }}</span>
+                                <a href="{{ attachment.file.url }}" target="_blank" rel="noopener" class="file-attachment">
+                                    <span class="file-icon">📎</span>
+                                    <span>
+                                        <strong>{{ attachment.original_filename|default:"Attached file" }}</strong>
+                                        <small>Tap to open</small>
+                                    </span>
                                 </a>
                             {% endif %}
-
-                            <div class="ig-attachment-actions">
-                                <a href="{{ attachment.file.url }}" download class="ig-download-btn">Download</a>
-                            </div>
                         </div>
                     {% endfor %}
 
                     {% if message.text %}
-                        <p>{{ message.text }}</p>
+                        <p>{{ message.text|linebreaksbr }}</p>
                     {% endif %}
 
-                    <time class="ig-message-meta">
+                    <time class="message-meta">
                         {{ message.created_at|date:"H:i" }}
                         {% if message.sender == request.user and message.is_read %}
-                            <span class="ig-seen">· Seen</span>
+                            <span>· Seen</span>
                         {% endif %}
                     </time>
                 </div>
             </article>
         {% empty %}
-            <section class="ig-room-empty">
-                <div class="ig-empty-camera">💬</div>
-                <h3>No messages yet</h3>
-                <p>Send a message to start chatting.</p>
+            <section class="chat-empty-state">
+                <div class="chat-empty-icon">💬</div>
+                <h2>No messages yet</h2>
+                <p>Start with a simple message, photo, or video.</p>
             </section>
         {% endfor %}
     </main>
 
-    <form method="post" action="{% url 'chat:delete_selected_messages' thread.id %}" id="deleteSelectedForm" class="ig-select-toolbar" hidden>
+    <form
+        method="post"
+        action="{% url 'chat:delete_selected_messages' thread.id %}"
+        id="deleteSelectedForm"
+        class="selected-toolbar"
+        hidden
+    >
         {% csrf_token %}
         <span id="selectedCount">0 selected</span>
         <button type="submit">Delete selected</button>
-        <button type="button" onclick="toggleSelectMode()">Cancel</button>
+        <button type="button" id="cancelSelectBtn">Cancel</button>
     </form>
 
-    <section class="ig-selected-media" id="selectedMediaBox" hidden>
-        <span id="selectedMediaText">No media selected</span>
-        <button type="button" id="clearSelectedMedia">×</button>
+    <section class="selected-media-bar" id="selectedMediaBar" hidden>
+        <span id="selectedMediaText">No file selected</span>
+        <button type="button" id="clearSelectedMediaBtn" aria-label="Remove selected file">×</button>
     </section>
 
-    <form method="post" action="{% url 'chat:send_message' thread.id %}" class="ig-composer" enctype="multipart/form-data" id="composerForm">
+    <form
+        method="post"
+        action="{% url 'chat:send_message' thread.id %}"
+        enctype="multipart/form-data"
+        class="chat-composer"
+        id="chatComposerForm"
+    >
         {% csrf_token %}
 
-        <button type="button" id="attachImageBtn" class="ig-composer-icon" title="Photo">📷</button>
-        <input type="file" name="image" id="imageInput" accept="image/jpeg,image/png,image/webp,image/gif" hidden>
+        <div class="composer-shell">
+            <button type="button" class="composer-plus" id="attachmentToggleBtn" aria-label="Open attachments">
+                +
+            </button>
 
-        <button type="button" id="attachVideoBtn" class="ig-composer-icon" title="Video">🎥</button>
-        <input type="file" name="video" id="videoInput" accept="video/mp4,video/webm,video/quicktime" hidden>
+            <div class="attachment-drawer" id="attachmentDrawer" hidden>
+                <label class="attachment-option">
+                    <span>📷</span>
+                    <strong>Camera</strong>
+                    <input type="file" name="image" id="cameraInput" accept="image/*" capture="environment" hidden>
+                </label>
 
-        <button type="button" id="attachFileBtn" class="ig-composer-icon" title="File">📎</button>
-        <input type="file" name="file" id="fileInput" accept=".pdf,.txt,.zip,.doc,.docx,.xls,.xlsx,.ppt,.pptx" hidden>
+                <label class="attachment-option">
+                    <span>🖼️</span>
+                    <strong>Photo</strong>
+                    <input type="file" name="image" id="photoInput" accept="image/*" hidden>
+                </label>
 
-        <div class="ig-composer-input-wrap">
-            <textarea name="text" rows="1" maxlength="1200" placeholder="Message..."></textarea>
+                <label class="attachment-option">
+                    <span>🎥</span>
+                    <strong>Video</strong>
+                    <input type="file" name="video" id="videoInput" accept="video/*" hidden>
+                </label>
+
+                <label class="attachment-option">
+                    <span>📎</span>
+                    <strong>File</strong>
+                    <input type="file" name="file" id="fileInput" accept=".pdf,.txt,.zip,.doc,.docx,.xls,.xlsx,.ppt,.pptx" hidden>
+                </label>
+            </div>
+
+            <textarea
+                name="text"
+                rows="1"
+                maxlength="1200"
+                class="composer-textarea"
+                id="messageInput"
+                placeholder="Message..."
+                autocomplete="off"
+            ></textarea>
+
+            <button type="submit" class="composer-send" aria-label="Send message">
+                ➤
+            </button>
         </div>
-
-        <button type="submit" class="ig-send-btn" aria-label="Send">➤</button>
     </form>
 
-    <div class="ig-modal" id="profilePreviewModal" hidden>
-        <div class="ig-modal-card">
-            <button type="button" class="ig-modal-close" onclick="closeProfilePreview()">×</button>
+    <div class="chat-modal" id="profilePreviewModal" hidden>
+        <div class="chat-modal-card">
+            <button type="button" class="modal-close-btn" data-close-modal="profilePreviewModal">
+                ×
+            </button>
 
-            <div class="ig-profile-preview-avatar">
+            <div class="profile-preview-avatar">
                 {% if other_user_photo %}
                     <img src="{{ other_user_photo }}" alt="">
                 {% else %}
@@ -144,1357 +228,953 @@
             <p>@{{ other_user.username }}</p>
 
             {% if other_profile.bio %}
-                <p class="ig-profile-preview-bio">{{ other_profile.bio|truncatechars:140 }}</p>
+                <p class="profile-preview-bio">
+                    {{ other_profile.bio|truncatechars:150 }}
+                </p>
             {% endif %}
-
-            <a href="{% url 'profiles:public_profile' other_user.id %}" class="ig-modal-primary">Open profile</a>
         </div>
     </div>
 
-    <div class="ig-modal" id="reportModal" hidden>
-        <form method="post" action="{% url 'chat:report_thread_user' thread.id %}" class="ig-modal-card">
+    <div class="chat-modal" id="reportModal" hidden>
+        <form method="post" action="{% url 'chat:report_thread_user' thread.id %}" class="chat-modal-card">
             {% csrf_token %}
 
-            <button type="button" class="ig-modal-close" onclick="closeReportModal()">×</button>
+            <button type="button" class="modal-close-btn" data-close-modal="reportModal">
+                ×
+            </button>
 
             <h2>Report chat</h2>
-            <p>Tell us what happened.</p>
+            <p>Tell us what happened in this conversation.</p>
 
             <select name="reason" required>
                 <option value="spam">Spam</option>
                 <option value="harassment">Harassment</option>
                 <option value="unsafe">Unsafe content</option>
-                <option value="fake">Fake or misleading</option>
+                <option value="fake">Fake or misleading profile</option>
                 <option value="other">Other</option>
             </select>
 
             <textarea name="details" rows="4" maxlength="600" placeholder="Add details..."></textarea>
 
-            <button type="submit" class="ig-modal-primary">Submit report</button>
+            <button type="submit" class="modal-primary-btn">
+                Submit report
+            </button>
         </form>
     </div>
 
-    <div class="ig-call-modal" id="callModal" hidden>
-        <div class="ig-call-card">
-            <video id="remoteVideo" autoplay playsinline></video>
-            <video id="localVideo" autoplay playsinline muted></video>
-
-            <div class="ig-call-copy">
-                <h2 id="callTitle">Calling...</h2>
-                <p id="callStatus">Connecting</p>
-            </div>
-
-            <div class="ig-call-actions">
-                <button type="button" id="acceptCallBtn" hidden>Accept</button>
-                <button type="button" id="declineCallBtn" hidden>Decline</button>
-                <button type="button" id="endCallBtn">End</button>
-            </div>
-        </div>
-    </div>
-
 </div>
-{% endblock %}
 
-{% block extra_css %}
-.ig-room-page {
-    min-height: 100vh;
-    max-width: 520px;
-    margin: 0 auto;
-    padding: 0 0 96px;
-    color: var(--heartly-text, #111827);
-    background: var(--heartly-bg, #ffffff);
-}
-
-.ig-room-header {
-    position: sticky;
-    top: calc(var(--heartly-topbar-height, 0px));
-    z-index: 900;
-    height: 62px;
-    padding: 0 14px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    background: var(--heartly-card, #ffffff);
-    border-bottom: 1px solid var(--heartly-border, #e5e7eb);
-}
-
-.ig-room-back {
-    width: 38px;
-    height: 38px;
-    border-radius: 50%;
-    display: grid;
-    place-items: center;
-    color: var(--heartly-text, #111827);
-    text-decoration: none;
-    font-size: 34px;
-    font-weight: 800;
-    line-height: 1;
-    flex-shrink: 0;
-}
-
-.ig-room-user {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    align-items: center;
-    gap: 11px;
-    color: inherit;
-    text-decoration: none;
-}
-
-.ig-room-avatar {
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    display: grid;
-    place-items: center;
-    overflow: hidden;
-    background: linear-gradient(135deg, var(--heartly-primary, #ec4899), var(--heartly-accent, #ef4444));
-    color: #ffffff;
-    font-size: 14px;
-    font-weight: 900;
-    flex-shrink: 0;
-}
-
-.ig-room-avatar img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.ig-room-user-copy {
-    min-width: 0;
-    display: grid;
-    gap: 1px;
-}
-
-.ig-room-user-copy strong {
-    color: var(--heartly-text, #111827);
-    font-size: 14px;
-    font-weight: 850;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.ig-room-user-copy small {
-    color: var(--heartly-muted, #6b7280);
-    font-size: 12px;
-    font-weight: 650;
-}
-
-.ig-room-menu {
-    position: relative;
-    flex-shrink: 0;
-}
-
-.ig-room-menu summary {
-    width: 38px;
-    height: 38px;
-    border-radius: 50%;
-    display: grid;
-    place-items: center;
-    color: var(--heartly-text, #111827);
-    cursor: pointer;
-    list-style: none;
-    font-size: 20px;
-    font-weight: 950;
-}
-
-.ig-room-menu summary::-webkit-details-marker {
-    display: none;
-}
-
-.ig-room-menu-list {
-    position: absolute;
-    top: 44px;
-    right: 0;
-    z-index: 1000;
-    width: 190px;
-    border-radius: 16px;
-    overflow: hidden;
-    background: var(--heartly-card, #ffffff);
-    border: 1px solid var(--heartly-border, #e5e7eb);
-    box-shadow: var(--heartly-shadow-soft, 0 12px 30px rgba(15, 23, 42, 0.08));
-}
-
-.ig-room-menu-list a,
-.ig-room-menu-list button {
-    width: 100%;
-    border: none;
-    display: block;
-    padding: 12px 13px;
-    background: transparent;
-    color: var(--heartly-text, #111827);
-    text-align: left;
-    text-decoration: none;
-    font-size: 13px;
-    font-weight: 800;
-    cursor: pointer;
-}
-
-.ig-room-menu-list a:hover,
-.ig-room-menu-list button:hover {
-    background: var(--heartly-card-soft, rgba(236, 72, 153, 0.08));
-}
-
-.ig-room-menu-list form {
-    margin: 0;
-}
-
-.ig-room-messages {
-    min-height: calc(100vh - 160px);
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    padding: 16px 14px 24px;
-}
-
-.ig-message-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 2px;
-}
-
-.ig-message-row.mine {
-    justify-content: flex-end;
-}
-
-.ig-message-row.theirs {
-    justify-content: flex-start;
-}
-
-.ig-message-check {
-    display: none;
-    width: 18px;
-    height: 18px;
-    accent-color: var(--heartly-primary, #ec4899);
-}
-
-.ig-room-page.select-mode .ig-message-check {
-    display: block;
-}
-
-.ig-bubble {
-    max-width: min(76%, 360px);
-    padding: 8px 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    position: relative;
-}
-
-.ig-message-row.mine .ig-bubble {
-    color: #ffffff;
-    background: var(--heartly-primary, #ec4899);
-    border-radius: 18px;
-    border-bottom-right-radius: 5px;
-}
-
-.ig-message-row.theirs .ig-bubble {
-    color: var(--heartly-text, #111827);
-    background: var(--heartly-card-soft, #efefef);
-    border-radius: 18px;
-    border-bottom-left-radius: 5px;
-}
-
-.ig-bubble p {
-    margin: 0;
-    font-size: 14px;
-    line-height: 1.42;
-    font-weight: 500;
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
-}
-
-.ig-message-meta {
-    align-self: flex-end;
-    opacity: 0.72;
-    font-size: 10px;
-    font-weight: 700;
-}
-
-.ig-attachment {
-    position: relative;
-    display: grid;
-    gap: 6px;
-}
-
-.ig-attachment-image,
-.ig-attachment-video {
-    width: 100%;
-    max-height: 310px;
-    border-radius: 14px;
-    display: block;
-    object-fit: cover;
-    background: #000000;
-}
-
-.ig-file-card {
-    min-width: 210px;
-    padding: 12px;
-    border-radius: 14px;
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    background: rgba(0, 0, 0, 0.08);
-    color: inherit;
-    text-decoration: none;
-    font-size: 13px;
-    font-weight: 850;
-}
-
-.ig-message-row.mine .ig-file-card {
-    background: rgba(255, 255, 255, 0.18);
-}
-
-.ig-file-icon {
-    font-size: 18px;
-    flex-shrink: 0;
-}
-
-.ig-file-name {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.ig-attachment-actions {
-    display: flex;
-    justify-content: flex-end;
-}
-
-.ig-download-btn {
-    width: fit-content;
-    min-height: 28px;
-    border-radius: 999px;
-    padding: 0 10px;
-    display: inline-flex;
-    align-items: center;
-    background: rgba(0, 0, 0, 0.55);
-    color: #ffffff;
-    text-decoration: none;
-    font-size: 11px;
-    font-weight: 850;
-}
-
-.ig-room-empty {
-    align-self: center;
-    text-align: center;
-    padding: 40px 20px;
-    margin-top: auto;
-    margin-bottom: auto;
-}
-
-.ig-empty-camera {
-    width: 64px;
-    height: 64px;
-    border-radius: 50%;
-    display: grid;
-    place-items: center;
-    margin: 0 auto 16px;
-    background: var(--heartly-card-soft, rgba(236, 72, 153, 0.08));
-    color: var(--heartly-primary, #ec4899);
-    font-size: 26px;
-}
-
-.ig-room-empty h3 {
-    margin: 0;
-    color: var(--heartly-text, #111827);
-    font-size: 16px;
-    font-weight: 900;
-}
-
-.ig-room-empty p {
-    margin: 6px 0 0;
-    color: var(--heartly-muted, #6b7280);
-    font-size: 14px;
-}
-
-.ig-typing-indicator {
-    align-self: flex-start;
-    margin: 4px 0 6px;
-    padding: 7px 11px;
-    border-radius: 999px;
-    background: var(--heartly-card-soft, rgba(236, 72, 153, 0.08));
-    color: var(--heartly-muted, #6b7280);
-    font-size: 12px;
-    font-weight: 800;
-}
-
-.ig-typing-indicator[hidden] {
-    display: none;
-}
-
-.ig-select-toolbar {
-    position: fixed;
-    left: 50%;
-    bottom: calc(var(--heartly-bottomnav-height, 74px) + 70px);
-    z-index: 960;
-    width: min(calc(100% - 24px), 440px);
-    transform: translateX(-50%);
-    padding: 8px;
-    border-radius: 999px;
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    justify-content: space-between;
-    background: var(--heartly-card, #ffffff);
-    border: 1px solid var(--heartly-border, #e5e7eb);
-    box-shadow: var(--heartly-shadow-soft, 0 12px 30px rgba(15, 23, 42, 0.08));
-}
-
-.ig-select-toolbar[hidden] {
-    display: none;
-}
-
-.ig-select-toolbar span,
-.ig-select-toolbar button {
-    font-size: 12px;
-    font-weight: 900;
-}
-
-.ig-select-toolbar button {
-    border: none;
-    border-radius: 999px;
-    padding: 8px 10px;
-    background: var(--heartly-card-soft, rgba(236, 72, 153, 0.08));
-    color: var(--heartly-primary, #ec4899);
-    cursor: pointer;
-}
-
-.ig-selected-media {
-    position: fixed;
-    left: 50%;
-    bottom: calc(var(--heartly-bottomnav-height, 74px) + 70px);
-    z-index: 950;
-    width: min(calc(100% - 32px), 420px);
-    transform: translateX(-50%);
-    padding: 8px 12px;
-    border-radius: 999px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    background: var(--heartly-card, #ffffff);
-    border: 1px solid var(--heartly-border, #e5e7eb);
-    box-shadow: var(--heartly-shadow-soft, 0 12px 30px rgba(15, 23, 42, 0.08));
-    color: var(--heartly-text, #111827);
-    font-size: 13px;
-    font-weight: 750;
-}
-
-.ig-selected-media[hidden] {
-    display: none;
-}
-
-.ig-selected-media button {
-    border: none;
-    border-radius: 50%;
-    width: 28px;
-    height: 28px;
-    display: grid;
-    place-items: center;
-    background: var(--heartly-card-soft, rgba(236, 72, 153, 0.08));
-    color: var(--heartly-primary, #ec4899);
-    cursor: pointer;
-    font-size: 18px;
-}
-
-.ig-composer {
-    position: fixed;
-    left: 50%;
-    bottom: calc(var(--heartly-bottomnav-height, 74px));
-    z-index: 950;
-    width: min(100%, 520px);
-    transform: translateX(-50%);
-    padding: 8px 12px 12px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: var(--heartly-card, #ffffff);
-    border-top: 1px solid var(--heartly-border, #e5e7eb);
-}
-
-.ig-composer-icon,
-.ig-send-btn {
-    width: 36px;
-    height: 36px;
-    border: none;
-    border-radius: 50%;
-    display: grid;
-    place-items: center;
-    background: transparent;
-    color: var(--heartly-text, #111827);
-    cursor: pointer;
-    flex-shrink: 0;
-    font-size: 17px;
-}
-
-.ig-send-btn {
-    color: var(--heartly-primary, #ec4899);
-    font-weight: 950;
-}
-
-.ig-composer-input-wrap {
-    flex: 1;
-    min-width: 0;
-    background: var(--heartly-card-soft, rgba(236, 72, 153, 0.08));
-    border-radius: 999px;
-    display: flex;
-    align-items: center;
-}
-
-.ig-composer textarea {
-    width: 100%;
-    min-height: 36px;
-    max-height: 100px;
-    resize: none;
-    border: none;
-    border-radius: 999px;
-    padding: 9px 12px;
-    color: var(--heartly-text, #111827);
-    background: transparent;
-    outline: none;
-    font-size: 14px;
-    font-family: inherit;
-    line-height: 1.35;
-}
-
-.ig-composer textarea::placeholder {
-    color: var(--heartly-muted, #6b7280);
-}
-
-.ig-modal,
-.ig-call-modal {
-    position: fixed;
-    inset: 0;
-    z-index: 2000;
-    display: grid;
-    place-items: center;
-    padding: 18px;
-    background: rgba(0, 0, 0, 0.45);
-}
-
-.ig-call-modal {
-    z-index: 3000;
-    background: rgba(0, 0, 0, 0.82);
-}
-
-.ig-modal[hidden],
-.ig-call-modal[hidden] {
-    display: none;
-}
-
-.ig-modal-card {
-    width: min(100%, 360px);
-    position: relative;
-    border-radius: 24px;
-    padding: 22px 18px 18px;
-    background: var(--heartly-card, #ffffff);
-    color: var(--heartly-text, #111827);
-    box-shadow: var(--heartly-shadow-soft, 0 12px 30px rgba(15, 23, 42, 0.08));
-    display: grid;
-    gap: 12px;
-    text-align: center;
-}
-
-.ig-modal-close {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    width: 34px;
-    height: 34px;
-    border: none;
-    border-radius: 50%;
-    background: var(--heartly-card-soft, rgba(236, 72, 153, 0.08));
-    color: var(--heartly-primary, #ec4899);
-    cursor: pointer;
-    font-size: 20px;
-}
-
-.ig-profile-preview-avatar {
-    width: 86px;
-    height: 86px;
-    margin: 0 auto;
-    border-radius: 50%;
-    display: grid;
-    place-items: center;
-    overflow: hidden;
-    background: linear-gradient(135deg, var(--heartly-primary, #ec4899), var(--heartly-accent, #ef4444));
-    color: #ffffff;
-    font-size: 30px;
-    font-weight: 950;
-}
-
-.ig-profile-preview-avatar img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.ig-modal-card h2 {
-    margin: 0;
-    font-size: 20px;
-    font-weight: 950;
-}
-
-.ig-modal-card p {
-    margin: 0;
-    color: var(--heartly-muted, #6b7280);
-    font-size: 13px;
-    line-height: 1.45;
-}
-
-.ig-profile-preview-bio {
-    padding: 10px;
-    border-radius: 16px;
-    background: var(--heartly-card-soft, rgba(236, 72, 153, 0.08));
-}
-
-.ig-modal-card select,
-.ig-modal-card textarea {
-    width: 100%;
-    border: 1px solid var(--heartly-border, #e5e7eb);
-    border-radius: 14px;
-    padding: 11px;
-    background: transparent;
-    color: var(--heartly-text, #111827);
-    outline: none;
-    font-family: inherit;
-}
-
-.ig-modal-primary {
-    border: none;
-    min-height: 42px;
-    border-radius: 999px;
-    display: grid;
-    place-items: center;
-    background: var(--heartly-primary, #ec4899);
-    color: #ffffff;
-    text-decoration: none;
-    font-weight: 950;
-    cursor: pointer;
-}
-
-.ig-call-card {
-    width: min(100%, 420px);
-    min-height: 520px;
-    border-radius: 28px;
-    overflow: hidden;
-    position: relative;
-    display: grid;
-    align-content: end;
-    background: #111827;
-    color: #ffffff;
-}
-
-#remoteVideo {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    background: #020617;
-}
-
-#localVideo {
-    position: absolute;
-    right: 14px;
-    top: 14px;
-    width: 110px;
-    height: 150px;
-    border-radius: 18px;
-    object-fit: cover;
-    background: #111827;
-    border: 2px solid rgba(255, 255, 255, 0.6);
-}
-
-.ig-call-copy {
-    position: relative;
-    z-index: 2;
-    padding: 24px 18px 10px;
-    text-align: center;
-    background: linear-gradient(transparent, rgba(0, 0, 0, 0.76));
-}
-
-.ig-call-copy h2 {
-    margin: 0;
-    font-size: 24px;
-    font-weight: 950;
-}
-
-.ig-call-copy p {
-    margin: 6px 0 0;
-    color: rgba(255, 255, 255, 0.78);
-    font-size: 14px;
-    font-weight: 750;
-}
-
-.ig-call-actions {
-    position: relative;
-    z-index: 2;
-    display: flex;
-    justify-content: center;
-    gap: 12px;
-    padding: 12px 16px 22px;
-    background: rgba(0, 0, 0, 0.76);
-}
-
-.ig-call-actions button {
-    min-width: 82px;
-    min-height: 44px;
-    border: none;
-    border-radius: 999px;
-    color: #ffffff;
-    font-size: 13px;
-    font-weight: 950;
-    cursor: pointer;
-}
-
-#acceptCallBtn {
-    background: #22c55e;
-}
-
-#declineCallBtn,
-#endCallBtn {
-    background: #ef4444;
-}
-
-@media (max-width: 430px) {
-    .ig-room-messages {
-        padding-left: 12px;
-        padding-right: 12px;
+<style>
+    .chat-room-page {
+        min-height: calc(100vh - var(--heartly-bottomnav-height, 0px));
+        max-width: 620px;
+        margin: 0 auto;
+        padding: 0 0 calc(var(--heartly-bottomnav-height, 74px) + 86px);
+        color: var(--heartly-text, #111827);
+        background: var(--heartly-bg, #ffffff);
     }
 
-    .ig-bubble {
-        max-width: 78%;
+    .chat-room-header {
+        position: sticky;
+        top: var(--heartly-topbar-height, 0px);
+        z-index: 80;
+        min-height: 64px;
+        padding: 10px 12px;
+        display: grid;
+        grid-template-columns: 42px 1fr 42px;
+        align-items: center;
+        gap: 8px;
+        background: color-mix(in srgb, var(--heartly-bg, #ffffff) 92%, transparent);
+        backdrop-filter: blur(18px);
+        border-bottom: 1px solid var(--heartly-border, rgba(17, 24, 39, 0.08));
     }
 
-    .ig-composer {
+    .chat-back-btn,
+    .chat-options summary,
+    .composer-plus,
+    .composer-send,
+    .modal-close-btn {
+        border: none;
+        text-decoration: none;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .chat-back-btn,
+    .chat-options summary {
+        width: 42px;
+        height: 42px;
+        border-radius: 999px;
+        display: grid;
+        place-items: center;
+        background: var(--heartly-card-soft, #f3f4f6);
+        color: var(--heartly-text, #111827);
+        font-weight: 900;
+    }
+
+    .chat-back-btn {
+        font-size: 2rem;
+        line-height: 1;
+    }
+
+    .chat-user-button {
+        min-width: 0;
+        border: none;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: transparent;
+        color: inherit;
+        text-align: left;
+        cursor: pointer;
+    }
+
+    .chat-user-avatar,
+    .message-avatar,
+    .profile-preview-avatar {
+        overflow: hidden;
+        display: grid;
+        place-items: center;
+        color: #ffffff;
+        background: linear-gradient(135deg, var(--heartly-primary, #ff4f7b), #e0355f);
+        font-weight: 900;
+        flex: 0 0 auto;
+    }
+
+    .chat-user-avatar {
+        width: 42px;
+        height: 42px;
+        border-radius: 16px;
+    }
+
+    .chat-user-avatar img,
+    .message-avatar img,
+    .profile-preview-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    .chat-user-copy {
+        min-width: 0;
+        display: grid;
+        gap: 2px;
+    }
+
+    .chat-user-copy strong {
+        color: var(--heartly-text, #111827);
+        font-size: 0.94rem;
+        font-weight: 900;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .chat-user-copy small {
+        color: var(--heartly-muted, #6b7280);
+        font-size: 0.75rem;
+        font-weight: 700;
+    }
+
+    .chat-options {
+        position: relative;
+    }
+
+    .chat-options summary {
+        list-style: none;
+        font-size: 1rem;
+        letter-spacing: -0.15em;
+    }
+
+    .chat-options summary::-webkit-details-marker {
+        display: none;
+    }
+
+    .chat-options-menu {
+        position: absolute;
+        top: 48px;
+        right: 0;
+        z-index: 100;
+        width: 210px;
+        border-radius: 18px;
+        overflow: hidden;
+        background: var(--heartly-card, #ffffff);
+        border: 1px solid var(--heartly-border, rgba(17, 24, 39, 0.08));
+        box-shadow: 0 18px 55px rgba(15, 23, 42, 0.16);
+    }
+
+    .chat-options-menu button,
+    .chat-options-menu a {
+        width: 100%;
+        border: none;
+        display: block;
+        padding: 13px 14px;
+        background: transparent;
+        color: var(--heartly-text, #111827);
+        text-align: left;
+        text-decoration: none;
+        font-size: 0.86rem;
+        font-weight: 800;
+        cursor: pointer;
+    }
+
+    .chat-options-menu button:hover,
+    .chat-options-menu a:hover {
+        background: rgba(255, 79, 123, 0.09);
+    }
+
+    .chat-options-menu form {
+        margin: 0;
+    }
+
+    .chat-options-menu .danger {
+        color: #c52249;
+    }
+
+    .chat-alerts {
+        padding: 10px 12px 0;
+        display: grid;
+        gap: 8px;
+    }
+
+    .chat-alert {
+        padding: 10px 12px;
+        border-radius: 14px;
+        background: rgba(255, 79, 123, 0.10);
+        color: var(--heartly-text, #111827);
+        font-size: 0.86rem;
+        font-weight: 700;
+    }
+
+    .chat-messages {
+        min-height: calc(100vh - 230px);
+        padding: 16px 12px 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .chat-message-row {
+        display: flex;
+        align-items: flex-end;
+        gap: 8px;
+    }
+
+    .chat-message-row.mine {
+        justify-content: flex-end;
+    }
+
+    .chat-message-row.theirs {
+        justify-content: flex-start;
+    }
+
+    .message-check {
+        display: none;
+        width: 18px;
+        height: 18px;
+        accent-color: var(--heartly-primary, #ff4f7b);
+    }
+
+    .chat-room-page.select-mode .message-check {
+        display: block;
+    }
+
+    .message-avatar {
+        width: 30px;
+        height: 30px;
+        border-radius: 12px;
+    }
+
+    .message-bubble {
+        max-width: min(78%, 390px);
+        padding: 9px 12px;
+        display: grid;
+        gap: 6px;
+        border-radius: 20px;
+        overflow-wrap: anywhere;
+    }
+
+    .chat-message-row.mine .message-bubble {
+        background: linear-gradient(135deg, var(--heartly-primary, #ff4f7b), #e0355f);
+        color: #ffffff;
+        border-bottom-right-radius: 6px;
+    }
+
+    .chat-message-row.theirs .message-bubble {
+        background: var(--heartly-card-soft, #f2f3f6);
+        color: var(--heartly-text, #111827);
+        border-bottom-left-radius: 6px;
+    }
+
+    .message-bubble p {
+        margin: 0;
+        font-size: 0.94rem;
+        line-height: 1.42;
+        font-weight: 500;
+    }
+
+    .message-meta {
+        justify-self: end;
+        opacity: 0.72;
+        font-size: 0.68rem;
+        font-weight: 750;
+    }
+
+    .message-attachment {
+        display: grid;
+        gap: 6px;
+    }
+
+    .image-attachment-link,
+    .image-attachment,
+    .video-attachment {
+        display: block;
+        width: 100%;
+        border-radius: 15px;
+        overflow: hidden;
+    }
+
+    .image-attachment,
+    .video-attachment {
+        max-height: 320px;
+        object-fit: cover;
+        background: #111111;
+    }
+
+    .file-attachment {
+        min-width: 210px;
+        padding: 12px;
+        border-radius: 15px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: inherit;
+        background: rgba(255, 255, 255, 0.18);
+        text-decoration: none;
+    }
+
+    .chat-message-row.theirs .file-attachment {
+        background: rgba(17, 24, 39, 0.06);
+    }
+
+    .file-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 13px;
+        display: grid;
+        place-items: center;
+        background: rgba(255, 255, 255, 0.22);
+        flex: 0 0 auto;
+    }
+
+    .file-attachment strong,
+    .file-attachment small {
+        display: block;
+    }
+
+    .file-attachment strong {
+        font-size: 0.82rem;
+        max-width: 170px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .file-attachment small {
+        opacity: 0.72;
+        font-size: 0.72rem;
+    }
+
+    .chat-empty-state {
+        min-height: 46vh;
+        display: grid;
+        place-items: center;
+        align-content: center;
+        text-align: center;
+        color: var(--heartly-muted, #6b7280);
+    }
+
+    .chat-empty-icon {
+        width: 62px;
+        height: 62px;
+        border-radius: 24px;
+        display: grid;
+        place-items: center;
+        background: rgba(255, 79, 123, 0.10);
+        font-size: 1.8rem;
+    }
+
+    .chat-empty-state h2 {
+        margin: 14px 0 6px;
+        color: var(--heartly-text, #111827);
+        font-size: 1.1rem;
+    }
+
+    .chat-empty-state p {
+        margin: 0;
+        font-size: 0.9rem;
+    }
+
+    .selected-toolbar,
+    .selected-media-bar {
+        position: sticky;
+        z-index: 85;
+        margin: 0 12px 8px;
+        padding: 10px;
+        border-radius: 18px;
+        background: var(--heartly-card, #ffffff);
+        border: 1px solid var(--heartly-border, rgba(17, 24, 39, 0.08));
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+    }
+
+    .selected-toolbar {
+        bottom: calc(var(--heartly-bottomnav-height, 74px) + 80px);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+    }
+
+    .selected-toolbar[hidden],
+    .selected-media-bar[hidden],
+    .attachment-drawer[hidden],
+    .chat-modal[hidden] {
+        display: none !important;
+    }
+
+    .selected-toolbar span,
+    .selected-media-bar span {
+        color: var(--heartly-text, #111827);
+        font-size: 0.84rem;
+        font-weight: 800;
+    }
+
+    .selected-toolbar button,
+    .selected-media-bar button {
+        min-height: 34px;
+        border: none;
+        border-radius: 999px;
+        padding: 0 12px;
+        background: rgba(255, 79, 123, 0.12);
+        color: var(--heartly-primary, #ff4f7b);
+        font-size: 0.78rem;
+        font-weight: 900;
+        cursor: pointer;
+    }
+
+    .selected-media-bar {
+        bottom: calc(var(--heartly-bottomnav-height, 74px) + 74px);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+    }
+
+    .chat-composer {
+        position: fixed;
+        left: 50%;
+        bottom: var(--heartly-bottomnav-height, 0px);
+        transform: translateX(-50%);
+        z-index: 90;
+        width: min(620px, 100%);
+        padding: 10px 12px 12px;
+        background: color-mix(in srgb, var(--heartly-bg, #ffffff) 92%, transparent);
+        backdrop-filter: blur(18px);
+        border-top: 1px solid var(--heartly-border, rgba(17, 24, 39, 0.08));
+        box-sizing: border-box;
+    }
+
+    .composer-shell {
+        position: relative;
+        display: flex;
+        align-items: flex-end;
+        gap: 9px;
+    }
+
+    .composer-plus,
+    .composer-send {
+        width: 43px;
+        height: 43px;
+        flex: 0 0 auto;
+        border-radius: 999px;
+        display: grid;
+        place-items: center;
+        font-weight: 950;
+    }
+
+    .composer-plus {
+        background: rgba(255, 79, 123, 0.12);
+        color: var(--heartly-primary, #ff4f7b);
+        font-size: 1.7rem;
+        line-height: 1;
+    }
+
+    .composer-send {
+        background: linear-gradient(135deg, var(--heartly-primary, #ff4f7b), #e0355f);
+        color: #ffffff;
+        font-size: 0.92rem;
+        box-shadow: 0 10px 22px rgba(255, 79, 123, 0.24);
+    }
+
+    .composer-textarea {
+        flex: 1;
+        min-height: 43px;
+        max-height: 106px;
+        padding: 12px 16px;
+        border: 1px solid rgba(17, 24, 39, 0.06);
+        border-radius: 999px;
+        background: #f3f4f6;
+        color: #181018;
+        outline: none;
+        resize: none;
+        font-size: 0.95rem;
+        line-height: 1.25;
+        box-sizing: border-box;
+        caret-color: var(--heartly-primary, #ff4f7b);
+    }
+
+    .composer-textarea::placeholder {
+        color: #74707a;
+    }
+
+    .composer-textarea:focus {
+        background: #ffffff;
+        border-color: rgba(255, 79, 123, 0.45);
+        box-shadow: 0 0 0 4px rgba(255, 79, 123, 0.12);
+    }
+
+    .attachment-drawer {
+        position: absolute;
+        left: 0;
+        bottom: 54px;
+        width: min(340px, calc(100vw - 24px));
+        padding: 12px;
+        border-radius: 24px;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 9px;
+        background: var(--heartly-card, #ffffff);
+        border: 1px solid var(--heartly-border, rgba(17, 24, 39, 0.08));
+        box-shadow: 0 22px 60px rgba(15, 23, 42, 0.18);
+    }
+
+    .attachment-option {
+        min-height: 78px;
+        border-radius: 18px;
+        display: grid;
+        place-items: center;
+        align-content: center;
         gap: 5px;
-        padding-left: 8px;
-        padding-right: 8px;
+        background: rgba(255, 79, 123, 0.09);
+        color: var(--heartly-text, #111827);
+        cursor: pointer;
+        text-align: center;
+        font-size: 0.78rem;
+        font-weight: 850;
     }
 
-    .ig-composer-icon,
-    .ig-send-btn {
-        width: 32px;
+    .attachment-option span {
+        font-size: 1.35rem;
     }
-}
-{% endblock %}
 
-{% block extra_js %}
+    .chat-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        padding: 18px;
+        display: grid;
+        place-items: center;
+        background: rgba(15, 23, 42, 0.55);
+    }
+
+    .chat-modal-card {
+        position: relative;
+        width: min(420px, 100%);
+        padding: 28px;
+        border-radius: 28px;
+        display: grid;
+        gap: 14px;
+        background: var(--heartly-card, #ffffff);
+        color: var(--heartly-text, #111827);
+        box-shadow: 0 25px 70px rgba(0, 0, 0, 0.24);
+        box-sizing: border-box;
+    }
+
+    .modal-close-btn {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        width: 34px;
+        height: 34px;
+        border-radius: 999px;
+        background: var(--heartly-card-soft, #f3f4f6);
+        color: var(--heartly-text, #111827);
+        font-size: 1.25rem;
+    }
+
+    .profile-preview-avatar {
+        width: 84px;
+        height: 84px;
+        border-radius: 30px;
+        margin: 0 auto;
+        font-size: 2rem;
+    }
+
+    .chat-modal-card h2 {
+        margin: 0;
+        text-align: center;
+        font-size: 1.35rem;
+    }
+
+    .chat-modal-card p {
+        margin: 0;
+        text-align: center;
+        color: var(--heartly-muted, #6b7280);
+        line-height: 1.5;
+    }
+
+    .profile-preview-bio {
+        padding: 12px;
+        border-radius: 16px;
+        background: var(--heartly-card-soft, #f3f4f6);
+    }
+
+    .chat-modal-card select,
+    .chat-modal-card textarea {
+        width: 100%;
+        border: 1px solid var(--heartly-border, rgba(17, 24, 39, 0.10));
+        border-radius: 16px;
+        padding: 12px;
+        background: #ffffff;
+        color: #181018;
+        font-size: 0.92rem;
+        outline: none;
+        box-sizing: border-box;
+    }
+
+    .modal-primary-btn {
+        min-height: 46px;
+        border: none;
+        border-radius: 16px;
+        background: linear-gradient(135deg, var(--heartly-primary, #ff4f7b), #e0355f);
+        color: #ffffff;
+        font-weight: 900;
+        cursor: pointer;
+    }
+
+    @media (max-width: 430px) {
+        .chat-room-page {
+            padding-bottom: calc(var(--heartly-bottomnav-height, 74px) + 82px);
+        }
+
+        .chat-room-header {
+            min-height: 60px;
+            grid-template-columns: 38px 1fr 38px;
+            padding-inline: 10px;
+        }
+
+        .chat-back-btn,
+        .chat-options summary {
+            width: 38px;
+            height: 38px;
+        }
+
+        .chat-user-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 14px;
+        }
+
+        .message-bubble {
+            max-width: 82%;
+        }
+
+        .attachment-drawer {
+            grid-template-columns: repeat(4, 1fr);
+            gap: 7px;
+        }
+
+        .attachment-option {
+            min-height: 70px;
+            border-radius: 16px;
+            font-size: 0.7rem;
+        }
+    }
+
+    @media (max-width: 340px) {
+        .attachment-drawer {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .composer-plus,
+        .composer-send {
+            width: 39px;
+            height: 39px;
+        }
+
+        .composer-textarea {
+            min-height: 39px;
+            padding-block: 10px;
+        }
+    }
+</style>
+
 <script>
-    const roomPage = document.querySelector(".ig-room-page");
-    const roomMessages = document.getElementById("roomMessages");
-    const composerForm = document.getElementById("composerForm");
-    const composerTextArea = document.querySelector(".ig-composer textarea");
+    document.addEventListener("DOMContentLoaded", function () {
+        const page = document.getElementById("chatRoomPage");
+        const messages = document.getElementById("chatMessages");
+        const attachmentToggleBtn = document.getElementById("attachmentToggleBtn");
+        const attachmentDrawer = document.getElementById("attachmentDrawer");
+        const messageInput = document.getElementById("messageInput");
+        const composerForm = document.getElementById("chatComposerForm");
+        const selectedMediaBar = document.getElementById("selectedMediaBar");
+        const selectedMediaText = document.getElementById("selectedMediaText");
+        const clearSelectedMediaBtn = document.getElementById("clearSelectedMediaBtn");
+        const deleteSelectedForm = document.getElementById("deleteSelectedForm");
+        const selectedCount = document.getElementById("selectedCount");
+        const toggleSelectModeBtn = document.getElementById("toggleSelectModeBtn");
+        const cancelSelectBtn = document.getElementById("cancelSelectBtn");
+        const profilePreviewModal = document.getElementById("profilePreviewModal");
+        const reportModal = document.getElementById("reportModal");
 
-    const selectToolbar = document.getElementById("deleteSelectedForm");
-    const selectedCount = document.getElementById("selectedCount");
+        const fileInputs = [
+            document.getElementById("cameraInput"),
+            document.getElementById("photoInput"),
+            document.getElementById("videoInput"),
+            document.getElementById("fileInput")
+        ].filter(Boolean);
 
-    const selectedMediaBox = document.getElementById("selectedMediaBox");
-    const selectedMediaText = document.getElementById("selectedMediaText");
-    const clearSelectedMedia = document.getElementById("clearSelectedMedia");
-
-    const attachImageBtn = document.getElementById("attachImageBtn");
-    const attachVideoBtn = document.getElementById("attachVideoBtn");
-    const attachFileBtn = document.getElementById("attachFileBtn");
-
-    const imageInput = document.getElementById("imageInput");
-    const videoInput = document.getElementById("videoInput");
-    const fileInput = document.getElementById("fileInput");
-
-    const callModal = document.getElementById("callModal");
-    const callTitle = document.getElementById("callTitle");
-    const callStatus = document.getElementById("callStatus");
-    const acceptCallBtn = document.getElementById("acceptCallBtn");
-    const declineCallBtn = document.getElementById("declineCallBtn");
-    const endCallBtn = document.getElementById("endCallBtn");
-    const localVideo = document.getElementById("localVideo");
-    const remoteVideo = document.getElementById("remoteVideo");
-
-    const currentUserId = Number("{{ request.user.id }}");
-    const threadId = "{{ thread.id }}";
-    const otherUserName = "{{ other_user_name|escapejs }}";
-
-    const urlParams = new URLSearchParams(window.location.search);
-    const autoAcceptCallId = urlParams.get("accept_call");
-    const autoAcceptCallType = urlParams.get("call_type") || "audio";
-    let autoAcceptStarted = false;
-
-    let chatSocket = null;
-    let socketReady = false;
-    let leavingPage = false;
-
-    let typingActive = false;
-    let typingStopTimer = null;
-
-    let peerConnection = null;
-    let localStream = null;
-    let currentCallId = null;
-    let currentCallType = "audio";
-    let isCaller = false;
-
-    const rtcConfig = {
-        iceServers: [
-            { urls: "stun:stun.l.google.com:19302" }
-        ]
-    };
-
-    const typingIndicator = document.createElement("div");
-    typingIndicator.className = "ig-typing-indicator";
-    typingIndicator.hidden = true;
-    typingIndicator.textContent = otherUserName + " is typing...";
-
-    if (roomMessages) {
-        roomMessages.appendChild(typingIndicator);
-    }
-
-    function scrollRoomToBottom() {
-        window.scrollTo({
-            top: document.body.scrollHeight,
-            behavior: "auto"
-        });
-    }
-
-    function openChatSocket() {
-        const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-        const socketUrl = protocol + "://" + window.location.host + "/ws/chat/" + threadId + "/";
-
-        chatSocket = new WebSocket(socketUrl);
-
-        chatSocket.onopen = function () {
-            socketReady = true;
-            console.log("Chat socket connected");
-
-            if (autoAcceptCallId && !autoAcceptStarted) {
-    autoAcceptStarted = true;
-
-    currentCallId = autoAcceptCallId;
-    currentCallType = autoAcceptCallType;
-    isCaller = false;
-
-    callTitle.textContent = autoAcceptCallType === "video" ? "Video call" : "Audio call";
-    callStatus.textContent = "Joining call...";
-    acceptCallBtn.hidden = true;
-    declineCallBtn.hidden = true;
-    endCallBtn.hidden = false;
-    callModal.hidden = false;
-
-    setTimeout(function () {
-        acceptIncomingCall();
-    }, 400);
-
-    window.history.replaceState({}, document.title, window.location.pathname);
-}
-        };
-
-        chatSocket.onclose = function () {
-            socketReady = false;
-            console.log("Chat socket closed");
-
-            if (!leavingPage) {
-                setTimeout(openChatSocket, 1200);
-            }
-        };
-
-        chatSocket.onerror = function (error) {
-            socketReady = false;
-            console.log("Chat socket error", error);
-        };
-
-        chatSocket.onmessage = function (event) {
-            const data = JSON.parse(event.data);
-
-            if (data.type === "chat.message") {
-                appendRealtimeMessage(data);
-            }
-
-            if (data.type === "typing" && Number(data.sender_id) !== currentUserId) {
-                typingIndicator.hidden = !data.is_typing;
-
-                if (data.is_typing) {
-                    scrollRoomToBottom();
-                }
-            }
-
-            if (data.type === "call.incoming" && Number(data.caller_id) !== currentUserId) {
-                currentCallId = data.call_id;
-                currentCallType = data.call_type;
-                isCaller = false;
-
-                callTitle.textContent = data.call_type === "video" ? "Incoming video call" : "Incoming audio call";
-                callStatus.textContent = otherUserName + " is calling";
-                acceptCallBtn.hidden = false;
-                declineCallBtn.hidden = false;
-                endCallBtn.hidden = true;
-                callModal.hidden = false;
-            }
-
-            if (data.type === "call.incoming" && Number(data.caller_id) === currentUserId) {
-                currentCallId = data.call_id;
-                callStatus.textContent = "Ringing...";
-            }
-
-            if (data.type === "call.accepted" && Number(data.sender_id) !== currentUserId && isCaller) {
-                callStatus.textContent = "Connecting...";
-                createOffer();
-            }
-
-            if (data.type === "call.declined") {
-                callStatus.textContent = "Call declined";
-
-                setTimeout(function () {
-                    endCurrentCall(false);
-                }, 800);
-            }
-
-            if (data.type === "call.ended") {
-                endCurrentCall(false);
-            }
-
-            if (data.type === "webrtc.offer" && Number(data.sender_id) !== currentUserId) {
-                handleOffer(data);
-            }
-
-            if (data.type === "webrtc.answer" && Number(data.sender_id) !== currentUserId) {
-                handleAnswer(data);
-            }
-
-            if (data.type === "webrtc.ice" && Number(data.sender_id) !== currentUserId) {
-                handleIce(data);
-            }
-        };
-    }
-
-    function sendSocketPayload(payload) {
-        if (chatSocket && socketReady) {
-            chatSocket.send(JSON.stringify(payload));
-            return true;
-        }
-
-        alert("Realtime connection is not ready yet. Refresh the page and try again.");
-        return false;
-    }
-
-    function appendRealtimeMessage(data) {
-        const emptyState = document.querySelector(".ig-room-empty");
-
-        if (emptyState) {
-            emptyState.remove();
-        }
-
-        const isMine = Number(data.sender_id) === currentUserId;
-
-        const row = document.createElement("article");
-        row.className = "ig-message-row " + (isMine ? "mine" : "theirs");
-
-        if (isMine) {
-            const checkbox = document.createElement("input");
-            checkbox.type = "checkbox";
-            checkbox.name = "message_ids";
-            checkbox.value = data.message_id;
-            checkbox.setAttribute("form", "deleteSelectedForm");
-            checkbox.className = "ig-message-check";
-            checkbox.addEventListener("change", updateSelectedCount);
-            row.appendChild(checkbox);
-        }
-
-        const bubble = document.createElement("div");
-        bubble.className = "ig-bubble";
-
-        const paragraph = document.createElement("p");
-        paragraph.textContent = data.text || "";
-        bubble.appendChild(paragraph);
-
-        const time = document.createElement("time");
-        time.className = "ig-message-meta";
-        time.textContent = data.created_at;
-        bubble.appendChild(time);
-
-        row.appendChild(bubble);
-
-        roomMessages.insertBefore(row, typingIndicator);
-        typingIndicator.hidden = true;
-        scrollRoomToBottom();
-    }
-
-    function toggleSelectMode() {
-        const isSelectMode = roomPage.classList.toggle("select-mode");
-        selectToolbar.hidden = !isSelectMode;
-
-        if (!isSelectMode) {
-            document.querySelectorAll(".ig-message-check").forEach(function (checkbox) {
-                checkbox.checked = false;
+        function scrollToBottom() {
+            window.requestAnimationFrame(function () {
+                window.scrollTo(0, document.body.scrollHeight);
             });
+
+            if (messages) {
+                messages.scrollTop = messages.scrollHeight;
+            }
+        }
+
+        function closeAttachmentDrawer() {
+            if (attachmentDrawer) {
+                attachmentDrawer.hidden = true;
+            }
+        }
+
+        function clearAllFiles() {
+            fileInputs.forEach(function (input) {
+                input.value = "";
+            });
+
+            if (selectedMediaBar) {
+                selectedMediaBar.hidden = true;
+            }
+
+            if (selectedMediaText) {
+                selectedMediaText.textContent = "No file selected";
+            }
+        }
+
+        function showSelectedFile(file, label) {
+            if (!file || !selectedMediaBar || !selectedMediaText) {
+                return;
+            }
+
+            selectedMediaText.textContent = label + ": " + file.name;
+            selectedMediaBar.hidden = false;
+            closeAttachmentDrawer();
+        }
+
+        function clearOtherFiles(activeInput) {
+            fileInputs.forEach(function (input) {
+                if (input !== activeInput) {
+                    input.value = "";
+                }
+            });
+        }
+
+        function updateSelectedCount() {
+            const count = document.querySelectorAll(".message-check:checked").length;
+
+            if (selectedCount) {
+                selectedCount.textContent = count + " selected";
+            }
+        }
+
+        function setSelectMode(enabled) {
+            if (!page || !deleteSelectedForm) {
+                return;
+            }
+
+            page.classList.toggle("select-mode", enabled);
+            deleteSelectedForm.hidden = !enabled;
+
+            if (!enabled) {
+                document.querySelectorAll(".message-check").forEach(function (checkbox) {
+                    checkbox.checked = false;
+                });
+            }
 
             updateSelectedCount();
         }
-    }
 
-    function updateSelectedCount() {
-        const count = document.querySelectorAll(".ig-message-check:checked").length;
-        selectedCount.textContent = count + " selected";
-    }
-
-    function openProfilePreview() {
-        document.getElementById("profilePreviewModal").hidden = false;
-    }
-
-    function closeProfilePreview() {
-        document.getElementById("profilePreviewModal").hidden = true;
-    }
-
-    function openReportModal() {
-        document.getElementById("reportModal").hidden = false;
-    }
-
-    function closeReportModal() {
-        document.getElementById("reportModal").hidden = true;
-    }
-
-    async function prepareLocalStream(callType) {
-        currentCallType = callType;
-
-        localStream = await navigator.mediaDevices.getUserMedia({
-            audio: true,
-            video: callType === "video"
-        });
-
-        localVideo.srcObject = localStream;
-    }
-
-    function createPeerConnection() {
-        peerConnection = new RTCPeerConnection(rtcConfig);
-
-        if (localStream) {
-            localStream.getTracks().forEach(function (track) {
-                peerConnection.addTrack(track, localStream);
-            });
-        }
-
-        peerConnection.ontrack = function (event) {
-            remoteVideo.srcObject = event.streams[0];
-            callStatus.textContent = "Connected";
-        };
-
-        peerConnection.onicecandidate = function (event) {
-            if (event.candidate && currentCallId) {
-                sendSocketPayload({
-                    type: "webrtc.ice",
-                    call_id: currentCallId,
-                    candidate: event.candidate
-                });
+        function openModal(modal) {
+            if (modal) {
+                modal.hidden = false;
             }
-        };
-    }
-
-    async function startCall(callType) {
-        if (!socketReady) {
-            alert("Realtime connection is not ready yet. Refresh the page and try again.");
-            return;
         }
 
-        try {
-            isCaller = true;
-            currentCallType = callType;
+        function closeModal(modal) {
+            if (modal) {
+                modal.hidden = true;
+            }
+        }
 
-            callTitle.textContent = callType === "video" ? "Video call" : "Audio call";
-            callStatus.textContent = "Requesting microphone...";
-            acceptCallBtn.hidden = true;
-            declineCallBtn.hidden = true;
-            endCallBtn.hidden = false;
-            callModal.hidden = false;
+        scrollToBottom();
 
-            await prepareLocalStream(callType);
-
-            callStatus.textContent = "Calling...";
-
-            sendSocketPayload({
-                type: "call.start",
-                call_type: callType
+        if (attachmentToggleBtn && attachmentDrawer) {
+            attachmentToggleBtn.addEventListener("click", function (event) {
+                event.stopPropagation();
+                attachmentDrawer.hidden = !attachmentDrawer.hidden;
             });
 
-            setTimeout(function () {
-                if (isCaller && currentCallId) {
-                    sendSocketPayload({
-                        type: "call.missed",
-                        call_id: currentCallId
-                    });
-
-                    callStatus.textContent = "No answer";
-
-                    setTimeout(function () {
-                        endCurrentCall(false);
-                    }, 900);
+            document.addEventListener("click", function (event) {
+                if (
+                    !attachmentDrawer.hidden &&
+                    !attachmentDrawer.contains(event.target) &&
+                    !attachmentToggleBtn.contains(event.target)
+                ) {
+                    closeAttachmentDrawer();
                 }
-            }, 30000);
-
-        } catch (error) {
-            console.log("Call start error", error);
-            alert("Camera or microphone permission is needed for calling.");
-            endCurrentCall(false);
-        }
-    }
-
-    async function acceptIncomingCall() {
-        try {
-            callStatus.textContent = "Requesting microphone...";
-            acceptCallBtn.hidden = true;
-            declineCallBtn.hidden = true;
-            endCallBtn.hidden = false;
-
-            await prepareLocalStream(currentCallType);
-            createPeerConnection();
-
-            sendSocketPayload({
-                type: "call.accept",
-                call_id: currentCallId
             });
-
-            callStatus.textContent = "Connecting...";
-        } catch (error) {
-            console.log("Accept call error", error);
-            alert("Camera or microphone permission is needed to accept this call.");
-            endCurrentCall(true);
         }
-    }
 
-    async function createOffer() {
-        createPeerConnection();
+        fileInputs.forEach(function (input) {
+            input.addEventListener("change", function () {
+                const file = input.files[0];
 
-        const offer = await peerConnection.createOffer();
-        await peerConnection.setLocalDescription(offer);
+                if (!file) {
+                    return;
+                }
 
-        sendSocketPayload({
-            type: "webrtc.offer",
-            call_id: currentCallId,
-            offer: offer
+                clearOtherFiles(input);
+
+                if (input.id === "videoInput") {
+                    showSelectedFile(file, "Video");
+                } else if (input.id === "fileInput") {
+                    showSelectedFile(file, "File");
+                } else {
+                    showSelectedFile(file, "Photo");
+                }
+            });
         });
-    }
 
-    async function handleOffer(data) {
-        if (!peerConnection) {
-            createPeerConnection();
+        if (clearSelectedMediaBtn) {
+            clearSelectedMediaBtn.addEventListener("click", clearAllFiles);
         }
 
-        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+        if (messageInput) {
+            messageInput.addEventListener("input", function () {
+                messageInput.style.height = "auto";
+                messageInput.style.height = Math.min(messageInput.scrollHeight, 106) + "px";
+            });
+        }
 
-        const answer = await peerConnection.createAnswer();
-        await peerConnection.setLocalDescription(answer);
+        if (composerForm) {
+            composerForm.addEventListener("submit", function (event) {
+                const text = messageInput ? messageInput.value.trim() : "";
+                const hasFile = fileInputs.some(function (input) {
+                    return input.files && input.files.length > 0;
+                });
 
-        sendSocketPayload({
-            type: "webrtc.answer",
-            call_id: currentCallId,
-            answer: answer
+                if (!text && !hasFile) {
+                    event.preventDefault();
+                    if (messageInput) {
+                        messageInput.focus();
+                    }
+                }
+            });
+        }
+
+        if (toggleSelectModeBtn) {
+            toggleSelectModeBtn.addEventListener("click", function () {
+                const isEnabled = page && page.classList.contains("select-mode");
+                setSelectMode(!isEnabled);
+
+                const options = document.querySelector(".chat-options");
+                if (options) {
+                    options.removeAttribute("open");
+                }
+            });
+        }
+
+        if (cancelSelectBtn) {
+            cancelSelectBtn.addEventListener("click", function () {
+                setSelectMode(false);
+            });
+        }
+
+        document.querySelectorAll(".message-check").forEach(function (checkbox) {
+            checkbox.addEventListener("change", updateSelectedCount);
         });
-    }
 
-    async function handleAnswer(data) {
-        if (!peerConnection) {
-            return;
-        }
+        if (deleteSelectedForm) {
+            deleteSelectedForm.addEventListener("submit", function (event) {
+                const count = document.querySelectorAll(".message-check:checked").length;
 
-        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
-        callStatus.textContent = "Connected";
-    }
+                if (count < 1) {
+                    event.preventDefault();
+                    alert("Select at least one message first.");
+                    return;
+                }
 
-    async function handleIce(data) {
-        if (!peerConnection || !data.candidate) {
-            return;
-        }
-
-        try {
-            await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
-        } catch (error) {
-            console.log("ICE error", error);
-        }
-    }
-
-    function endCurrentCall(sendEvent = true) {
-        if (sendEvent && currentCallId && socketReady) {
-            chatSocket.send(JSON.stringify({
-                type: "call.end",
-                call_id: currentCallId
-            }));
-        }
-
-        if (peerConnection) {
-            peerConnection.close();
-            peerConnection = null;
-        }
-
-        if (localStream) {
-            localStream.getTracks().forEach(function (track) {
-                track.stop();
+                if (!confirm("Delete selected messages for you?")) {
+                    event.preventDefault();
+                }
             });
-            localStream = null;
         }
 
-        localVideo.srcObject = null;
-        remoteVideo.srcObject = null;
-
-        callModal.hidden = true;
-        currentCallId = null;
-        currentCallType = "audio";
-        isCaller = false;
-    }
-
-    function showSelectedMedia(text) {
-        selectedMediaText.textContent = text;
-        selectedMediaBox.hidden = false;
-    }
-
-    function clearFiles() {
-        imageInput.value = "";
-        videoInput.value = "";
-        fileInput.value = "";
-        selectedMediaBox.hidden = true;
-    }
-
-    function clearOtherFiles(activeInput) {
-        if (activeInput !== imageInput) imageInput.value = "";
-        if (activeInput !== videoInput) videoInput.value = "";
-        if (activeInput !== fileInput) fileInput.value = "";
-    }
-
-    window.toggleSelectMode = toggleSelectMode;
-    window.openProfilePreview = openProfilePreview;
-    window.closeProfilePreview = closeProfilePreview;
-    window.openReportModal = openReportModal;
-    window.closeReportModal = closeReportModal;
-    window.startCall = startCall;
-
-    document.addEventListener("DOMContentLoaded", function () {
-        scrollRoomToBottom();
-        openChatSocket();
-    });
-
-    window.addEventListener("beforeunload", function () {
-        leavingPage = true;
-
-        if (chatSocket) {
-            chatSocket.close();
-        }
-    });
-
-    if (composerTextArea) {
-        composerTextArea.addEventListener("input", function () {
-            composerTextArea.style.height = "auto";
-            composerTextArea.style.height = Math.min(composerTextArea.scrollHeight, 100) + "px";
-
-            if (!socketReady) return;
-
-            if (!typingActive) {
-                typingActive = true;
-                sendSocketPayload({ type: "typing.start" });
-            }
-
-            clearTimeout(typingStopTimer);
-
-            typingStopTimer = setTimeout(function () {
-                typingActive = false;
-                sendSocketPayload({ type: "typing.stop" });
-            }, 900);
+        document.querySelectorAll("[data-disabled-feature]").forEach(function (button) {
+            button.addEventListener("click", function () {
+                alert(button.getAttribute("data-disabled-feature"));
+            });
         });
-    }
 
-    document.querySelectorAll(".ig-message-check").forEach(function (checkbox) {
-        checkbox.addEventListener("change", updateSelectedCount);
-    });
+        [
+            document.getElementById("profilePreviewBtn"),
+            document.getElementById("openProfilePreviewBtn")
+        ].filter(Boolean).forEach(function (button) {
+            button.addEventListener("click", function () {
+                openModal(profilePreviewModal);
+            });
+        });
 
-    attachImageBtn.addEventListener("click", function () {
-        imageInput.click();
-    });
+        const openReportModalBtn = document.getElementById("openReportModalBtn");
+        if (openReportModalBtn) {
+            openReportModalBtn.addEventListener("click", function () {
+                openModal(reportModal);
 
-    attachVideoBtn.addEventListener("click", function () {
-        videoInput.click();
-    });
-
-    attachFileBtn.addEventListener("click", function () {
-        fileInput.click();
-    });
-
-    imageInput.addEventListener("change", function () {
-        const file = imageInput.files[0];
-
-        if (file) {
-            clearOtherFiles(imageInput);
-            showSelectedMedia("Photo: " + file.name);
-        }
-    });
-
-    videoInput.addEventListener("change", function () {
-        const file = videoInput.files[0];
-
-        if (file) {
-            clearOtherFiles(videoInput);
-            showSelectedMedia("Video: " + file.name);
-        }
-    });
-
-    fileInput.addEventListener("change", function () {
-        const file = fileInput.files[0];
-
-        if (file) {
-            clearOtherFiles(fileInput);
-            showSelectedMedia("File: " + file.name);
-        }
-    });
-
-    clearSelectedMedia.addEventListener("click", clearFiles);
-
-    acceptCallBtn.addEventListener("click", acceptIncomingCall);
-
-    declineCallBtn.addEventListener("click", function () {
-        if (currentCallId) {
-            sendSocketPayload({
-                type: "call.decline",
-                call_id: currentCallId
+                const options = document.querySelector(".chat-options");
+                if (options) {
+                    options.removeAttribute("open");
+                }
             });
         }
 
-        endCurrentCall(false);
-    });
-
-    endCallBtn.addEventListener("click", function () {
-        endCurrentCall(true);
-    });
-
-    composerForm.addEventListener("submit", function (event) {
-        const text = composerTextArea.value.trim();
-
-        const hasMedia =
-            imageInput.files.length > 0 ||
-            videoInput.files.length > 0 ||
-            fileInput.files.length > 0;
-
-        if (!text && !hasMedia) {
-            event.preventDefault();
-            return;
-        }
-
-        if (hasMedia) {
-            return;
-        }
-
-        if (socketReady) {
-            event.preventDefault();
-
-            sendSocketPayload({
-                type: "chat.message",
-                text: text
+        document.querySelectorAll("[data-close-modal]").forEach(function (button) {
+            button.addEventListener("click", function () {
+                closeModal(document.getElementById(button.getAttribute("data-close-modal")));
             });
+        });
 
-            composerTextArea.value = "";
-            composerTextArea.style.height = "auto";
-
-            typingActive = false;
-            sendSocketPayload({ type: "typing.stop" });
-        }
+        document.querySelectorAll(".chat-modal").forEach(function (modal) {
+            modal.addEventListener("click", function (event) {
+                if (event.target === modal) {
+                    closeModal(modal);
+                }
+            });
+        });
     });
 </script>
 {% endblock %}

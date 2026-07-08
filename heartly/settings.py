@@ -327,7 +327,7 @@ STORAGES = {
 
 if MEDIA_STORAGE_BACKEND == "cloudinary":
     STORAGES["default"] = {
-        "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
+        "BACKEND": "heartly.storage_backends.AutoResourceCloudinaryStorage",
     }
 
 elif MEDIA_STORAGE_BACKEND == "s3":

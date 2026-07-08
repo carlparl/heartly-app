@@ -1,12 +1,13 @@
+from django.contrib import admin
+from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from django.contrib import admin
-from django.urls import include, path
 
 from accounts import views as accounts_views
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+
     path("", include("accounts.urls")),
     path("post-login-redirect/", accounts_views.post_login_redirect, name="post_login_redirect"),
     path("settings/", accounts_views.settings_view, name="settings"),
