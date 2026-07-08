@@ -1,79 +1,54 @@
-from django.conf import settings
-from django.db import models
+
 from django.utils import timezone
 
-from cloudinary_storage.storage import MediaCloudinaryStorage, VideoMediaCloudinaryStorage
+from django.conf import settings
+from django.db import models
+
+try:
+    from cloudinary_storage.storage import VideoMediaCloudinaryStorage
+except ImportError:
+    VideoMediaCloudinaryStorage = None
 
 
 class Post(models.Model):
-    """
-    Heartly feed post.
-
-    Compatibility rules:
-    - The database already uses feed_post.user_id, so keep the field name `user`.
-    - `author` is provided as a Python alias only, so older code using post.author still works.
-    - Images use Cloudinary image storage directly.
-    - Videos use Cloudinary video storage directly.
-    """
-
-    user = models.ForeignKey(
+    author = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name="feed_posts",
+        related_name="feed_posts"
     )
     content = models.TextField(blank=True)
 
     image = models.ImageField(
         upload_to="feed/images/",
-        storage=MediaCloudinaryStorage(),
         blank=True,
-        null=True,
+        null=True
     )
-    video = models.FileField(
-        upload_to="feed/videos/",
-        storage=VideoMediaCloudinaryStorage(),
-        blank=True,
-        null=True,
-    )
+
+    if VideoMediaCloudinaryStorage:
+        video = models.FileField(
+            upload_to="feed/videos/",
+            blank=True,
+            null=True,
+            storage=VideoMediaCloudinaryStorage()
+        )
+    else:
+        video = models.FileField(
+            upload_to="feed/videos/",
+            blank=True,
+            null=True
+        )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    edited_at = models.DateTimeField(null=True, blank=True)
+    edited_at = models.DateTimeField(blank=True, null=True)
 
     class Meta:
         ordering = ["-created_at"]
 
     def __str__(self):
-        name = getattr(self.user, "email", None) or getattr(self.user, "username", "User")
-        preview = (self.content or "Media post").strip()
-        if len(preview) > 48:
-            preview = preview[:45] + "..."
-        return f"{name}: {preview}"
+        return f"Post by {self.author} - {self.created_at:%Y-%m-%d %H:%M}"
 
-    @property
-    def author(self):
-        """Backward-compatible alias for older views/templates."""
-        return self.user
 
-    @author.setter
-    def author(self, value):
-        self.user = value
-
-    @property
-    def has_media(self):
-        return bool(self.image or self.video)
-
-    @property
-    def like_count(self):
-        return self.likes.count()
-
-    @property
-    def comment_count(self):
-        return self.comments.count()
-
-    def mark_edited(self):
-        self.edited_at = timezone.now()
-        self.save(update_fields=["content", "image", "video", "edited_at", "updated_at"])
 
 
 class PostLike(models.Model):
