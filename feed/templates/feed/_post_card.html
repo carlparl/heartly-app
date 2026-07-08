@@ -1,0 +1,115 @@
+<article class="feed-card" id="post-{{ post.id }}" data-post-id="{{ post.id }}">
+    <header class="post-head">
+        <div class="post-user">
+            <div class="feed-avatar">
+                {% if post.avatar_url %}
+                    <img
+                        src="{{ post.avatar_url }}"
+                        alt="{{ post.display_name }}"
+                        loading="lazy"
+                        onerror="this.style.display='none'; this.nextElementSibling.style.display='grid';"
+                    >
+                    <span class="avatar-fallback" style="display:none;">{{ post.avatar_initials }}</span>
+                {% else %}
+                    <span class="avatar-fallback">{{ post.avatar_initials }}</span>
+                {% endif %}
+            </div>
+            <div class="post-user-meta">
+                <span class="post-name">{{ post.display_name }}</span>
+                <span class="post-time">{{ post.created_at|timesince }} ago{% if post.edited_at %} · edited{% endif %}</span>
+            </div>
+        </div>
+
+        <details class="post-menu">
+            <summary aria-label="Post options">•••</summary>
+            <div class="post-menu-panel">
+                {% if post.user_id == request.user.id %}
+                    <button
+                        type="button"
+                        data-edit-button
+                        data-edit-url="{% url 'feed:edit_post' post.id %}"
+                        data-content="{{ post.content|default:''|escapejs }}"
+                    >Edit</button>
+                    <form method="post" action="{% url 'feed:delete_post' post.id %}" data-feed-ajax data-delete-post>
+                        {% csrf_token %}
+                        <button type="submit" class="danger" data-confirm="Delete this post?">Delete</button>
+                    </form>
+                {% else %}
+                    <form method="post" action="{% url 'feed:report_post' post.id %}" data-feed-ajax data-report-post>
+                        {% csrf_token %}
+                        <input type="hidden" name="reason" value="other">
+                        <button type="submit" class="danger">Report</button>
+                    </form>
+                {% endif %}
+            </div>
+        </details>
+    </header>
+
+    {% if post.content %}
+        <div class="post-content">{{ post.content|linebreaksbr }}</div>
+    {% endif %}
+
+    {% if post.image_url %}
+        <div class="post-media">
+            <img
+                src="{{ post.image_url }}"
+                alt="Post image"
+                class="post-image"
+                loading="lazy"
+                onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
+            >
+            <div class="media-error">Image could not be loaded. New Cloudinary uploads should display here.</div>
+        </div>
+    {% endif %}
+
+    {% if post.video_url %}
+        <div class="post-media">
+            <video
+                class="post-video"
+                controls
+                playsinline
+                preload="metadata"
+                onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
+            >
+                <source src="{{ post.video_url }}">
+                Your browser does not support video playback.
+            </video>
+            <div class="media-error">Video could not be loaded. Try a smaller MP4/MOV/WebM upload.</div>
+        </div>
+    {% endif %}
+
+    <div class="post-stats">
+        <span>♥ <span data-like-count>{{ post.likes_count }}</span></span>
+        <span>💬 <span data-comment-count>{{ post.comments_count }}</span></span>
+    </div>
+
+    <section class="post-actions">
+        <form method="post" action="{% url 'feed:like_post' post.id %}" class="action-form" data-feed-ajax data-like-form>
+            {% csrf_token %}
+            <button type="submit" class="action-btn {% if post.is_liked_by_user %}active{% endif %}" data-like-button>
+                <span>♥</span>
+                <span data-like-count>{{ post.likes_count }}</span>
+            </button>
+        </form>
+        <button type="button" class="action-btn" data-focus-comment="comment-{{ post.id }}">
+            <span>💬</span>
+            <span data-comment-count>{{ post.comments_count }}</span>
+        </button>
+    </section>
+
+    <section class="comments-box">
+        <div class="comment-list" data-comment-list>
+            {% for comment in post.visible_comments %}
+                {% include "feed/_comment_item.html" with comment=comment %}
+            {% endfor %}
+        </div>
+
+        <p class="comment-empty" data-comment-empty {% if post.visible_comments %}hidden{% endif %}>No comments yet.</p>
+
+        <form method="post" action="{% url 'feed:comment_post' post.id %}" class="comment-form" data-feed-ajax data-comment-form>
+            {% csrf_token %}
+            <input id="comment-{{ post.id }}" type="text" name="content" placeholder="Add a comment..." maxlength="500" autocomplete="off">
+            <button type="submit" class="comment-submit">Post</button>
+        </form>
+    </section>
+</article>

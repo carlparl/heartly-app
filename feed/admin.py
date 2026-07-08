@@ -7,30 +7,59 @@ from .models import Comment, Post, PostLike
 class PostAdmin(admin.ModelAdmin):
     list_display = (
         "id",
-        "user",
+        "posted_by",
         "short_content",
-        "created_at",
-        "updated_at",
+        "has_image",
+        "has_video",
     )
-    list_filter = (
-        "created_at",
-        "updated_at",
-    )
-    search_fields = (
-        "content",
-        "user__email",
-        "user__username",
-    )
-    readonly_fields = (
-        "created_at",
-        "updated_at",
-    )
-    ordering = ("-created_at",)
+    ordering = ("-id",)
+
+    def posted_by(self, obj):
+        return (
+            getattr(obj, "user", None)
+            or getattr(obj, "author", None)
+            or "Unknown"
+        )
+
+    posted_by.short_description = "User"
 
     def short_content(self, obj):
-        if not obj.content:
-            return "Media post"
-        return obj.content[:80]
+        content = getattr(obj, "content", "") or ""
+        return content[:60] + "..." if len(content) > 60 else content
+
+    short_content.short_description = "Content"
+
+    def has_image(self, obj):
+        return bool(getattr(obj, "image", None))
+
+    has_image.boolean = True
+    has_image.short_description = "Image"
+
+    def has_video(self, obj):
+        return bool(getattr(obj, "video", None))
+
+    has_video.boolean = True
+    has_video.short_description = "Video"
+
+
+@admin.register(Comment)
+class CommentAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "post",
+        "commented_by",
+        "short_content",
+    )
+    ordering = ("-id",)
+
+    def commented_by(self, obj):
+        return getattr(obj, "user", None) or "Unknown"
+
+    commented_by.short_description = "User"
+
+    def short_content(self, obj):
+        content = getattr(obj, "content", "") or ""
+        return content[:60] + "..." if len(content) > 60 else content
 
     short_content.short_description = "Content"
 
@@ -40,47 +69,11 @@ class PostLikeAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "post",
-        "user",
-        "created_at",
+        "liked_by",
     )
-    list_filter = (
-        "created_at",
-    )
-    search_fields = (
-        "user__email",
-        "user__username",
-        "post__content",
-    )
-    ordering = ("-created_at",)
+    ordering = ("-id",)
 
+    def liked_by(self, obj):
+        return getattr(obj, "user", None) or "Unknown"
 
-@admin.register(Comment)
-class CommentAdmin(admin.ModelAdmin):
-    list_display = (
-        "id",
-        "post",
-        "user",
-        "short_content",
-        "created_at",
-        "updated_at",
-    )
-    list_filter = (
-        "created_at",
-        "updated_at",
-    )
-    search_fields = (
-        "content",
-        "user__email",
-        "user__username",
-        "post__content",
-    )
-    readonly_fields = (
-        "created_at",
-        "updated_at",
-    )
-    ordering = ("-created_at",)
-
-    def short_content(self, obj):
-        return obj.content[:80] if obj.content else ""
-
-    short_content.short_description = "Comment"
+    liked_by.short_description = "User"

@@ -1,78 +1,105 @@
 (function () {
-  const STORAGE_KEY = "heartly-theme";
+  "use strict";
+
+  const OLD_KEY = "heartlyTheme";
+  const NEW_KEY = "heartly-theme";
   const root = document.documentElement;
-  const validThemes = ["system", "light", "dark"];
+  const validThemes = ["light", "dark"];
+
+  function preferredSystemTheme() {
+    if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
+      return "dark";
+    }
+    return "light";
+  }
 
   function getStoredTheme() {
-    const savedTheme = localStorage.getItem(STORAGE_KEY);
-
-    if (validThemes.includes(savedTheme)) {
-      return savedTheme;
-    }
-
-    return "system";
+    const stored = localStorage.getItem(OLD_KEY) || localStorage.getItem(NEW_KEY);
+    if (validThemes.includes(stored)) return stored;
+    return preferredSystemTheme();
   }
 
-  function applyTheme(theme) {
-    const safeTheme = validThemes.includes(theme) ? theme : "system";
+  function updateThemeControls(theme) {
+    document.querySelectorAll("[data-heartly-theme-choice]").forEach(function (button) {
+      const value = button.getAttribute("data-heartly-theme-choice");
+      button.classList.toggle("is-active", value === theme);
+      button.setAttribute("aria-pressed", value === theme ? "true" : "false");
+    });
 
-    root.setAttribute("data-theme", safeTheme);
-    localStorage.setItem(STORAGE_KEY, safeTheme);
+    document.querySelectorAll("[data-theme-choice]").forEach(function (button) {
+      const value = button.getAttribute("data-theme-choice");
+      button.classList.toggle("is-active", value === theme);
+      button.setAttribute("aria-pressed", value === theme ? "true" : "false");
+    });
 
-    updateThemeButtons(safeTheme);
-  }
+    document.querySelectorAll("[data-heartly-theme-input]").forEach(function (input) {
+      input.checked = input.value === theme;
+    });
 
-  function updateThemeButtons(activeTheme) {
-    const buttons = document.querySelectorAll("[data-theme-choice]");
-
-    buttons.forEach(function (button) {
-      const buttonTheme = button.getAttribute("data-theme-choice");
-
-      if (buttonTheme === activeTheme) {
-        button.classList.add("is-active");
-        button.setAttribute("aria-pressed", "true");
-      } else {
-        button.classList.remove("is-active");
-        button.setAttribute("aria-pressed", "false");
-      }
+    document.querySelectorAll("[data-heartly-theme-label]").forEach(function (label) {
+      label.textContent = theme === "dark" ? "Dark" : "Light";
     });
   }
 
-  function bindThemeButtons() {
-    const buttons = document.querySelectorAll("[data-theme-choice]");
+  function applyTheme(theme) {
+    const safeTheme = theme === "dark" ? "dark" : "light";
 
-    buttons.forEach(function (button) {
+    root.classList.toggle("heartly-dark-root", safeTheme === "dark");
+    root.setAttribute("data-heartly-theme", safeTheme);
+    root.setAttribute("data-theme", safeTheme);
+
+    if (document.body) {
+      document.body.classList.toggle("heartly-dark", safeTheme === "dark");
+      document.body.setAttribute("data-heartly-theme", safeTheme);
+      document.body.setAttribute("data-theme", safeTheme);
+    }
+
+    localStorage.setItem(OLD_KEY, safeTheme);
+    localStorage.setItem(NEW_KEY, safeTheme);
+
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    if (metaTheme) {
+      metaTheme.setAttribute("content", safeTheme === "dark" ? "#03080e" : "#18aaa1");
+    }
+
+    updateThemeControls(safeTheme);
+  }
+
+  function toggleTheme() {
+    applyTheme(root.classList.contains("heartly-dark-root") ? "light" : "dark");
+  }
+
+  function bindThemeControls() {
+    document.querySelectorAll("[data-heartly-theme-choice], [data-theme-choice]").forEach(function (button) {
       button.addEventListener("click", function () {
-        const selectedTheme = button.getAttribute("data-theme-choice");
-        applyTheme(selectedTheme);
+        applyTheme(button.getAttribute("data-heartly-theme-choice") || button.getAttribute("data-theme-choice"));
+      });
+    });
+
+    document.querySelectorAll("[data-heartly-theme-toggle]").forEach(function (button) {
+      button.addEventListener("click", toggleTheme);
+    });
+
+    document.querySelectorAll("[data-heartly-theme-input]").forEach(function (input) {
+      input.addEventListener("change", function () {
+        if (input.checked) applyTheme(input.value);
       });
     });
   }
 
-  function watchSystemThemeChanges() {
-    if (!window.matchMedia) return;
-
-    const systemTheme = window.matchMedia("(prefers-color-scheme: dark)");
-
-    systemTheme.addEventListener("change", function () {
-      const currentTheme = getStoredTheme();
-
-      if (currentTheme === "system") {
-        root.setAttribute("data-theme", "system");
-      }
-    });
-  }
-
-  document.addEventListener("DOMContentLoaded", function () {
-    const theme = getStoredTheme();
-
-    applyTheme(theme);
-    bindThemeButtons();
-    watchSystemThemeChanges();
-  });
-
+  window.applyHeartlyTheme = applyTheme;
+  window.setHeartlyTheme = applyTheme;
+  window.toggleHeartlyTheme = toggleTheme;
   window.HeartlyTheme = {
     applyTheme: applyTheme,
-    getStoredTheme: getStoredTheme
+    getStoredTheme: getStoredTheme,
+    toggleTheme: toggleTheme
   };
+
+  applyTheme(getStoredTheme());
+
+  document.addEventListener("DOMContentLoaded", function () {
+    applyTheme(getStoredTheme());
+    bindThemeControls();
+  });
 })();

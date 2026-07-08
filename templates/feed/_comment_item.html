@@ -1,0 +1,22 @@
+<div class="comment-item" data-comment-id="{{ comment.id }}">
+    <div class="comment-avatar">
+        {% if comment.avatar_url %}
+            <img
+                src="{{ comment.avatar_url }}"
+                alt="{{ comment.display_name }}"
+                loading="lazy"
+                onerror="this.style.display='none'; this.nextElementSibling.style.display='grid';"
+            >
+            <span class="avatar-fallback" style="display:none;">{{ comment.avatar_initials }}</span>
+        {% else %}
+            <span class="avatar-fallback">{{ comment.avatar_initials }}</span>
+        {% endif %}
+    </div>
+    <div class="comment-bubble">
+        <div class="comment-meta">
+            <strong>{{ comment.display_name }}</strong>
+            <span class="comment-time">{{ comment.created_at|timesince }} ago</span>
+        </div>
+        <div class="comment-text">{{ comment.content|linebreaksbr }}</div>
+    </div>
+</div>
