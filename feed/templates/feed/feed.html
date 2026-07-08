@@ -6,30 +6,6 @@
 {% block content %}
 <section class="heartly-feed-page">
 
-    <header class="feed-hero">
-        <div>
-            <p class="feed-kicker">Heartly Feed</p>
-            <h1>Share what is happening</h1>
-            <p class="feed-subtitle">
-                Post text, photos, or videos. Keep it simple, clean, and real.
-            </p>
-        </div>
-
-        <a href="{% url 'notifications:notifications_home' %}" class="feed-bell" aria-label="Notifications">
-            🔔
-        </a>
-    </header>
-
-    {% if messages %}
-        <div class="feed-messages">
-            {% for message in messages %}
-                <div class="feed-message feed-message-{{ message.tags }}">
-                    {{ message }}
-                </div>
-            {% endfor %}
-        </div>
-    {% endif %}
-
     <section class="feed-composer-card">
         <div class="composer-user">
             {% if viewer_avatar_url %}
@@ -119,9 +95,7 @@
                                 <strong>{{ post.display_name }}</strong>
                                 <span>
                                     {{ post.created_at|date:"M d, Y" }} · {{ post.created_at|time:"H:i" }}
-                                    {% if post.edited_at %}
-                                        · Edited
-                                    {% endif %}
+                                    {% if post.edited_at %} · Edited{% endif %}
                                 </span>
                             </div>
                         </div>
@@ -237,7 +211,7 @@
                         </form>
                     </div>
 
-                    {% if post.user_id == request.user.id %}
+                    {% if post.author_id == request.user.id %}
                         <div class="edit-post-panel" id="edit-post-{{ post.id }}" hidden>
                             <div class="edit-post-card">
                                 <div class="edit-post-head">
@@ -283,7 +257,7 @@
                                                 name="image"
                                                 accept="image/jpeg,image/png,image/webp"
                                             >
-                                            <span>Replace with photo</span>
+                                            <span>Replace photo</span>
                                         </label>
 
                                         <label class="media-chip">
@@ -292,7 +266,7 @@
                                                 name="video"
                                                 accept="video/mp4,video/quicktime,video/webm"
                                             >
-                                            <span>Replace with video</span>
+                                            <span>Replace video</span>
                                         </label>
                                     </div>
 
@@ -338,563 +312,566 @@
 {% endblock %}
 
 {% block extra_css %}
-<style>
-    .heartly-feed-page {
-        width: min(760px, calc(100% - 24px));
-        margin: 0 auto;
-        padding: 18px 0 96px;
-    }
+.heartly-feed-page {
+    width: 100%;
+    padding: 0 0 96px;
+}
 
-    .feed-hero {
-        display: flex;
-        justify-content: space-between;
-        gap: 18px;
-        align-items: center;
-        margin-bottom: 16px;
-    }
+.feed-composer-card,
+.post-card,
+.empty-feed-card {
+    background: var(--heartly-card);
+    border: 1px solid var(--heartly-border);
+    border-radius: 28px;
+    box-shadow: var(--heartly-shadow-soft);
+}
 
-    .feed-kicker {
-        margin: 0 0 4px;
-        font-size: 0.78rem;
-        font-weight: 800;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: var(--heartly-primary, #ff4f8b);
-    }
+.feed-composer-card {
+    padding: 16px;
+    margin-bottom: 16px;
+}
 
-    .feed-hero h1 {
-        margin: 0;
-        font-size: clamp(1.5rem, 5vw, 2.2rem);
-        letter-spacing: -0.04em;
-        color: var(--heartly-text, #15151f);
-    }
+.composer-user,
+.post-author-wrap,
+.comment-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
 
-    .feed-subtitle {
-        margin: 6px 0 0;
-        color: var(--heartly-muted, #777586);
-        line-height: 1.45;
-    }
+.composer-avatar,
+.post-avatar {
+    width: 46px;
+    height: 46px;
+    border-radius: 999px;
+    object-fit: cover;
+    flex: 0 0 auto;
+}
 
-    .feed-bell {
-        width: 44px;
-        height: 44px;
-        display: grid;
-        place-items: center;
-        border-radius: 999px;
-        text-decoration: none;
-        background: var(--heartly-card, #ffffff);
-        box-shadow: 0 12px 30px rgba(20, 20, 30, 0.08);
-        color: inherit;
-    }
+.composer-avatar-fallback,
+.post-avatar-fallback,
+.comment-avatar-fallback {
+    display: grid;
+    place-items: center;
+    font-weight: 950;
+    background: linear-gradient(135deg, var(--heartly-accent), var(--heartly-primary));
+    color: #ffffff;
+}
 
-    .feed-messages {
-        display: grid;
-        gap: 8px;
-        margin-bottom: 14px;
-    }
+.composer-user strong,
+.post-author-text strong {
+    display: block;
+    color: var(--heartly-text);
+    font-weight: 950;
+}
 
-    .feed-message {
-        border-radius: 16px;
-        padding: 12px 14px;
-        font-weight: 700;
-        background: rgba(255, 79, 139, 0.1);
-        color: var(--heartly-text, #15151f);
-    }
+.composer-user span,
+.post-author-text span {
+    display: block;
+    font-size: 0.86rem;
+    color: var(--heartly-muted);
+    font-weight: 700;
+}
 
+.feed-composer-form {
+    margin-top: 14px;
+}
+
+.composer-textarea,
+.edit-textarea {
+    width: 100%;
+    border: 1px solid var(--heartly-border);
+    border-radius: 22px;
+    padding: 14px;
+    resize: vertical;
+    outline: none;
+    background: var(--heartly-card-soft);
+    color: var(--heartly-text);
+    font: inherit;
+    font-weight: 650;
+}
+
+.composer-textarea::placeholder,
+.edit-textarea::placeholder {
+    color: var(--heartly-muted);
+}
+
+.composer-preview {
+    margin-top: 12px;
+    border-radius: 22px;
+    overflow: hidden;
+    background: #000000;
+}
+
+.composer-preview img,
+.composer-preview video {
+    width: 100%;
+    max-height: 420px;
+    display: block;
+    object-fit: contain;
+    background: #000000;
+}
+
+.composer-media-row,
+.edit-media-row,
+.edit-actions,
+.post-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.composer-media-row {
+    margin-top: 12px;
+}
+
+.media-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 42px;
+    padding: 0 14px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-weight: 900;
+    color: var(--heartly-text);
+    background: var(--heartly-card-soft);
+    border: 1px solid var(--heartly-border);
+}
+
+.media-chip input {
+    display: none;
+}
+
+.clear-media-btn,
+.secondary-btn {
+    min-height: 42px;
+    padding: 0 14px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-weight: 900;
+    color: var(--heartly-text);
+    background: var(--heartly-card-soft);
+}
+
+.post-submit-btn {
+    margin-left: auto;
+    min-height: 42px;
+    padding: 0 20px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-weight: 950;
+    color: #ffffff;
+    background: linear-gradient(135deg, var(--heartly-accent), var(--heartly-accent-2));
+    box-shadow: var(--heartly-shadow-btn);
+}
+
+.composer-note {
+    margin: 10px 2px 0;
+    font-size: 0.84rem;
+    color: var(--heartly-muted);
+    font-weight: 650;
+}
+
+.feed-list {
+    display: grid;
+    gap: 16px;
+}
+
+.post-card {
+    padding: 16px;
+}
+
+.post-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: flex-start;
+}
+
+.post-content {
+    margin: 14px 0;
+    color: var(--heartly-text);
+    line-height: 1.55;
+    font-weight: 700;
+}
+
+.post-media {
+    margin-top: 12px;
+    border-radius: 24px;
+    overflow: hidden;
+    background: #000000;
+}
+
+.post-image-wrap img,
+.post-video-wrap video {
+    width: 100%;
+    max-height: 560px;
+    display: block;
+    object-fit: contain;
+    background: #000000;
+}
+
+.post-menu {
+    position: relative;
+}
+
+.post-menu summary {
+    list-style: none;
+    cursor: pointer;
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    background: var(--heartly-card-soft);
+    color: var(--heartly-text);
+    font-weight: 950;
+}
+
+.post-menu summary::-webkit-details-marker {
+    display: none;
+}
+
+.post-menu-panel {
+    position: absolute;
+    right: 0;
+    top: 44px;
+    min-width: 170px;
+    padding: 8px;
+    border-radius: 18px;
+    background: var(--heartly-card);
+    border: 1px solid var(--heartly-border);
+    box-shadow: var(--heartly-shadow);
+    z-index: 20;
+}
+
+.post-menu-panel form {
+    margin: 0;
+}
+
+.post-menu-item {
+    width: 100%;
+    background: transparent;
+    text-align: left;
+    padding: 10px 12px;
+    border-radius: 12px;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 900;
+    color: var(--heartly-text);
+}
+
+.post-menu-item:hover {
+    background: var(--heartly-card-soft);
+}
+
+.post-menu-item.danger {
+    color: #ef4444;
+}
+
+.post-stats {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--heartly-border);
+    color: var(--heartly-muted);
+    font-size: 0.9rem;
+    font-weight: 850;
+}
+
+.post-actions {
+    margin-top: 10px;
+}
+
+.post-action-form {
+    margin: 0;
+}
+
+.post-action-btn {
+    border-radius: 999px;
+    min-height: 38px;
+    padding: 0 14px;
+    cursor: pointer;
+    font-weight: 950;
+    color: var(--heartly-text);
+    background: var(--heartly-card-soft);
+}
+
+.post-action-btn.is-active {
+    color: #ffffff;
+    background: linear-gradient(135deg, var(--heartly-accent), var(--heartly-accent-2));
+}
+
+.comments-wrap {
+    margin-top: 12px;
+}
+
+.comments-list {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.comment-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    object-fit: cover;
+    flex: 0 0 auto;
+}
+
+.comment-bubble {
+    flex: 1;
+    background: var(--heartly-card-soft);
+    border-radius: 18px;
+    padding: 10px 12px;
+    border: 1px solid var(--heartly-border);
+}
+
+.comment-bubble strong {
+    display: block;
+    font-size: 0.86rem;
+    color: var(--heartly-text);
+    margin-bottom: 3px;
+    font-weight: 950;
+}
+
+.comment-bubble p {
+    margin: 0;
+    color: var(--heartly-text);
+    line-height: 1.4;
+    font-weight: 700;
+}
+
+.comment-form {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.comment-form input {
+    flex: 1;
+    min-width: 0;
+    border: 1px solid var(--heartly-border);
+    border-radius: 999px;
+    padding: 12px 14px;
+    outline: none;
+    background: var(--heartly-card-soft);
+    color: var(--heartly-text);
+    font-weight: 750;
+}
+
+.comment-form input::placeholder {
+    color: var(--heartly-muted);
+    opacity: 1;
+}
+
+.comment-form button {
+    border-radius: 999px;
+    min-height: 42px;
+    padding: 0 16px;
+    cursor: pointer;
+    font-weight: 950;
+    color: #ffffff;
+    background: linear-gradient(135deg, var(--heartly-accent), var(--heartly-accent-2));
+}
+
+.edit-post-panel {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: grid;
+    place-items: center;
+    padding: 18px;
+    background: rgba(10, 10, 20, 0.52);
+    backdrop-filter: blur(10px);
+}
+
+.edit-post-panel[hidden] {
+    display: none;
+}
+
+.edit-post-card {
+    width: min(620px, 100%);
+    max-height: 88vh;
+    overflow: auto;
+    border-radius: 28px;
+    padding: 16px;
+    background: var(--heartly-card);
+    border: 1px solid var(--heartly-border);
+    box-shadow: var(--heartly-shadow);
+}
+
+.edit-post-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.edit-post-head strong {
+    font-size: 1.1rem;
+    color: var(--heartly-text);
+    font-weight: 950;
+}
+
+.edit-close-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 1.4rem;
+    background: var(--heartly-card-soft);
+    color: var(--heartly-text);
+}
+
+.remove-media-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 12px 0;
+    color: var(--heartly-text);
+    font-weight: 800;
+}
+
+.edit-media-row {
+    margin-top: 12px;
+}
+
+.edit-actions {
+    justify-content: flex-end;
+    margin-top: 16px;
+}
+
+.empty-feed-card {
+    text-align: center;
+    padding: 34px 18px;
+}
+
+.empty-icon {
+    width: 62px;
+    height: 62px;
+    margin: 0 auto 12px;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    color: #ffffff;
+    background: linear-gradient(135deg, var(--heartly-accent), var(--heartly-accent-2));
+    font-size: 2rem;
+}
+
+.empty-feed-card h2 {
+    margin: 0;
+    color: var(--heartly-text);
+    font-weight: 950;
+}
+
+.empty-feed-card p {
+    margin: 8px 0 0;
+    color: var(--heartly-muted);
+    font-weight: 700;
+}
+
+.feed-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 14px;
+    margin-top: 20px;
+    color: var(--heartly-muted);
+    font-weight: 800;
+}
+
+.feed-pagination a {
+    font-weight: 950;
+    color: var(--heartly-accent);
+}
+
+/* DARK MODE — HARD CONTRAST FIX */
+html.heartly-dark-root .heartly-feed-page .comment-bubble,
+body.heartly-dark .heartly-feed-page .comment-bubble {
+    background: #182230 !important;
+    color: #e6eef7 !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+html.heartly-dark-root .heartly-feed-page .comment-bubble *,
+body.heartly-dark .heartly-feed-page .comment-bubble * {
+    color: #e6eef7 !important;
+    opacity: 1 !important;
+}
+
+html.heartly-dark-root .heartly-feed-page .comment-bubble strong,
+body.heartly-dark .heartly-feed-page .comment-bubble strong {
+    color: #ffffff !important;
+}
+
+html.heartly-dark-root .heartly-feed-page .comment-bubble p,
+body.heartly-dark .heartly-feed-page .comment-bubble p {
+    color: #dbe4ef !important;
+}
+
+html.heartly-dark-root .heartly-feed-page .post-action-btn,
+body.heartly-dark .heartly-feed-page .post-action-btn {
+    background: #ffffff !important;
+    color: #111827 !important;
+    opacity: 1 !important;
+}
+
+html.heartly-dark-root .heartly-feed-page .post-action-btn.is-active,
+body.heartly-dark .heartly-feed-page .post-action-btn.is-active {
+    background: linear-gradient(135deg, #ff4f7b, #ff6f8c) !important;
+    color: #ffffff !important;
+}
+
+html.heartly-dark-root .heartly-feed-page .comment-form input,
+body.heartly-dark .heartly-feed-page .comment-form input {
+    background: #ffffff !important;
+    color: #111827 !important;
+    opacity: 1 !important;
+}
+
+html.heartly-dark-root .heartly-feed-page .comment-form input::placeholder,
+body.heartly-dark .heartly-feed-page .comment-form input::placeholder {
+    color: #6b7280 !important;
+    opacity: 1 !important;
+}
+
+html.heartly-dark-root .heartly-feed-page .post-menu summary,
+body.heartly-dark .heartly-feed-page .post-menu summary {
+    background: #ffffff !important;
+    color: #111827 !important;
+}
+
+@media (max-width: 560px) {
     .feed-composer-card,
-    .post-card,
-    .empty-feed-card {
-        background: var(--heartly-card, #ffffff);
-        border: 1px solid var(--heartly-border, rgba(20, 20, 30, 0.08));
-        border-radius: 28px;
-        box-shadow: 0 18px 48px rgba(20, 20, 30, 0.08);
-    }
-
-    .feed-composer-card {
-        padding: 16px;
-        margin-bottom: 18px;
-    }
-
-    .composer-user,
-    .post-author-wrap,
-    .comment-item {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
-
-    .composer-avatar,
-    .post-avatar {
-        width: 46px;
-        height: 46px;
-        border-radius: 999px;
-        object-fit: cover;
-        flex: 0 0 auto;
-    }
-
-    .composer-avatar-fallback,
-    .post-avatar-fallback,
-    .comment-avatar-fallback {
-        display: grid;
-        place-items: center;
-        font-weight: 900;
-        background: linear-gradient(135deg, #ff4f8b, #ff8f5a);
-        color: #fff;
-    }
-
-    .composer-user strong,
-    .post-author-text strong {
-        display: block;
-        color: var(--heartly-text, #15151f);
-    }
-
-    .composer-user span,
-    .post-author-text span {
-        display: block;
-        font-size: 0.86rem;
-        color: var(--heartly-muted, #777586);
-    }
-
-    .feed-composer-form {
-        margin-top: 14px;
-    }
-
-    .composer-textarea,
-    .edit-textarea {
-        width: 100%;
-        border: 1px solid var(--heartly-border, rgba(20, 20, 30, 0.08));
-        border-radius: 22px;
+    .post-card {
+        border-radius: 24px;
         padding: 14px;
-        resize: vertical;
-        outline: none;
-        background: var(--heartly-input, #f8f7fb);
-        color: var(--heartly-text, #15151f);
-        font: inherit;
-    }
-
-    .composer-textarea:focus,
-    .edit-textarea:focus,
-    .comment-form input:focus {
-        border-color: var(--heartly-primary, #ff4f8b);
-        box-shadow: 0 0 0 4px rgba(255, 79, 139, 0.12);
-    }
-
-    .composer-preview {
-        margin-top: 12px;
-        border-radius: 22px;
-        overflow: hidden;
-        background: #000;
-    }
-
-    .composer-preview img,
-    .composer-preview video {
-        width: 100%;
-        max-height: 420px;
-        display: block;
-        object-fit: contain;
-        background: #000;
-    }
-
-    .composer-media-row,
-    .edit-media-row,
-    .edit-actions,
-    .post-actions {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        flex-wrap: wrap;
-    }
-
-    .composer-media-row {
-        margin-top: 12px;
-    }
-
-    .media-chip {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        min-height: 42px;
-        padding: 0 14px;
-        border-radius: 999px;
-        cursor: pointer;
-        font-weight: 800;
-        color: var(--heartly-text, #15151f);
-        background: var(--heartly-soft, #f6f2f7);
-        border: 1px solid var(--heartly-border, rgba(20, 20, 30, 0.08));
-    }
-
-    .media-chip input {
-        display: none;
-    }
-
-    .clear-media-btn,
-    .secondary-btn {
-        border: 0;
-        min-height: 42px;
-        padding: 0 14px;
-        border-radius: 999px;
-        cursor: pointer;
-        font-weight: 800;
-        color: var(--heartly-text, #15151f);
-        background: var(--heartly-soft, #f6f2f7);
     }
 
     .post-submit-btn {
-        margin-left: auto;
-        border: 0;
-        min-height: 42px;
-        padding: 0 20px;
-        border-radius: 999px;
-        cursor: pointer;
-        font-weight: 900;
-        color: #fff;
-        background: linear-gradient(135deg, #ff4f8b, #ff8f5a);
-        box-shadow: 0 12px 28px rgba(255, 79, 139, 0.28);
-    }
-
-    .composer-note {
-        margin: 10px 2px 0;
-        font-size: 0.84rem;
-        color: var(--heartly-muted, #777586);
-    }
-
-    .feed-list {
-        display: grid;
-        gap: 16px;
-    }
-
-    .post-card {
-        padding: 16px;
-    }
-
-    .post-header {
-        display: flex;
-        justify-content: space-between;
-        gap: 12px;
-        align-items: flex-start;
-    }
-
-    .post-content {
-        margin: 14px 0;
-        color: var(--heartly-text, #15151f);
-        line-height: 1.55;
-        white-space: normal;
-    }
-
-    .post-media {
-        margin-top: 12px;
-        border-radius: 24px;
-        overflow: hidden;
-        background: #000;
-    }
-
-    .post-image-wrap img,
-    .post-video-wrap video {
         width: 100%;
-        max-height: 560px;
-        display: block;
-        object-fit: contain;
-        background: #000;
+        margin-left: 0;
     }
 
-    .post-menu {
-        position: relative;
-    }
-
-    .post-menu summary {
-        list-style: none;
-        cursor: pointer;
-        width: 38px;
-        height: 38px;
-        display: grid;
-        place-items: center;
-        border-radius: 999px;
-        background: var(--heartly-soft, #f6f2f7);
-        color: var(--heartly-text, #15151f);
-        font-weight: 900;
-    }
-
-    .post-menu summary::-webkit-details-marker {
-        display: none;
-    }
-
-    .post-menu-panel {
-        position: absolute;
-        right: 0;
-        top: 44px;
-        min-width: 170px;
-        padding: 8px;
-        border-radius: 18px;
-        background: var(--heartly-card, #ffffff);
-        border: 1px solid var(--heartly-border, rgba(20, 20, 30, 0.08));
-        box-shadow: 0 18px 44px rgba(20, 20, 30, 0.15);
-        z-index: 5;
-    }
-
-    .post-menu-panel form {
-        margin: 0;
-    }
-
-    .post-menu-item {
-        width: 100%;
-        border: 0;
-        background: transparent;
-        text-align: left;
-        padding: 10px 12px;
-        border-radius: 12px;
-        cursor: pointer;
-        font: inherit;
-        font-weight: 800;
-        color: var(--heartly-text, #15151f);
-    }
-
-    .post-menu-item:hover {
-        background: var(--heartly-soft, #f6f2f7);
-    }
-
-    .post-menu-item.danger {
-        color: #d92d20;
-    }
-
-    .post-stats {
-        display: flex;
-        justify-content: space-between;
-        gap: 12px;
-        margin-top: 12px;
-        padding-top: 12px;
-        border-top: 1px solid var(--heartly-border, rgba(20, 20, 30, 0.08));
-        color: var(--heartly-muted, #777586);
-        font-size: 0.9rem;
-        font-weight: 700;
-    }
-
-    .post-actions {
-        margin-top: 10px;
-    }
-
-    .post-action-form {
-        margin: 0;
-    }
-
-    .post-action-btn {
-        border: 0;
-        border-radius: 999px;
-        min-height: 38px;
-        padding: 0 14px;
-        cursor: pointer;
-        font-weight: 900;
-        color: var(--heartly-text, #15151f);
-        background: var(--heartly-soft, #f6f2f7);
-    }
-
-    .post-action-btn.is-active {
-        color: #fff;
-        background: linear-gradient(135deg, #ff4f8b, #ff8f5a);
-    }
-
-    .comments-wrap {
-        margin-top: 12px;
-    }
-
-    .comments-list {
-        display: grid;
-        gap: 10px;
-        margin-bottom: 10px;
-    }
-
-    .comment-avatar {
-        width: 34px;
-        height: 34px;
-        border-radius: 999px;
-        object-fit: cover;
-        flex: 0 0 auto;
-    }
-
-    .comment-bubble {
+    .composer-media-row .media-chip,
+    .clear-media-btn {
         flex: 1;
-        background: var(--heartly-soft, #f6f2f7);
-        border-radius: 18px;
-        padding: 10px 12px;
-    }
-
-    .comment-bubble strong {
-        display: block;
-        font-size: 0.86rem;
-        color: var(--heartly-text, #15151f);
-        margin-bottom: 3px;
-    }
-
-    .comment-bubble p {
-        margin: 0;
-        color: var(--heartly-text, #15151f);
-        line-height: 1.4;
     }
 
     .comment-form {
-        display: flex;
-        gap: 8px;
-        align-items: center;
-    }
-
-    .comment-form input {
-        flex: 1;
-        min-width: 0;
-        border: 1px solid var(--heartly-border, rgba(20, 20, 30, 0.08));
-        border-radius: 999px;
-        padding: 12px 14px;
-        outline: none;
-        background: var(--heartly-input, #f8f7fb);
-        color: var(--heartly-text, #15151f);
+        align-items: stretch;
     }
 
     .comment-form button {
-        border: 0;
-        border-radius: 999px;
-        min-height: 42px;
-        padding: 0 16px;
-        cursor: pointer;
-        font-weight: 900;
-        color: #fff;
-        background: linear-gradient(135deg, #ff4f8b, #ff8f5a);
+        padding: 0 13px;
     }
-
-    .edit-post-panel {
-        position: fixed;
-        inset: 0;
-        z-index: 1000;
-        display: grid;
-        place-items: center;
-        padding: 18px;
-        background: rgba(10, 10, 20, 0.52);
-        backdrop-filter: blur(10px);
-    }
-
-    .edit-post-card {
-        width: min(620px, 100%);
-        max-height: 88vh;
-        overflow: auto;
-        border-radius: 28px;
-        padding: 16px;
-        background: var(--heartly-card, #ffffff);
-        border: 1px solid var(--heartly-border, rgba(20, 20, 30, 0.08));
-        box-shadow: 0 30px 90px rgba(0, 0, 0, 0.22);
-    }
-
-    .edit-post-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 12px;
-    }
-
-    .edit-post-head strong {
-        font-size: 1.1rem;
-        color: var(--heartly-text, #15151f);
-    }
-
-    .edit-close-btn {
-        width: 38px;
-        height: 38px;
-        border-radius: 999px;
-        border: 0;
-        cursor: pointer;
-        font-size: 1.4rem;
-        background: var(--heartly-soft, #f6f2f7);
-        color: var(--heartly-text, #15151f);
-    }
-
-    .remove-media-line {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin: 12px 0;
-        color: var(--heartly-text, #15151f);
-        font-weight: 700;
-    }
-
-    .edit-media-row {
-        margin-top: 12px;
-    }
-
-    .edit-actions {
-        justify-content: flex-end;
-        margin-top: 16px;
-    }
-
-    .empty-feed-card {
-        text-align: center;
-        padding: 34px 18px;
-    }
-
-    .empty-icon {
-        width: 62px;
-        height: 62px;
-        margin: 0 auto 12px;
-        display: grid;
-        place-items: center;
-        border-radius: 999px;
-        color: #fff;
-        background: linear-gradient(135deg, #ff4f8b, #ff8f5a);
-        font-size: 2rem;
-    }
-
-    .empty-feed-card h2 {
-        margin: 0;
-        color: var(--heartly-text, #15151f);
-    }
-
-    .empty-feed-card p {
-        margin: 8px 0 0;
-        color: var(--heartly-muted, #777586);
-    }
-
-    .feed-pagination {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 14px;
-        margin-top: 20px;
-        color: var(--heartly-muted, #777586);
-    }
-
-    .feed-pagination a {
-        text-decoration: none;
-        font-weight: 900;
-        color: var(--heartly-primary, #ff4f8b);
-    }
-
-    @media (max-width: 560px) {
-        .heartly-feed-page {
-            width: min(100% - 18px, 760px);
-            padding-top: 10px;
-        }
-
-        .feed-composer-card,
-        .post-card {
-            border-radius: 24px;
-            padding: 14px;
-        }
-
-        .post-submit-btn {
-            width: 100%;
-            margin-left: 0;
-        }
-
-        .composer-media-row .media-chip,
-        .clear-media-btn {
-            flex: 1;
-        }
-
-        .comment-form {
-            align-items: stretch;
-        }
-
-        .comment-form button {
-            padding: 0 13px;
-        }
-    }
-</style>
+}
 {% endblock %}
 
 {% block extra_js %}
@@ -906,7 +883,10 @@
         const clearBtn = document.getElementById("clearComposerMedia");
 
         function clearPreview() {
-            if (!preview) return;
+            if (!preview) {
+                return;
+            }
+
             preview.hidden = true;
             preview.innerHTML = "";
 
@@ -943,7 +923,10 @@
         if (imageInput) {
             imageInput.addEventListener("change", function () {
                 if (this.files && this.files[0]) {
-                    if (videoInput) videoInput.value = "";
+                    if (videoInput) {
+                        videoInput.value = "";
+                    }
+
                     showPreview(this.files[0], "image");
                 } else {
                     clearPreview();
@@ -954,7 +937,10 @@
         if (videoInput) {
             videoInput.addEventListener("change", function () {
                 if (this.files && this.files[0]) {
-                    if (imageInput) imageInput.value = "";
+                    if (imageInput) {
+                        imageInput.value = "";
+                    }
+
                     showPreview(this.files[0], "video");
                 } else {
                     clearPreview();
@@ -964,8 +950,14 @@
 
         if (clearBtn) {
             clearBtn.addEventListener("click", function () {
-                if (imageInput) imageInput.value = "";
-                if (videoInput) videoInput.value = "";
+                if (imageInput) {
+                    imageInput.value = "";
+                }
+
+                if (videoInput) {
+                    videoInput.value = "";
+                }
+
                 clearPreview();
             });
         }
