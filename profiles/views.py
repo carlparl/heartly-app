@@ -5,17 +5,18 @@ from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
-from .blocking import user_is_hidden_for
 
-from .blocking import block_exists_between
+from .blocking import block_exists_between, user_is_hidden_for
 from .forms import InterestForm, ProfileForm
 from .models import Interest, Profile, ProfileReport, UserBlock
+
 
 try:
     from feed.models import Post, PostLike
 except Exception:
     Post = None
     PostLike = None
+
 
 try:
     from notifications.models import Notification
@@ -101,7 +102,7 @@ def visible_posts_for(user):
     if Post is None:
         return []
 
-    queryset = Post.objects.filter(user=user).order_by("-created_at")
+    queryset = Post.objects.filter(author=user).order_by("-created_at")
 
     if model_has_field(Post, "hidden_by_moderation"):
         queryset = queryset.filter(hidden_by_moderation=False)
@@ -184,6 +185,7 @@ def public_profile(request, user_id):
             "profile": profile,
         },
     )
+
 
 @login_required
 def edit_profile(request):
