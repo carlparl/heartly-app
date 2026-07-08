@@ -38,11 +38,11 @@
                     Select messages
                 </button>
 
-               <a href="{% url 'chat:start_call' conversation.id 'audio' %}" class="chat-menu-item">
+               <a href="{% url 'chat:start_call' thread.id 'audio' %}" class="chat-menu-item">
                     Audio call
                 </a>
 
-                <a href="{% url 'chat:start_call' conversation.id 'video' %}" class="chat-menu-item">
+                <a href="{% url 'chat:start_call' thread.id 'video' %}" class="chat-menu-item">
                     Video call
                 </a>
 
