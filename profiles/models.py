@@ -17,6 +17,28 @@ class Interest(models.Model):
 
 
 class Profile(models.Model):
+    GENDER_WOMAN = "woman"
+    GENDER_MAN = "man"
+    GENDER_NON_BINARY = "non_binary"
+    GENDER_OTHER = "other"
+
+    GENDER_CHOICES = [
+        (GENDER_WOMAN, "Woman"),
+        (GENDER_MAN, "Man"),
+        (GENDER_NON_BINARY, "Non-binary"),
+        (GENDER_OTHER, "Other"),
+    ]
+
+    INTERESTED_IN_WOMEN = "women"
+    INTERESTED_IN_MEN = "men"
+    INTERESTED_IN_EVERYONE = "everyone"
+
+    INTERESTED_IN_CHOICES = [
+        (INTERESTED_IN_WOMEN, "Women"),
+        (INTERESTED_IN_MEN, "Men"),
+        (INTERESTED_IN_EVERYONE, "Everyone"),
+    ]
+
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -27,6 +49,16 @@ class Profile(models.Model):
     age = models.PositiveIntegerField(blank=True, null=True)
     location = models.CharField(max_length=120, blank=True)
     bio = models.TextField(blank=True)
+    gender = models.CharField(
+        max_length=20,
+        choices=GENDER_CHOICES,
+        blank=True,
+    )
+    interested_in = models.CharField(
+        max_length=20,
+        choices=INTERESTED_IN_CHOICES,
+        blank=True,
+    )
 
     profile_picture = models.ImageField(
         upload_to="profiles/photos/",

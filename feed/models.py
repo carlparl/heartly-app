@@ -88,6 +88,36 @@ class PostLike(models.Model):
         return f"{self.user} reacted {self.reaction_type} to post {self.post_id}"
 
 
+class PostSave(models.Model):
+    post = models.ForeignKey(
+        Post,
+        on_delete=models.CASCADE,
+        related_name="saves",
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="saved_feed_posts",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["post", "user"],
+                name="unique_saved_feed_post_per_user",
+            )
+        ]
+        indexes = [
+            models.Index(fields=["post", "created_at"]),
+            models.Index(fields=["user", "created_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.user} saved post {self.post_id}"
+
+
 class Comment(models.Model):
     post = models.ForeignKey(
         Post,

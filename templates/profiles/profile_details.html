@@ -1,0 +1,263 @@
+{% extends "heartly/base.html" %}
+{% load static %}
+
+{% block title %}Profile Details - Heartly{% endblock %}
+
+{% block content %}
+<style>
+    .profile-subpage {
+        min-height: 100vh;
+        max-width: 560px;
+        margin: 0 auto;
+        padding: 16px 14px 96px;
+        color: var(--heartly-text, #111827);
+        background: var(--heartly-bg, transparent);
+        box-sizing: border-box;
+    }
+
+    .subpage-header {
+        display: grid;
+        grid-template-columns: 44px 1fr 44px;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 18px;
+    }
+
+    .subpage-back,
+    .subpage-edit {
+        width: 44px;
+        height: 44px;
+        border-radius: 999px;
+        display: grid;
+        place-items: center;
+        border: 1px solid var(--heartly-border, #e5e7eb);
+        background: var(--heartly-card, #ffffff);
+        color: var(--heartly-text, #111827);
+        text-decoration: none;
+        font-size: 22px;
+        font-weight: 950;
+    }
+
+    .subpage-heading {
+        text-align: center;
+        min-width: 0;
+    }
+
+    .subpage-heading h1 {
+        margin: 0;
+        color: var(--heartly-text, #111827);
+        font-size: 22px;
+        font-weight: 950;
+        letter-spacing: -0.05em;
+    }
+
+    .subpage-heading p {
+        margin: 4px 0 0;
+        color: var(--heartly-muted, #6b7280);
+        font-size: 12px;
+        font-weight: 800;
+    }
+
+    .details-card {
+        background: var(--heartly-card, #ffffff);
+        border: 1px solid var(--heartly-border, #e5e7eb);
+        border-radius: 26px;
+        box-shadow: var(--heartly-shadow-soft, 0 14px 35px rgba(15, 23, 42, 0.08));
+        overflow: hidden;
+        margin-bottom: 14px;
+    }
+
+    .details-card-header {
+        padding: 16px 16px 6px;
+    }
+
+    .details-card-header h2 {
+        margin: 0;
+        color: var(--heartly-text, #111827);
+        font-size: 17px;
+        font-weight: 950;
+        letter-spacing: -0.03em;
+    }
+
+    .details-card-header p {
+        margin: 5px 0 0;
+        color: var(--heartly-muted, #6b7280);
+        font-size: 13px;
+        font-weight: 700;
+        line-height: 1.4;
+    }
+
+    .details-row {
+        display: grid;
+        grid-template-columns: 44px 1fr;
+        gap: 12px;
+        padding: 14px 16px;
+        border-top: 1px solid var(--heartly-border, #e5e7eb);
+    }
+
+    .details-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 16px;
+        display: grid;
+        place-items: center;
+        background: color-mix(in srgb, var(--heartly-primary, #ec4899) 13%, var(--heartly-card, #ffffff));
+        color: var(--heartly-primary, #ec4899);
+        font-size: 19px;
+    }
+
+    .details-label {
+        margin: 0;
+        color: var(--heartly-muted, #6b7280);
+        font-size: 12px;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+    }
+
+    .details-value {
+        margin: 4px 0 0;
+        color: var(--heartly-text, #111827);
+        font-size: 15px;
+        font-weight: 850;
+        line-height: 1.45;
+        overflow-wrap: anywhere;
+    }
+
+    .interest-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 9px;
+        padding: 14px 16px 16px;
+        border-top: 1px solid var(--heartly-border, #e5e7eb);
+    }
+
+    .interest-pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 34px;
+        padding: 0 12px;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--heartly-primary, #ec4899) 13%, var(--heartly-card, #ffffff));
+        color: var(--heartly-primary, #ec4899);
+        font-size: 13px;
+        font-weight: 950;
+    }
+
+    .empty-note {
+        margin: 0;
+        padding: 16px;
+        color: var(--heartly-muted, #6b7280);
+        font-size: 14px;
+        font-weight: 700;
+        line-height: 1.45;
+        border-top: 1px solid var(--heartly-border, #e5e7eb);
+    }
+</style>
+
+<div class="profile-subpage">
+    <header class="subpage-header">
+        <a href="{% url 'profiles:profile_home' %}" class="subpage-back" aria-label="Back to profile">‹</a>
+        <div class="subpage-heading">
+            <h1>Profile details</h1>
+            <p>About, interests, and visibility</p>
+        </div>
+        <a href="{% url 'profiles:edit_profile' %}" class="subpage-edit" aria-label="Edit profile">✎</a>
+    </header>
+
+    <section class="details-card">
+        <div class="details-card-header">
+            <h2>About you</h2>
+            <p>This is the deeper profile information. It stays away from the main profile card.</p>
+        </div>
+
+        <div class="details-row">
+            <div class="details-icon">📝</div>
+            <div>
+                <p class="details-label">Bio</p>
+                <p class="details-value">{{ profile.bio|default:"No bio added yet." }}</p>
+            </div>
+        </div>
+
+        <div class="details-row">
+            <div class="details-icon">📍</div>
+            <div>
+                <p class="details-label">Location</p>
+                <p class="details-value">{{ profile.location|default:"Not added" }}</p>
+            </div>
+        </div>
+
+        <div class="details-row">
+            <div class="details-icon">🎂</div>
+            <div>
+                <p class="details-label">Age</p>
+                <p class="details-value">{{ profile.age|default:"Not added" }}</p>
+            </div>
+        </div>
+
+        <div class="details-row">
+            <div class="details-icon">💫</div>
+            <div>
+                <p class="details-label">Gender</p>
+                <p class="details-value">{% if profile.gender %}{{ profile.get_gender_display }}{% else %}Not added{% endif %}</p>
+            </div>
+        </div>
+
+        <div class="details-row">
+            <div class="details-icon">💌</div>
+            <div>
+                <p class="details-label">Interested in</p>
+                <p class="details-value">{% if profile.interested_in %}{{ profile.get_interested_in_display }}{% else %}Not added{% endif %}</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="details-card">
+        <div class="details-card-header">
+            <h2>Interests</h2>
+            <p>Used for Discover and matching.</p>
+        </div>
+
+        {% if interests %}
+            <div class="interest-grid">
+                {% for interest in interests %}
+                    <span class="interest-pill">{{ interest.name }}</span>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="empty-note">No interests selected yet.</p>
+        {% endif %}
+    </section>
+
+    <section class="details-card">
+        <div class="details-card-header">
+            <h2>Privacy controls</h2>
+            <p>Current account visibility settings.</p>
+        </div>
+
+        <div class="details-row">
+            <div class="details-icon">👁️</div>
+            <div>
+                <p class="details-label">Profile visible</p>
+                <p class="details-value">{% if profile.profile_visible %}Yes{% else %}No{% endif %}</p>
+            </div>
+        </div>
+
+        <div class="details-row">
+            <div class="details-icon">💬</div>
+            <div>
+                <p class="details-label">Message requests</p>
+                <p class="details-value">{% if profile.allow_message_requests %}Allowed{% else %}Off{% endif %}</p>
+            </div>
+        </div>
+
+        <div class="details-row">
+            <div class="details-icon">🛡️</div>
+            <div>
+                <p class="details-label">Safety filters</p>
+                <p class="details-value">{% if profile.safety_filters_enabled %}Enabled{% else %}Off{% endif %}</p>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}

@@ -1,0 +1,253 @@
+{% extends "heartly/base.html" %}
+{% load static %}
+
+{% block title %}My Activity - Heartly{% endblock %}
+
+{% block content %}
+<style>
+    .activity-page {
+        min-height: 100vh;
+        max-width: 560px;
+        margin: 0 auto;
+        padding: 16px 14px 96px;
+        color: var(--heartly-text, #111827);
+        background: var(--heartly-bg, transparent);
+        box-sizing: border-box;
+    }
+
+    .activity-header {
+        display: grid;
+        grid-template-columns: 44px 1fr 44px;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 18px;
+    }
+
+    .activity-back,
+    .activity-feed-link {
+        width: 44px;
+        height: 44px;
+        border-radius: 999px;
+        display: grid;
+        place-items: center;
+        border: 1px solid var(--heartly-border, #e5e7eb);
+        background: var(--heartly-card, #ffffff);
+        color: var(--heartly-text, #111827);
+        text-decoration: none;
+        font-size: 21px;
+        font-weight: 950;
+    }
+
+    .activity-heading {
+        text-align: center;
+        min-width: 0;
+    }
+
+    .activity-heading h1 {
+        margin: 0;
+        color: var(--heartly-text, #111827);
+        font-size: 22px;
+        font-weight: 950;
+        letter-spacing: -0.05em;
+    }
+
+    .activity-heading p {
+        margin: 4px 0 0;
+        color: var(--heartly-muted, #6b7280);
+        font-size: 12px;
+        font-weight: 800;
+    }
+
+    .activity-summary {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        margin-bottom: 14px;
+    }
+
+    .summary-card,
+    .activity-card,
+    .empty-card {
+        background: var(--heartly-card, #ffffff);
+        border: 1px solid var(--heartly-border, #e5e7eb);
+        border-radius: 24px;
+        box-shadow: var(--heartly-shadow-soft, 0 14px 35px rgba(15, 23, 42, 0.08));
+    }
+
+    .summary-card {
+        padding: 14px 8px;
+        text-align: center;
+    }
+
+    .summary-number {
+        display: block;
+        color: var(--heartly-text, #111827);
+        font-size: 20px;
+        font-weight: 950;
+    }
+
+    .summary-label {
+        display: block;
+        margin-top: 4px;
+        color: var(--heartly-muted, #6b7280);
+        font-size: 12px;
+        font-weight: 850;
+    }
+
+    .activity-list {
+        display: grid;
+        gap: 12px;
+    }
+
+    .activity-card {
+        overflow: hidden;
+    }
+
+    .activity-card-body {
+        padding: 14px;
+    }
+
+    .activity-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        color: var(--heartly-muted, #6b7280);
+        font-size: 12px;
+        font-weight: 850;
+        margin-bottom: 8px;
+    }
+
+    .activity-text {
+        margin: 0;
+        color: var(--heartly-text, #111827);
+        font-size: 15px;
+        font-weight: 700;
+        line-height: 1.5;
+        overflow-wrap: anywhere;
+    }
+
+    .activity-media {
+        margin-top: 12px;
+        border-radius: 18px;
+        overflow: hidden;
+        background: #000000;
+    }
+
+    .activity-media img,
+    .activity-media video {
+        display: block;
+        width: 100%;
+        max-height: 380px;
+        object-fit: cover;
+        background: #000000;
+    }
+
+    .activity-counts {
+        display: flex;
+        gap: 14px;
+        margin-top: 12px;
+        color: var(--heartly-muted, #6b7280);
+        font-size: 13px;
+        font-weight: 900;
+    }
+
+    .empty-card {
+        padding: 24px 18px;
+        text-align: center;
+    }
+
+    .empty-icon {
+        width: 62px;
+        height: 62px;
+        border-radius: 22px;
+        display: grid;
+        place-items: center;
+        margin: 0 auto 12px;
+        background: color-mix(in srgb, var(--heartly-primary, #ec4899) 13%, var(--heartly-card, #ffffff));
+        color: var(--heartly-primary, #ec4899);
+        font-size: 25px;
+    }
+
+    .empty-card h2 {
+        margin: 0;
+        color: var(--heartly-text, #111827);
+        font-size: 17px;
+        font-weight: 950;
+    }
+
+    .empty-card p {
+        margin: 7px 0 0;
+        color: var(--heartly-muted, #6b7280);
+        font-size: 14px;
+        font-weight: 700;
+        line-height: 1.45;
+    }
+</style>
+
+<div class="activity-page">
+    <header class="activity-header">
+        <a href="{% url 'profiles:profile_home' %}" class="activity-back" aria-label="Back to profile">‹</a>
+        <div class="activity-heading">
+            <h1>My activity</h1>
+            <p>Your posts in one clean space</p>
+        </div>
+        <a href="{% url 'feed:feed_home' %}" class="activity-feed-link" aria-label="Open feed">＋</a>
+    </header>
+
+    <section class="activity-summary">
+        <div class="summary-card">
+            <span class="summary-number">{{ posts_count|default:"0" }}</span>
+            <span class="summary-label">Posts</span>
+        </div>
+        <div class="summary-card">
+            <span class="summary-number">{{ likes_count|default:"0" }}</span>
+            <span class="summary-label">Likes</span>
+        </div>
+        <div class="summary-card">
+            <span class="summary-number">{{ media_count|default:"0" }}</span>
+            <span class="summary-label">Media</span>
+        </div>
+    </section>
+
+    <section class="activity-list">
+        {% for post in posts %}
+            <article class="activity-card">
+                <div class="activity-card-body">
+                    <div class="activity-meta">
+                        <span>Post</span>
+                        <span>{{ post.created_at|timesince }} ago</span>
+                    </div>
+
+                    {% if post.content %}
+                        <p class="activity-text">{{ post.content|linebreaksbr }}</p>
+                    {% endif %}
+
+                    {% if post.image %}
+                        <div class="activity-media">
+                            <img src="{{ post.image.url }}" alt="Post image" loading="lazy">
+                        </div>
+                    {% endif %}
+
+                    {% if post.video %}
+                        <div class="activity-media">
+                            <video src="{{ post.video.url }}" controls playsinline preload="metadata"></video>
+                        </div>
+                    {% endif %}
+
+                    <div class="activity-counts">
+                        <span>♡ {{ post.likes.count }}</span>
+                        <span>💬 {{ post.comments.count }}</span>
+                    </div>
+                </div>
+            </article>
+        {% empty %}
+            <div class="empty-card">
+                <div class="empty-icon">📌</div>
+                <h2>No activity yet</h2>
+                <p>Your posts will appear here after you share something on the feed.</p>
+            </div>
+        {% endfor %}
+    </section>
+</div>
+{% endblock %}

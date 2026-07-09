@@ -1,48 +1,42 @@
-<article class="post-card" id="post-{{ post.id }}" data-post-id="{{ post.id }}">
-
-    <div class="post-header">
+<article class="post-card ig-post-card" id="post-{{ post.id }}" data-post-id="{{ post.id }}">
+    <header class="ig-post-header">
         <div class="post-author-wrap">
             {% if post.avatar_url %}
-                <img src="{{ post.avatar_url }}" alt="{{ post.display_name }}" class="post-avatar">
+                <img src="{{ post.avatar_url }}" alt="{{ post.username }}" class="post-avatar">
             {% else %}
                 <div class="post-avatar post-avatar-fallback">{{ post.avatar_initials }}</div>
             {% endif %}
 
             <div class="post-author-text">
-                <strong>{{ post.display_name }}</strong>
-                <span>
-                    {{ post.created_at|date:"M d, Y" }} · {{ post.created_at|time:"H:i" }}
-                    {% if post.edited_at %} · Edited{% endif %}
-                </span>
+                <strong>{{ post.username }}</strong>
+                <span>{{ post.created_at|timesince }} ago{% if post.edited_at %} · edited{% endif %}</span>
             </div>
         </div>
 
         <details class="post-menu">
             <summary aria-label="Post options">•••</summary>
-
             <div class="post-menu-panel">
                 {% if post.author_id == request.user.id %}
-                    <button type="button" class="post-menu-item" data-edit-open="edit-post-{{ post.id }}">
-                        Edit post
-                    </button>
-
+                    <button type="button" class="post-menu-item" data-edit-open="edit-post-{{ post.id }}">Edit</button>
                     <form method="post" action="{% url 'feed:delete_post' post.id %}" data-feed-ajax data-delete-post data-confirm="Delete this post?">
                         {% csrf_token %}
-                        <button type="submit" class="post-menu-item danger">Delete post</button>
+                        <button type="submit" class="post-menu-item danger">Delete</button>
                     </form>
                 {% else %}
                     <form method="post" action="{% url 'feed:report_post' post.id %}" data-feed-ajax data-report-post>
                         {% csrf_token %}
                         <input type="hidden" name="reason" value="other">
-                        <button type="submit" class="post-menu-item">Report post</button>
+                        <button type="submit" class="post-menu-item">Report</button>
                     </form>
                 {% endif %}
             </div>
         </details>
-    </div>
+    </header>
 
     {% if post.content %}
-        <p class="post-content">{{ post.content|linebreaksbr }}</p>
+        <div class="ig-post-caption-top">
+            <span>{{ post.content|linebreaksbr }}</span>
+        </div>
     {% endif %}
 
     {% if post.image_url %}
@@ -60,133 +54,144 @@
         </div>
     {% endif %}
 
-    <div class="post-stats">
-        <span data-like-count>{{ post.likes_count }} reaction{{ post.likes_count|pluralize }}</span>
-        <span data-comment-count>{{ post.comments_count }} comment{{ post.comments_count|pluralize }}</span>
+    <div class="ig-action-bar" aria-label="Post actions">
+        <div class="ig-action-left">
+            <form method="post" action="{% url 'feed:react_post' post.id %}" data-feed-ajax data-post-reaction>
+                {% csrf_token %}
+                <input type="hidden" name="reaction_type" value="love">
+                <button type="submit" class="ig-action-btn {% if post.is_liked_by_user %}is-active{% endif %}" aria-label="Like post">
+                    {% if post.is_liked_by_user %}
+                        <svg class="ig-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.08C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                    {% else %}
+                        <svg class="ig-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    {% endif %}
+                </button>
+            </form>
+            <span class="ig-action-count" data-like-count>{{ post.likes_count }}</span>
+
+            <button type="button" class="ig-action-btn" data-comments-open="comments-sheet-{{ post.id }}" aria-label="Open comments">
+                <svg class="ig-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5A8.48 8.48 0 0 1 21 11v.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <span class="ig-action-count" data-comment-count>{{ post.comments_count }}</span>
+
+        </div>
+
+        <form method="post" action="{% url 'feed:save_post' post.id %}" class="ig-save-form" data-feed-ajax data-save-post>
+            {% csrf_token %}
+            <button type="submit"
+                    class="ig-action-btn {% if post.is_saved_by_user %}is-active{% endif %}"
+                    aria-label="{% if post.is_saved_by_user %}Unsave post{% else %}Save post{% endif %}"
+                    aria-pressed="{% if post.is_saved_by_user %}true{% else %}false{% endif %}">
+                {% if post.is_saved_by_user %}
+                    <svg class="ig-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                {% else %}
+                    <svg class="ig-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                {% endif %}
+            </button>
+        </form>
     </div>
 
-    {% if post.reaction_counts %}
-        <div class="reaction-summary">
-            {% for reaction_type, item in post.reaction_counts.items %}
-                <span class="reaction-pill">{{ item.emoji }} {{ item.count }}</span>
-            {% endfor %}
-        </div>
+    {% if post.comments_count %}
+        <button type="button" class="ig-view-comments" data-comments-open="comments-sheet-{{ post.id }}">
+            View all {{ post.comments_count }} comment{{ post.comments_count|pluralize }}
+        </button>
     {% endif %}
 
-    <div class="reaction-row" aria-label="React to post">
-        <form method="post" action="{% url 'feed:react_post' post.id %}" data-feed-ajax data-post-reaction>
-            {% csrf_token %}
-            <input type="hidden" name="reaction_type" value="love">
-            <button type="submit" class="reaction-btn {% if post.viewer_reaction == 'love' %}is-active{% endif %}">❤️</button>
-        </form>
+    <section class="ig-comment-sheet" id="comments-sheet-{{ post.id }}" data-comments-sheet hidden aria-label="Comments for post {{ post.id }}">
+        <button type="button" class="ig-sheet-backdrop" data-comments-close aria-label="Close comments"></button>
 
-        <form method="post" action="{% url 'feed:react_post' post.id %}" data-feed-ajax data-post-reaction>
-            {% csrf_token %}
-            <input type="hidden" name="reaction_type" value="funny">
-            <button type="submit" class="reaction-btn {% if post.viewer_reaction == 'funny' %}is-active{% endif %}">😂</button>
-        </form>
+        <div class="ig-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="comments-title-{{ post.id }}">
+            <div class="ig-sheet-handle" aria-hidden="true"></div>
 
-        <form method="post" action="{% url 'feed:react_post' post.id %}" data-feed-ajax data-post-reaction>
-            {% csrf_token %}
-            <input type="hidden" name="reaction_type" value="cute">
-            <button type="submit" class="reaction-btn {% if post.viewer_reaction == 'cute' %}is-active{% endif %}">😍</button>
-        </form>
+            <header class="ig-sheet-header">
+                <button type="button" class="ig-sheet-close" data-comments-close aria-label="Close comments">‹</button>
+                <h2 id="comments-title-{{ post.id }}">Comments</h2>
+                <span></span>
+            </header>
 
-        <form method="post" action="{% url 'feed:react_post' post.id %}" data-feed-ajax data-post-reaction>
-            {% csrf_token %}
-            <input type="hidden" name="reaction_type" value="support">
-            <button type="submit" class="reaction-btn {% if post.viewer_reaction == 'support' %}is-active{% endif %}">👏</button>
-        </form>
-
-        <form method="post" action="{% url 'feed:react_post' post.id %}" data-feed-ajax data-post-reaction>
-            {% csrf_token %}
-            <input type="hidden" name="reaction_type" value="wow">
-            <button type="submit" class="reaction-btn {% if post.viewer_reaction == 'wow' %}is-active{% endif %}">😮</button>
-        </form>
-
-        <button type="button" class="comment-action-btn" data-comment-focus="comment-input-{{ post.id }}">
-            💬 Comment
-        </button>
-    </div>
-
-    <div class="comments-wrap">
-        <div class="comments-list" data-comment-list>
-            {% for comment in post.visible_comments %}
-                {% include "feed/_comment_item.html" with comment=comment post=post %}
-            {% endfor %}
-        </div>
-
-        {% if post.comments_count > 2 %}
-            <div class="comments-note">
-                Showing latest comments. More comments stay collapsed to keep the feed clean.
+            <div class="ig-comments-sheet-list" data-comments-list>
+                {% for comment in post.visible_comments %}
+                    {% include "feed/_comment_item.html" with comment=comment is_reply=False %}
+                {% empty %}
+                    <div class="ig-no-comments">
+                        <strong>No comments yet</strong>
+                        <span>Start the conversation.</span>
+                    </div>
+                {% endfor %}
             </div>
-        {% endif %}
 
-        <form method="post" action="{% url 'feed:comment_post' post.id %}" class="comment-form" data-feed-ajax data-comment-form>
-            {% csrf_token %}
-            <input
-                type="text"
-                name="content"
-                id="comment-input-{{ post.id }}"
-                placeholder="Write a comment..."
-                autocomplete="off"
-            >
-            <button type="submit">Send</button>
-        </form>
-    </div>
+            <div class="ig-comment-emoji-row" aria-label="Quick emojis">
+                <button type="button" data-comment-emoji="❤️">❤️</button>
+                <button type="button" data-comment-emoji="🙌">🙌</button>
+                <button type="button" data-comment-emoji="🔥">🔥</button>
+                <button type="button" data-comment-emoji="👏">👏</button>
+                <button type="button" data-comment-emoji="😢">😢</button>
+                <button type="button" data-comment-emoji="😍">😍</button>
+                <button type="button" data-comment-emoji="😮">😮</button>
+                <button type="button" data-comment-emoji="😂">😂</button>
+            </div>
 
-    {% if post.author_id == request.user.id %}
-        <div class="edit-post-panel" id="edit-post-{{ post.id }}" hidden>
-            <div class="edit-post-card">
-                <div class="edit-post-head">
-                    <strong>Edit post</strong>
-                    <button type="button" class="edit-close-btn" data-edit-close="edit-post-{{ post.id }}">×</button>
+            <form method="post"
+                  action="{% url 'feed:comment_post' post.id %}"
+                  class="comment-form ig-sheet-comment-form"
+                  data-feed-ajax
+                  data-comment-form>
+                {% csrf_token %}
+
+                <div class="ig-sheet-viewer-avatar">
+                    {% if request.user.profile.profile_picture %}
+                        <img src="{{ request.user.profile.profile_picture.url }}" alt="{{ request.user.username }}">
+                    {% else %}
+                        <span>{{ request.user.username|default:"U"|first|upper }}</span>
+                    {% endif %}
                 </div>
 
-                <form
-                    method="post"
-                    action="{% url 'feed:edit_post' post.id %}"
-                    enctype="multipart/form-data"
-                    class="edit-post-form"
-                    data-feed-ajax
-                    data-edit-post
-                >
-                    {% csrf_token %}
+                <input type="text"
+                       id="comment-input-{{ post.id }}"
+                       name="content"
+                       maxlength="500"
+                       placeholder="What do you think of this?"
+                       autocomplete="off"
+                       required>
 
-                    <textarea name="content" class="edit-textarea" rows="5" placeholder="Update your post...">{{ post.content }}</textarea>
+                <button type="button" class="ig-comment-tool" aria-label="Image comments are not enabled yet" title="Image comments are not enabled yet">▧</button>
+                <button type="button" class="ig-comment-tool" aria-label="GIF comments are not enabled yet" title="GIF comments are not enabled yet">GIF</button>
+                <button type="submit" class="ig-comment-send" aria-label="Send comment">➤</button>
+            </form>
+        </div>
+    </section>
+
+    {% if post.author_id == request.user.id %}
+        <section class="edit-post-panel" id="edit-post-{{ post.id }}" hidden>
+            <form method="post" action="{% url 'feed:edit_post' post.id %}" enctype="multipart/form-data" class="edit-post-form" data-feed-ajax data-edit-post>
+                {% csrf_token %}
+                <div class="edit-panel-card">
+                    <div class="edit-panel-header">
+                        <strong>Edit post</strong>
+                        <button type="button" data-edit-close="edit-post-{{ post.id }}" aria-label="Close edit panel">×</button>
+                    </div>
+
+                    <textarea name="content" class="edit-textarea" rows="4">{{ post.content }}</textarea>
 
                     {% if post.image_url %}
-                        <label class="remove-media-line">
-                            <input type="checkbox" name="remove_image" value="1">
-                            Remove current image
-                        </label>
+                        <label class="remove-media-row"><input type="checkbox" name="remove_image" value="1"> Remove photo</label>
                     {% endif %}
 
                     {% if post.video_url %}
-                        <label class="remove-media-line">
-                            <input type="checkbox" name="remove_video" value="1">
-                            Remove current video
-                        </label>
+                        <label class="remove-media-row"><input type="checkbox" name="remove_video" value="1"> Remove video</label>
                     {% endif %}
 
                     <div class="edit-media-row">
-                        <label class="media-chip">
-                            <input type="file" name="image" accept="image/jpeg,image/png,image/webp">
-                            <span>Replace photo</span>
-                        </label>
-
-                        <label class="media-chip">
-                            <input type="file" name="video" accept="video/mp4,video/quicktime,video/webm">
-                            <span>Replace video</span>
-                        </label>
+                        <label class="media-chip"><input type="file" name="image" accept="image/jpeg,image/png,image/webp"> <span>Photo</span></label>
+                        <label class="media-chip"><input type="file" name="video" accept="video/mp4,video/quicktime,video/webm"> <span>Video</span></label>
                     </div>
 
                     <div class="edit-actions">
                         <button type="button" class="secondary-btn" data-edit-close="edit-post-{{ post.id }}">Cancel</button>
-                        <button type="submit" class="post-submit-btn">Save changes</button>
+                        <button type="submit" class="post-submit-btn">Save</button>
                     </div>
-                </form>
-            </div>
-        </div>
+                </div>
+            </form>
+        </section>
     {% endif %}
 </article>

@@ -2,6 +2,7 @@ from django.conf import settings
 from django.db import models
 from django.db.models import Q
 
+
 class ChatThread(models.Model):
     user_one = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -67,6 +68,13 @@ class ChatMessage(models.Model):
         on_delete=models.CASCADE,
         related_name="sent_chat_messages",
     )
+    reply_to = models.ForeignKey(
+        "self",
+        on_delete=models.SET_NULL,
+        related_name="replies",
+        blank=True,
+        null=True,
+    )
     text = models.TextField(max_length=1200, blank=True)
     is_read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -76,6 +84,7 @@ class ChatMessage(models.Model):
         indexes = [
             models.Index(fields=["thread", "created_at"]),
             models.Index(fields=["sender", "created_at"]),
+            models.Index(fields=["reply_to"]),
             models.Index(fields=["is_read"]),
         ]
 
@@ -90,11 +99,11 @@ class ChatAttachment(models.Model):
     TYPE_AUDIO = "audio"
 
     TYPE_CHOICES = [
-    (TYPE_IMAGE, "Image"),
-    (TYPE_VIDEO, "Video"),
-    (TYPE_FILE, "File"),
-    (TYPE_AUDIO, "Voice note"),
-]
+        (TYPE_IMAGE, "Image"),
+        (TYPE_VIDEO, "Video"),
+        (TYPE_FILE, "File"),
+        (TYPE_AUDIO, "Voice note"),
+    ]
 
     message = models.ForeignKey(
         ChatMessage,
@@ -214,7 +223,8 @@ class Call(models.Model):
 
     def __str__(self):
         return f"{self.call_type} call from {self.caller} to {self.receiver}"
-    
+
+
 class CallSession(models.Model):
     CALL_AUDIO = "audio"
     CALL_VIDEO = "video"
@@ -239,7 +249,7 @@ class CallSession(models.Model):
     ]
 
     thread = models.ForeignKey(
-        "ChatThread",
+        ChatThread,
         on_delete=models.CASCADE,
         related_name="call_sessions",
     )
@@ -253,21 +263,20 @@ class CallSession(models.Model):
         on_delete=models.CASCADE,
         related_name="incoming_calls",
     )
-    call_type = models.CharField(
-        max_length=10,
-        choices=CALL_TYPE_CHOICES,
-    )
-    status = models.CharField(
-        max_length=20,
-        choices=STATUS_CHOICES,
-        default=STATUS_RINGING,
-    )
+    call_type = models.CharField(max_length=10, choices=CALL_TYPE_CHOICES)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_RINGING)
     started_at = models.DateTimeField(auto_now_add=True)
     accepted_at = models.DateTimeField(null=True, blank=True)
     ended_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["-started_at"]
+        indexes = [
+            models.Index(fields=["thread", "started_at"]),
+            models.Index(fields=["caller", "started_at"]),
+            models.Index(fields=["receiver", "started_at"]),
+            models.Index(fields=["status"]),
+        ]
 
     def __str__(self):
         return f"{self.call_type} call from {self.caller} to {self.receiver}"

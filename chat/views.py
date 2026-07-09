@@ -2,11 +2,11 @@ from pathlib import Path
 
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
+from django.apps import apps
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from django.apps import apps
 from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -14,7 +14,13 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from profiles.blocking import user_is_hidden_for
+try:
+    from profiles.blocking import user_is_hidden_for, hidden_user_ids_for, block_exists_between
+except Exception:
+    user_is_hidden_for = None
+    hidden_user_ids_for = None
+    block_exists_between = None
+
 from profiles.models import Profile, UserBlock
 
 from .models import (
@@ -26,12 +32,6 @@ from .models import (
 )
 
 try:
-    from profiles.blocking import hidden_user_ids_for, block_exists_between
-except Exception:
-    hidden_user_ids_for = None
-    block_exists_between = None
-
-try:
     from notifications.models import Notification
 except Exception:
     Notification = None
@@ -40,7 +40,7 @@ except Exception:
 User = get_user_model()
 
 MAX_IMAGE_SIZE = 8 * 1024 * 1024
-MAX_VIDEO_SIZE = 50 * 1024 * 1024
+MAX_VIDEO_SIZE = 75 * 1024 * 1024
 MAX_FILE_SIZE = 25 * 1024 * 1024
 MAX_AUDIO_SIZE = 15 * 1024 * 1024
 
@@ -83,44 +83,44 @@ ALLOWED_FILE_TYPES = {
     "application/vnd.openxmlformats-officedocument.presentationml.presentation",
 }
 
-ALLOWED_IMAGE_EXTENSIONS = {
-    ".jpg",
-    ".jpeg",
-    ".png",
-    ".webp",
-    ".gif",
-}
+ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
+ALLOWED_VIDEO_EXTENSIONS = {".mp4", ".webm", ".mov", ".m4v", ".3gp", ".3g2"}
+ALLOWED_AUDIO_EXTENSIONS = {".webm", ".ogg", ".mp3", ".mp4", ".m4a", ".wav", ".aac"}
+ALLOWED_FILE_EXTENSIONS = {".pdf", ".txt", ".zip", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx"}
 
-ALLOWED_VIDEO_EXTENSIONS = {
-    ".mp4",
-    ".webm",
-    ".mov",
-    ".m4v",
-    ".3gp",
-    ".3g2",
-}
 
-ALLOWED_FILE_EXTENSIONS = {
-    ".pdf",
-    ".txt",
-    ".zip",
-    ".doc",
-    ".docx",
-    ".xls",
-    ".xlsx",
-    ".ppt",
-    ".pptx",
-}
+def model_has_field(model, field_name):
+    return any(field.name == field_name for field in model._meta.fields)
 
-ALLOWED_AUDIO_EXTENSIONS = {
-    ".webm",
-    ".ogg",
-    ".mp3",
-    ".mp4",
-    ".m4a",
-    ".wav",
-    ".aac",
-}
+
+def wants_json(request):
+    return (
+        request.headers.get("X-Requested-With") == "XMLHttpRequest"
+        or "application/json" in request.headers.get("Accept", "")
+        or request.POST.get("_ajax") == "1"
+    )
+
+
+def json_success(**extra):
+    data = {"ok": True}
+    data.update(extra)
+    return JsonResponse(data)
+
+
+def json_error(message, status=400, **extra):
+    data = {"ok": False, "message": message}
+    data.update(extra)
+    return JsonResponse(data, status=status)
+
+
+def respond_chat_error(request, message, thread=None, status=400):
+    if wants_json(request):
+        return json_error(message, status=status)
+
+    messages.error(request, message)
+    if thread:
+        return redirect("chat:chat_room", thread_id=thread.id)
+    return redirect("chat:chat_home")
 
 
 def get_profile(user):
@@ -131,25 +131,36 @@ def get_profile(user):
 def get_display_name(user):
     profile = get_profile(user)
 
-    if getattr(profile, "display_name", None):
-        return profile.display_name
+    for attr in ("display_name", "name"):
+        value = (getattr(profile, attr, "") or "").strip()
+        if value:
+            return value
 
     full_name = user.get_full_name()
-
     if full_name:
         return full_name
 
-    return user.username
+    return getattr(user, "username", "") or "Heartly User"
 
 
 def get_photo_url(user):
     profile = get_profile(user)
 
-    if getattr(profile, "profile_picture", None):
-        try:
-            return profile.profile_picture.url
-        except Exception:
-            return ""
+    for attr in ("profile_picture", "photo", "avatar", "image"):
+        field = getattr(profile, attr, None)
+        if field:
+            try:
+                return field.url
+            except Exception:
+                pass
+
+    for attr in ("profile_picture", "photo", "avatar", "image"):
+        field = getattr(user, attr, None)
+        if field:
+            try:
+                return field.url
+            except Exception:
+                pass
 
     return ""
 
@@ -166,10 +177,15 @@ def profile_is_available(user):
     return True
 
 
+def user_hidden_for(viewer, other_user):
+    if user_is_hidden_for:
+        return user_is_hidden_for(viewer, other_user)
+    return False
+
+
 def hidden_ids_for(user):
     if hidden_user_ids_for:
         return hidden_user_ids_for(user)
-
     return set()
 
 
@@ -180,24 +196,18 @@ def blocked_between(user, other_user):
     if block_exists_between:
         return block_exists_between(user, other_user)
 
-    return UserBlock.objects.filter(
-        blocker=user,
-        blocked=other_user,
-    ).exists() or UserBlock.objects.filter(
+    return UserBlock.objects.filter(blocker=user, blocked=other_user).exists() or UserBlock.objects.filter(
         blocker=other_user,
         blocked=user,
     ).exists()
 
 
-def validate_upload(uploaded_file, allowed_types, allowed_extensions, max_size):
+def validate_upload(uploaded_file, allowed_types, allowed_extensions, max_size, min_size=1):
     if not uploaded_file:
         return "No file was selected."
 
-    if uploaded_file.size <= 0:
-        return "File is empty. Please record or select the file again."
-
-    if uploaded_file.size < 1500:
-        return "Voice note is too short or empty. Please record again."
+    if uploaded_file.size < min_size:
+        return "File is empty. Please select or record it again."
 
     content_type = (uploaded_file.content_type or "").lower()
     extension = Path(uploaded_file.name or "").suffix.lower()
@@ -211,21 +221,72 @@ def validate_upload(uploaded_file, allowed_types, allowed_extensions, max_size):
     return None
 
 
-def model_has_field(model, field_name):
-    return any(field.name == field_name for field in model._meta.fields)
+def safe_file_url(file_field):
+    if not file_field:
+        return ""
+
+    try:
+        return file_field.url
+    except Exception:
+        return ""
 
 
-def get_user_display_name(user):
-    if hasattr(user, "profile"):
-        profile = user.profile
+def attachment_label(attachment_type):
+    if attachment_type == ChatAttachment.TYPE_IMAGE:
+        return "Photo"
+    if attachment_type == ChatAttachment.TYPE_VIDEO:
+        return "Video"
+    if attachment_type == ChatAttachment.TYPE_AUDIO:
+        return "Voice note"
+    if attachment_type == ChatAttachment.TYPE_FILE:
+        return "File"
+    return "Message"
 
-        if getattr(profile, "display_name", ""):
-            return profile.display_name
 
-        if getattr(profile, "name", ""):
-            return profile.name
+def serialize_attachment(attachment):
+    return {
+        "id": attachment.id,
+        "type": attachment.attachment_type,
+        "url": safe_file_url(attachment.file),
+        "name": attachment.original_filename or attachment_label(attachment.attachment_type),
+        "size": attachment.file_size,
+    }
 
-    return user.get_full_name() or user.username
+
+def reply_preview(message):
+    if not message:
+        return None
+
+    first_attachment = message.attachments.first()
+
+    if message.text:
+        text = message.text[:110]
+    elif first_attachment:
+        text = attachment_label(first_attachment.attachment_type)
+    else:
+        text = "Message"
+
+    return {
+        "id": message.id,
+        "sender_id": message.sender_id,
+        "sender_name": get_display_name(message.sender),
+        "text": text,
+    }
+
+
+def serialize_message(message):
+    return {
+        "id": message.id,
+        "message_id": message.id,
+        "thread_id": message.thread_id,
+        "sender_id": message.sender_id,
+        "sender_name": get_display_name(message.sender),
+        "text": message.text,
+        "created_at": timezone.localtime(message.created_at).strftime("%H:%M"),
+        "is_read": message.is_read,
+        "reply_to": reply_preview(message.reply_to),
+        "attachments": [serialize_attachment(attachment) for attachment in message.attachments.all()],
+    }
 
 
 def create_message_notification(message):
@@ -268,6 +329,26 @@ def create_message_notification(message):
         return
 
 
+def broadcast_message(message):
+    channel_layer = get_channel_layer()
+    if not channel_layer:
+        return
+
+    try:
+        async_to_sync(channel_layer.group_send)(
+            f"chat_thread_{message.thread_id}",
+            {
+                "type": "chat.broadcast",
+                "payload": {
+                    "type": "chat.message",
+                    **serialize_message(message),
+                },
+            },
+        )
+    except Exception:
+        return
+
+
 def latest_message_preview(message, viewer):
     if not message:
         return "Start the conversation."
@@ -278,23 +359,10 @@ def latest_message_preview(message, viewer):
         return f"{prefix}{message.text}"
 
     attachment = message.attachments.first()
+    if attachment:
+        return f"{prefix}{attachment_label(attachment.attachment_type)}"
 
-    if not attachment:
-        return "New message"
-
-    if attachment.attachment_type == ChatAttachment.TYPE_IMAGE:
-        return f"{prefix}Photo"
-
-    if attachment.attachment_type == ChatAttachment.TYPE_VIDEO:
-        return f"{prefix}Video"
-    
-    if attachment.attachment_type == ChatAttachment.TYPE_AUDIO:
-        return f"{prefix}Voice note"
-
-    if attachment.attachment_type == ChatAttachment.TYPE_FILE:
-        return f"{prefix}File"
-
-        return "New message"
+    return "New message"
 
 
 def build_thread_card(thread, user):
@@ -302,17 +370,13 @@ def build_thread_card(thread, user):
 
     latest_message = (
         thread.messages
-        .prefetch_related("attachments")
+        .select_related("sender", "reply_to", "reply_to__sender")
+        .prefetch_related("attachments", "reply_to__attachments")
         .order_by("-created_at")
         .first()
     )
 
-    unread_count = (
-        thread.messages
-        .filter(is_read=False)
-        .exclude(sender=user)
-        .count()
-    )
+    unread_count = thread.messages.filter(is_read=False).exclude(sender=user).count()
 
     return {
         "thread": thread,
@@ -352,13 +416,7 @@ def chat_home(request):
 
         thread_cards.append(build_thread_card(thread, request.user))
 
-    return render(
-        request,
-        "chat/chat_home.html",
-        {
-            "thread_cards": thread_cards,
-        },
-    )
+    return render(request, "chat/chat_home.html", {"thread_cards": thread_cards})
 
 
 @login_required
@@ -369,12 +427,11 @@ def start_chat(request, user_id):
         messages.error(request, "You cannot start a chat with yourself.")
         return redirect("chat:chat_home")
 
-    if user_is_hidden_for(request.user, other_user):
+    if user_hidden_for(request.user, other_user):
         messages.error(request, "This user is not available for chat.")
         return redirect("matches:discover")
 
     thread = ChatThread.get_or_create_between(request.user, other_user)
-
     return redirect("chat:chat_room", thread.id)
 
 
@@ -395,23 +452,16 @@ def chat_room(request, thread_id):
         messages.error(request, "This chat is not available.")
         return redirect("chat:chat_home")
 
-    other_profile = get_profile(other_user)
-
-    if user_is_hidden_for(request.user, other_user):
+    if user_hidden_for(request.user, other_user):
         messages.error(request, "This chat is no longer available.")
         return redirect("chat:chat_home")
 
-    ChatMessage.objects.filter(
-        thread=thread,
-        is_read=False,
-    ).exclude(
-        sender=request.user,
-    ).update(is_read=True)
+    ChatMessage.objects.filter(thread=thread, is_read=False).exclude(sender=request.user).update(is_read=True)
 
     chat_messages = (
         thread.messages
-        .select_related("sender")
-        .prefetch_related("attachments")
+        .select_related("sender", "reply_to", "reply_to__sender")
+        .prefetch_related("attachments", "reply_to__attachments")
         .order_by("created_at")
     )
 
@@ -422,9 +472,11 @@ def chat_room(request, thread_id):
             "thread": thread,
             "chat_messages": chat_messages,
             "other_user": other_user,
-            "other_profile": other_profile,
+            "other_profile": get_profile(other_user),
             "other_user_name": get_display_name(other_user),
             "other_user_photo": get_photo_url(other_user),
+            "current_user_name": get_display_name(request.user),
+            "current_user_photo": get_photo_url(request.user),
         },
     )
 
@@ -435,16 +487,16 @@ def send_message(request, thread_id):
     thread = get_object_or_404(ChatThread, id=thread_id)
 
     if not thread.has_user(request.user):
-        messages.error(request, "This chat is not available.")
-        return redirect("chat:chat_home")
+        return respond_chat_error(request, "This chat is not available.", status=403)
 
     other_user = thread.other_user(request.user)
 
     if blocked_between(request.user, other_user):
-        messages.error(request, "You cannot message this user.")
-        return redirect("chat:chat_home")
+        return respond_chat_error(request, "You cannot message this user.", thread=thread, status=403)
 
-    text = request.POST.get("text", "").strip()
+    text = (request.POST.get("text") or "").strip()
+    if len(text) > 1200:
+        text = text[:1200]
 
     image_file = request.FILES.get("image")
     video_file = request.FILES.get("video")
@@ -452,62 +504,35 @@ def send_message(request, thread_id):
     voice_file = request.FILES.get("voice") or request.FILES.get("audio")
 
     if not text and not image_file and not video_file and not regular_file and not voice_file:
-        messages.error(request, "Message cannot be empty.")
-        return redirect("chat:chat_room", thread_id=thread.id)
+        return respond_chat_error(request, "Message cannot be empty.", thread=thread)
 
-    if image_file:
-        error = validate_upload(
-            image_file,
-            ALLOWED_IMAGE_TYPES,
-            ALLOWED_IMAGE_EXTENSIONS,
-            MAX_IMAGE_SIZE,
-        )
+    upload_checks = [
+        (image_file, ALLOWED_IMAGE_TYPES, ALLOWED_IMAGE_EXTENSIONS, MAX_IMAGE_SIZE, 1),
+        (video_file, ALLOWED_VIDEO_TYPES, ALLOWED_VIDEO_EXTENSIONS, MAX_VIDEO_SIZE, 1),
+        (regular_file, ALLOWED_FILE_TYPES, ALLOWED_FILE_EXTENSIONS, MAX_FILE_SIZE, 1),
+        (voice_file, ALLOWED_AUDIO_TYPES, ALLOWED_AUDIO_EXTENSIONS, MAX_AUDIO_SIZE, 300),
+    ]
 
-        if error:
-            messages.error(request, error)
-            return redirect("chat:chat_room", thread_id=thread.id)
+    for uploaded_file, allowed_types, allowed_extensions, max_size, min_size in upload_checks:
+        if uploaded_file:
+            error = validate_upload(uploaded_file, allowed_types, allowed_extensions, max_size, min_size=min_size)
+            if error:
+                return respond_chat_error(request, error, thread=thread)
 
-    if video_file:
-        error = validate_upload(
-            video_file,
-            ALLOWED_VIDEO_TYPES,
-            ALLOWED_VIDEO_EXTENSIONS,
-            MAX_VIDEO_SIZE,
-        )
+    reply_to = None
+    reply_to_id = (request.POST.get("reply_to_id") or "").strip()
 
-        if error:
-            messages.error(request, error)
-            return redirect("chat:chat_room", thread_id=thread.id)
-
-    if regular_file:
-        error = validate_upload(
-            regular_file,
-            ALLOWED_FILE_TYPES,
-            ALLOWED_FILE_EXTENSIONS,
-            MAX_FILE_SIZE,
-        )
-
-        if error:
-            messages.error(request, error)
-            return redirect("chat:chat_room", thread_id=thread.id)
-
-    if voice_file:
-        error = validate_upload(
-            voice_file,
-            ALLOWED_AUDIO_TYPES,
-            ALLOWED_AUDIO_EXTENSIONS,
-            MAX_AUDIO_SIZE,
-        )
-
-        if error:
-            messages.error(request, error)
-            return redirect("chat:chat_room", thread_id=thread.id)
+    if reply_to_id:
+        reply_to = ChatMessage.objects.filter(id=reply_to_id, thread=thread).first()
+        if reply_to is None:
+            return respond_chat_error(request, "The message you are replying to is not available.", thread=thread)
 
     message = ChatMessage.objects.create(
-    thread=thread,
-    sender=request.user,
-    text=text,
-)
+        thread=thread,
+        sender=request.user,
+        reply_to=reply_to,
+        text=text,
+    )
 
     try:
         if image_file:
@@ -548,18 +573,26 @@ def send_message(request, thread_id):
 
     except Exception as exc:
         message.delete()
-
-        if settings.DEBUG:
-            messages.error(request, f"Upload failed: {exc}")
-        else:
-            messages.error(request, "Upload failed. Please try again.")
-
-        return redirect("chat:chat_room", thread_id=thread.id)
+        error = f"Upload failed: {exc}" if settings.DEBUG else "Upload failed. Please try again."
+        return respond_chat_error(request, error, thread=thread, status=500)
 
     thread.save()
     create_message_notification(message)
 
+    message = (
+        ChatMessage.objects
+        .select_related("sender", "reply_to", "reply_to__sender")
+        .prefetch_related("attachments", "reply_to__attachments")
+        .get(id=message.id)
+    )
+
+    broadcast_message(message)
+
+    if wants_json(request):
+        return json_success(message=serialize_message(message))
+
     return redirect("chat:chat_room", thread_id=thread.id)
+
 
 @login_required
 @require_POST
@@ -600,11 +633,7 @@ def block_thread_user(request, thread_id):
         return redirect("chat:chat_home")
 
     other_user = thread.other_user(request.user)
-
-    UserBlock.objects.get_or_create(
-        blocker=request.user,
-        blocked=other_user,
-    )
+    UserBlock.objects.get_or_create(blocker=request.user, blocked=other_user)
 
     messages.success(request, "User blocked.")
     return redirect("chat:chat_home")
@@ -614,19 +643,12 @@ def create_chat_report_staff_alert(report):
     if Notification is None:
         return
 
-    staff_users = User.objects.filter(
-        is_staff=True,
-        is_active=True,
-    ).exclude(
-        id=report.reporter_id,
-    )
-
+    staff_users = User.objects.filter(is_staff=True, is_active=True).exclude(id=report.reporter_id)
     channel_layer = get_channel_layer()
-    reporter_name = get_user_display_name(report.reporter)
+    reporter_name = get_display_name(report.reporter)
 
     for staff_user in staff_users:
         url = reverse("chat:chat_room", args=[report.thread.id])
-
         data = {
             "recipient": staff_user,
             "actor": report.reporter,
@@ -637,12 +659,7 @@ def create_chat_report_staff_alert(report):
             "related_object_type": "chat.chatreport",
             "related_object_id": report.id,
         }
-
-        allowed_data = {
-            key: value
-            for key, value in data.items()
-            if model_has_field(Notification, key)
-        }
+        allowed_data = {key: value for key, value in data.items() if model_has_field(Notification, key)}
 
         try:
             Notification.objects.create(**allowed_data)
@@ -670,10 +687,7 @@ def create_chat_report_staff_alert(report):
 
 @login_required
 def start_call(request, thread_id, call_type):
-    thread = get_object_or_404(
-        ChatThread.objects.select_related("user_one", "user_two"),
-        id=thread_id,
-    )
+    thread = get_object_or_404(ChatThread.objects.select_related("user_one", "user_two"), id=thread_id)
 
     if not thread.has_user(request.user):
         messages.error(request, "You do not have access to this chat.")
@@ -724,6 +738,7 @@ def start_call(request, thread_id, call_type):
 
     return redirect("chat:call_room", call_id=call.id)
 
+
 @login_required
 def call_room(request, call_id):
     call = get_object_or_404(
@@ -756,10 +771,7 @@ def call_room(request, call_id):
 @login_required
 @require_POST
 def accept_call(request, call_id):
-    call = get_object_or_404(
-        CallSession.objects.select_related("thread", "caller", "receiver"),
-        id=call_id,
-    )
+    call = get_object_or_404(CallSession.objects.select_related("thread", "caller", "receiver"), id=call_id)
 
     if request.user != call.receiver:
         messages.error(request, "Only the receiver can accept this call.")
@@ -776,10 +788,7 @@ def accept_call(request, call_id):
 @login_required
 @require_POST
 def decline_call(request, call_id):
-    call = get_object_or_404(
-        CallSession.objects.select_related("thread", "caller", "receiver"),
-        id=call_id,
-    )
+    call = get_object_or_404(CallSession.objects.select_related("thread", "caller", "receiver"), id=call_id)
 
     if request.user not in [call.caller, call.receiver]:
         messages.error(request, "You do not have access to this call.")
@@ -795,10 +804,7 @@ def decline_call(request, call_id):
 @login_required
 @require_POST
 def end_call(request, call_id):
-    call = get_object_or_404(
-        CallSession.objects.select_related("thread", "caller", "receiver"),
-        id=call_id,
-    )
+    call = get_object_or_404(CallSession.objects.select_related("thread", "caller", "receiver"), id=call_id)
 
     if request.user not in [call.caller, call.receiver]:
         messages.error(request, "You do not have access to this call.")
@@ -814,20 +820,15 @@ def end_call(request, call_id):
 @login_required
 @require_POST
 def report_thread_user(request, thread_id):
-    thread = get_object_or_404(
-        ChatThread.objects.select_related("user_one", "user_two"),
-        id=thread_id,
-    )
+    thread = get_object_or_404(ChatThread.objects.select_related("user_one", "user_two"), id=thread_id)
 
     if not thread.has_user(request.user):
         messages.error(request, "You cannot report this chat.")
         return redirect("chat:chat_home")
 
     reported_user = thread.other_user(request.user)
-
-    reason = request.POST.get("reason", ChatReport.REASON_OTHER).strip()
-    details = request.POST.get("details", "").strip()
-
+    reason = (request.POST.get("reason") or ChatReport.REASON_OTHER).strip()
+    details = (request.POST.get("details") or "").strip()
     valid_reasons = [choice[0] for choice in ChatReport.REASON_CHOICES]
 
     if reason not in valid_reasons:
@@ -843,13 +844,8 @@ def report_thread_user(request, thread_id):
 
     create_chat_report_staff_alert(report)
 
-    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-        return JsonResponse(
-            {
-                "success": True,
-                "message": "Chat reported.",
-            }
-        )
+    if wants_json(request):
+        return json_success(message="Chat reported.")
 
     messages.success(request, "Chat reported.")
     return redirect("chat:chat_room", thread.id)
@@ -870,17 +866,10 @@ def set_available_boolean_fields(instance, field_names):
             setattr(instance, field_name, True)
             changed.append(field_name)
 
-    if model_has_field(instance.__class__, "hidden_at"):
-        instance.hidden_at = timezone.now()
-        changed.append("hidden_at")
-
-    if model_has_field(instance.__class__, "deleted_at"):
-        instance.deleted_at = timezone.now()
-        changed.append("deleted_at")
-
-    if model_has_field(instance.__class__, "cleared_at"):
-        instance.cleared_at = timezone.now()
-        changed.append("cleared_at")
+    for field_name in ["hidden_at", "deleted_at", "cleared_at"]:
+        if model_has_field(instance.__class__, field_name):
+            setattr(instance, field_name, timezone.now())
+            changed.append(field_name)
 
     if changed:
         instance.save(update_fields=list(dict.fromkeys(changed)))
@@ -890,7 +879,6 @@ def set_available_boolean_fields(instance, field_names):
 
 def hide_messages_for_user(thread, user, message_ids=None):
     MessageState = optional_chat_model("ChatMessageUserState")
-
     qs = ChatMessage.objects.filter(thread=thread)
 
     if message_ids is not None:
@@ -900,27 +888,14 @@ def hide_messages_for_user(thread, user, message_ids=None):
         return qs.delete()[0]
 
     count = 0
-
     for message in qs:
-        state, created = MessageState.objects.get_or_create(
-            message=message,
-            user=user,
-        )
-
+        state, created = MessageState.objects.get_or_create(message=message, user=user)
         changed = set_available_boolean_fields(
             state,
-            [
-                "hidden_for_me",
-                "deleted_for_me",
-                "is_hidden",
-                "is_deleted",
-                "is_cleared",
-            ],
+            ["hidden_for_me", "deleted_for_me", "is_hidden", "is_deleted", "is_cleared"],
         )
-
         if not changed:
             state.save()
-
         count += 1
 
     return count
@@ -938,25 +913,13 @@ def clear_chat_for_me(request, thread_id):
     ThreadState = optional_chat_model("ChatThreadUserState")
 
     if ThreadState is not None:
-        state, created = ThreadState.objects.get_or_create(
-            thread=thread,
-            user=request.user,
-        )
-
+        state, created = ThreadState.objects.get_or_create(thread=thread, user=request.user)
         set_available_boolean_fields(
             state,
-            [
-                "cleared_for_me",
-                "hidden_for_me",
-                "deleted_for_me",
-                "is_cleared",
-                "is_hidden",
-                "is_deleted",
-            ],
+            ["cleared_for_me", "hidden_for_me", "deleted_for_me", "is_cleared", "is_hidden", "is_deleted"],
         )
 
     hidden_count = hide_messages_for_user(thread, request.user)
-
     messages.success(request, "Chat cleared." if hidden_count else "Chat is already clear.")
     return redirect("chat:chat_room", thread_id=thread.id)
 
@@ -973,19 +936,8 @@ def delete_chat_for_me(request, thread_id):
     ThreadState = optional_chat_model("ChatThreadUserState")
 
     if ThreadState is not None:
-        state, created = ThreadState.objects.get_or_create(
-            thread=thread,
-            user=request.user,
-        )
-        set_available_boolean_fields(
-            state,
-            [
-                "deleted_for_me",
-                "hidden_for_me",
-                "is_deleted",
-                "is_hidden",
-            ],
-        )
+        state, created = ThreadState.objects.get_or_create(thread=thread, user=request.user)
+        set_available_boolean_fields(state, ["deleted_for_me", "hidden_for_me", "is_deleted", "is_hidden"])
         hide_messages_for_user(thread, request.user)
         messages.success(request, "Chat deleted for you.")
         return redirect("chat:chat_home")
@@ -1043,9 +995,7 @@ def delete_selected_messages_for_me(request):
         messages.error(request, "Select at least one message.")
         return redirect(next_url)
 
-    messages_qs = ChatMessage.objects.filter(
-        id__in=selected_ids,
-    ).filter(
+    messages_qs = ChatMessage.objects.filter(id__in=selected_ids).filter(
         Q(thread__user_one=request.user) | Q(thread__user_two=request.user)
     )
 
@@ -1075,19 +1025,11 @@ def delete_selected_messages_for_everyone(request):
         messages.error(request, "Select at least one message.")
         return redirect(next_url)
 
-    qs = ChatMessage.objects.filter(
-        id__in=selected_ids,
-        sender=request.user,
-    ).filter(
+    qs = ChatMessage.objects.filter(id__in=selected_ids, sender=request.user).filter(
         Q(thread__user_one=request.user) | Q(thread__user_two=request.user)
     )
 
-    soft_fields = [
-        "deleted_for_everyone",
-        "is_deleted_for_everyone",
-        "is_deleted",
-    ]
-
+    soft_fields = ["deleted_for_everyone", "is_deleted_for_everyone", "is_deleted"]
     can_soft_delete = any(model_has_field(ChatMessage, field_name) for field_name in soft_fields)
 
     if can_soft_delete:
@@ -1125,6 +1067,5 @@ def delete_chat(request, thread_id):
         return redirect("chat:chat_home")
 
     thread.delete()
-
     messages.success(request, "Chat deleted.")
     return redirect("chat:chat_home")

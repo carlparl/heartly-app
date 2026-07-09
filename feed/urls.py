@@ -13,6 +13,7 @@ urlpatterns = [
 
     path("post/<int:post_id>/like/", views.like_post, name="like_post"),
     path("post/<int:post_id>/react/", views.like_post, name="react_post"),
+    path("post/<int:post_id>/save/", views.save_post, name="save_post"),
 
     path("post/<int:post_id>/comment/", views.comment_post, name="comment_post"),
     path("post/<int:post_id>/report/", views.report_post, name="report_post"),

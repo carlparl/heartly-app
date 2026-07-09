@@ -2,7 +2,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from django.db.models import Count, Prefetch
+from django.db.models import Prefetch
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
@@ -11,36 +11,19 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from .forms import EditPostForm, PostForm
-from .models import Comment, CommentReaction, Post, PostLike
+from .models import Comment, CommentReaction, Post, PostLike, PostSave
 
 
 POSTS_PER_PAGE = 12
-REACTION_EMOJIS = {
-    "like": "👍",
-    "love": "❤️",
-    "funny": "😂",
-    "cute": "😍",
-    "support": "👏",
-    "wow": "😮",
-}
-
-VALID_REACTIONS = set(REACTION_EMOJIS.keys())
+VALID_REACTIONS = {"like", "love", "funny", "cute", "support", "wow"}
 
 
 def clean_reaction_type(value):
     value = (value or "love").strip().lower()
-    if value not in VALID_REACTIONS:
-        return "love"
-    return value
+    return value if value in VALID_REACTIONS else "love"
 
-
-def reaction_label(reaction_type):
-    return REACTION_EMOJIS.get(reaction_type, "❤️")
 
 def wants_json(request):
-    """
-    True when the frontend is using fetch/AJAX instead of a normal form submit.
-    """
     return (
         request.headers.get("X-Requested-With") == "XMLHttpRequest"
         or "application/json" in request.headers.get("Accept", "")
@@ -49,56 +32,34 @@ def wants_json(request):
 
 
 def json_error(message, status=400, **extra):
-    data = {
-        "ok": False,
-        "message": message,
-    }
+    data = {"ok": False, "message": message}
     data.update(extra)
     return JsonResponse(data, status=status)
 
 
 def json_success(message="", **extra):
-    data = {
-        "ok": True,
-        "message": message,
-    }
+    data = {"ok": True, "message": message}
     data.update(extra)
     return JsonResponse(data)
 
 
 def first_form_error(form):
-    """
-    Return the first useful form error as plain text.
-    """
     for field, errors in form.errors.items():
         for error in errors:
             if field == "__all__":
                 return str(error)
 
             field_obj = form.fields.get(field)
-            label = (
-                field_obj.label
-                if field_obj and field_obj.label
-                else field.replace("_", " ").title()
-            )
-
+            label = field_obj.label if field_obj and field_obj.label else field.replace("_", " ").title()
             return f"{label}: {error}"
 
     return "Please correct the form and try again."
 
 
 def upload_exception_message(exc):
-    """
-    Avoid silent 500 errors when Cloudinary/local storage rejects a video.
-    """
-    message = (
-        "Upload failed. If this was a video, check the file type, file size, "
-        "and Cloudinary video storage setup."
-    )
-
+    message = "Upload failed. Check the file type, file size, and media storage setup."
     if settings.DEBUG:
         return f"{message} Details: {exc}"
-
     return message
 
 
@@ -128,10 +89,6 @@ def _safe_profile(user):
 
 
 def post_owner(post):
-    """
-    Your Post model uses `author`, not `user`.
-    This helper keeps the rest of the view clean.
-    """
     return getattr(post, "author", None)
 
 
@@ -192,47 +149,32 @@ def initials_for(name):
 
 def decorate_user_identity(target, user):
     username = username_for(user)
-
     target.display_name = username
     target.username = username
     target.username_label = ""
     target.avatar_url = avatar_url_for(user)
     target.avatar_initials = initials_for(username)
-
     return target
 
 
 def decorate_comment(comment, viewer=None):
     decorate_user_identity(comment, comment.user)
 
+    # Keep the old multi-reaction summary hidden, but support the single
+    # Instagram-style heart count used inside the comments sheet.
     comment.viewer_reaction = ""
-    comment.reaction_total = 0
     comment.reaction_counts = {}
-
-    reaction_rows = (
-        comment.reactions
-        .values("reaction_type")
-        .annotate(total=Count("id"))
-        .order_by("-total")
-    )
-
-    for row in reaction_rows:
-        reaction_type = row["reaction_type"]
-        comment.reaction_counts[reaction_type] = {
-            "emoji": reaction_label(reaction_type),
-            "count": row["total"],
-        }
-        comment.reaction_total += row["total"]
+    comment.reaction_total = comment.reactions.count()
 
     if viewer and viewer.is_authenticated:
         reaction = comment.reactions.filter(user=viewer).first()
-        comment.viewer_reaction = reaction.reaction_type if reaction else ""
+        if reaction:
+            comment.viewer_reaction = reaction.reaction_type
 
     replies = list(
         comment.replies
         .select_related("user", "user__profile")
-        .prefetch_related("reactions")
-        .order_by("created_at")[:2]
+        .order_by("created_at")[:4]
     )
 
     for reply in replies:
@@ -240,33 +182,22 @@ def decorate_comment(comment, viewer=None):
 
     comment.visible_replies = replies
     comment.replies_count = comment.replies.count()
-
+    comment.more_replies_count = max(comment.replies_count - len(replies), 0)
     return comment
 
 
 def decorate_post(post, viewer):
     owner = post_owner(post)
-
     decorate_user_identity(post, owner)
 
     post.viewer_reaction = ""
     post.is_liked_by_user = False
     post.likes_count = post.likes.count()
+    post.is_saved_by_user = False
+    post.saves_count = post.saves.count()
+
+    # Do not display the old multi-reaction summary.
     post.reaction_counts = {}
-
-    reaction_rows = (
-        post.likes
-        .values("reaction_type")
-        .annotate(total=Count("id"))
-        .order_by("-total")
-    )
-
-    for row in reaction_rows:
-        reaction_type = row["reaction_type"]
-        post.reaction_counts[reaction_type] = {
-            "emoji": reaction_label(reaction_type),
-            "count": row["total"],
-        }
 
     if viewer and viewer.is_authenticated:
         reaction = post.likes.filter(user=viewer).first()
@@ -274,27 +205,35 @@ def decorate_post(post, viewer):
             post.viewer_reaction = reaction.reaction_type
             post.is_liked_by_user = True
 
-    top_comments = list(
+        post.is_saved_by_user = post.saves.filter(user=viewer).exists()
+
+    post.comments_count = post.comments.filter(parent__isnull=True).count()
+
+    # Render enough comments for the bottom sheet without adding a new endpoint.
+    # This keeps the first patch simple and fast for the current app size.
+    visible_comments = list(
         post.comments
         .filter(parent__isnull=True)
         .select_related("user", "user__profile")
-        .prefetch_related("reactions", "replies", "replies__user", "replies__user__profile", "replies__reactions")
-        .order_by("-created_at")[:2]
+        .prefetch_related(
+            "reactions",
+            "replies",
+            "replies__user",
+            "replies__user__profile",
+            "replies__reactions",
+        )
+        .order_by("-created_at")[:30]
     )
-    top_comments.reverse()
+    visible_comments.reverse()
 
-    for comment in top_comments:
+    for comment in visible_comments:
         decorate_comment(comment, viewer)
 
-    post.comments_count = post.comments.filter(parent__isnull=True).count()
-    post.visible_comments = top_comments
-
+    post.visible_comments = visible_comments
+    post.more_comments_count = max(post.comments_count - len(visible_comments), 0)
     post.image_url = _safe_file_url(post.image)
     post.video_url = _safe_file_url(post.video)
 
-    # Safety guard: the profile picture must never render as post media.
-    # If an old/broken post saved the same file as the author's avatar,
-    # keep it only as the small avatar and hide it from the media area.
     if post.image_url and post.avatar_url and post.image_url == post.avatar_url:
         post.image_url = ""
 
@@ -308,26 +247,18 @@ def enrich_posts(posts, viewer):
 
 def render_post_card(request, post):
     post = decorate_post(post, request.user)
-
     return render_to_string(
         "feed/_post_card.html",
-        {
-            "post": post,
-            "request": request,
-        },
+        {"post": post, "request": request},
         request=request,
     )
 
 
 def render_comment_html(request, comment):
-    comment = decorate_comment(comment)
-
+    comment = decorate_comment(comment, request.user)
     return render_to_string(
         "feed/_comment_item.html",
-        {
-            "comment": comment,
-            "request": request,
-        },
+        {"comment": comment, "request": request},
         request=request,
     )
 
@@ -339,6 +270,7 @@ def feed_home(request):
         .select_related("author", "author__profile")
         .prefetch_related(
             "likes",
+            "saves",
             Prefetch(
                 "comments",
                 queryset=Comment.objects.select_related("user", "user__profile").order_by("created_at"),
@@ -350,7 +282,6 @@ def feed_home(request):
     paginator = Paginator(posts_qs, POSTS_PER_PAGE)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
-
     posts = list(enrich_posts(list(page_obj.object_list), request.user))
 
     return render(
@@ -378,16 +309,10 @@ def create_post(request):
     video = request.FILES.get("video")
 
     if image and video:
-        return respond_error(
-            request,
-            "Please upload either an image or a video, not both.",
-        )
+        return respond_error(request, "Please upload either an image or a video, not both.")
 
     if not content and not image and not video:
-        return respond_error(
-            request,
-            "A post cannot be empty. Add text, an image, or a video.",
-        )
+        return respond_error(request, "A post cannot be empty. Add text, an image, or a video.")
 
     form = PostForm(request.POST, request.FILES)
 
@@ -397,10 +322,6 @@ def create_post(request):
     post = form.save(commit=False)
     post.author = request.user
     post.content = content
-
-    # Critical fix:
-    # Only files uploaded through the post form can become post media.
-    # Do not use the user's profile picture/logo as a fallback post image.
     post.image = image if image else None
     post.video = video if video else None
 
@@ -410,11 +331,7 @@ def create_post(request):
         return respond_error(request, upload_exception_message(exc), status=500)
 
     if wants_json(request):
-        return json_success(
-            "Post shared.",
-            post_id=post.id,
-            post_html=render_post_card(request, post),
-        )
+        return json_success(post_id=post.id, post_html=render_post_card(request, post))
 
     messages.success(request, "Post shared.")
     return redirect("feed:feed_home")
@@ -427,21 +344,11 @@ def edit_post(request, post_id):
 
     image = request.FILES.get("image")
     video = request.FILES.get("video")
-
-    remove_image = (
-        request.POST.get("remove_image") == "1"
-        or request.POST.get("image-clear") == "on"
-    )
-    remove_video = (
-        request.POST.get("remove_video") == "1"
-        or request.POST.get("video-clear") == "on"
-    )
+    remove_image = request.POST.get("remove_image") == "1" or request.POST.get("image-clear") == "on"
+    remove_video = request.POST.get("remove_video") == "1" or request.POST.get("video-clear") == "on"
 
     if image and video:
-        return respond_error(
-            request,
-            "Please upload either an image or a video, not both.",
-        )
+        return respond_error(request, "Please upload either an image or a video, not both.")
 
     form = EditPostForm(request.POST, request.FILES, instance=post)
 
@@ -469,10 +376,7 @@ def edit_post(request, post_id):
     has_video = bool(updated_post.video)
 
     if not has_content and not has_image and not has_video:
-        return respond_error(
-            request,
-            "A post cannot be empty. Add text, an image, or a video.",
-        )
+        return respond_error(request, "A post cannot be empty. Add text, an image, or a video.")
 
     updated_post.edited_at = timezone.now()
 
@@ -482,11 +386,7 @@ def edit_post(request, post_id):
         return respond_error(request, upload_exception_message(exc), status=500)
 
     if wants_json(request):
-        return json_success(
-            "Post updated.",
-            post_id=updated_post.id,
-            post_html=render_post_card(request, updated_post),
-        )
+        return json_success(post_id=updated_post.id, post_html=render_post_card(request, updated_post))
 
     messages.success(request, "Post updated.")
     return redirect("feed:feed_home")
@@ -499,7 +399,7 @@ def delete_post(request, post_id):
     post.delete()
 
     if wants_json(request):
-        return json_success("Post deleted.", post_id=post_id, remove_post_id=post_id)
+        return json_success(post_id=post_id, remove_post_id=post_id)
 
     messages.success(request, "Post deleted.")
     return redirect("feed:feed_home")
@@ -530,7 +430,6 @@ def like_post(request, post_id):
 
     if wants_json(request):
         return json_success(
-            "Reaction updated." if reacted else "Reaction removed.",
             post_id=post.id,
             reacted=reacted,
             reaction_type=reaction_type if reacted else "",
@@ -540,16 +439,41 @@ def like_post(request, post_id):
 
     return redirect(request.POST.get("next") or reverse("feed:feed_home"))
 
+
+@login_required
+@require_POST
+def save_post(request, post_id):
+    post = get_object_or_404(Post, id=post_id)
+
+    saved_item, created = PostSave.objects.get_or_create(
+        post=post,
+        user=request.user,
+    )
+
+    saved = True
+
+    if not created:
+        saved_item.delete()
+        saved = False
+
+    post = decorate_post(post, request.user)
+
+    if wants_json(request):
+        return json_success(
+            post_id=post.id,
+            saved=saved,
+            saves_count=post.saves_count,
+            post_html=render_post_card(request, post),
+        )
+
+    return redirect(request.POST.get("next") or reverse("feed:feed_home"))
+
+
 @login_required
 @require_POST
 def comment_post(request, post_id):
     post = get_object_or_404(Post, id=post_id)
-
-    content = (
-        request.POST.get("content")
-        or request.POST.get("comment")
-        or ""
-    ).strip()
+    content = (request.POST.get("content") or request.POST.get("comment") or "").strip()
 
     if not content:
         return respond_error(request, "Comment cannot be empty.")
@@ -558,12 +482,7 @@ def comment_post(request, post_id):
     parent_id = request.POST.get("parent_id")
 
     if parent_id:
-        parent = get_object_or_404(
-            Comment,
-            id=parent_id,
-            post=post,
-            parent__isnull=True,
-        )
+        parent = get_object_or_404(Comment, id=parent_id, post=post, parent__isnull=True)
 
     comment = Comment.objects.create(
         post=post,
@@ -576,7 +495,6 @@ def comment_post(request, post_id):
 
     if wants_json(request):
         return json_success(
-            "Reply added." if parent else "Comment added.",
             post_id=post.id,
             comment_id=comment.id,
             comments_count=post.comments_count,
@@ -585,33 +503,22 @@ def comment_post(request, post_id):
 
     return redirect("feed:feed_home")
 
+
 @login_required
 @require_POST
 def reply_comment(request, comment_id):
     parent = get_object_or_404(Comment, id=comment_id, parent__isnull=True)
     post = parent.post
-
-    content = (
-        request.POST.get("content")
-        or request.POST.get("reply")
-        or ""
-    ).strip()
+    content = (request.POST.get("content") or request.POST.get("reply") or "").strip()
 
     if not content:
         return respond_error(request, "Reply cannot be empty.")
 
-    reply = Comment.objects.create(
-        post=post,
-        user=request.user,
-        parent=parent,
-        content=content,
-    )
-
+    reply = Comment.objects.create(post=post, user=request.user, parent=parent, content=content)
     post = decorate_post(post, request.user)
 
     if wants_json(request):
         return json_success(
-            "Reply added.",
             post_id=post.id,
             comment_id=parent.id,
             reply_id=reply.id,
@@ -625,6 +532,8 @@ def reply_comment(request, comment_id):
 @login_required
 @require_POST
 def react_comment(request, comment_id):
+    # Kept for URL compatibility. The rebuilt templates no longer display
+    # comment reaction controls.
     comment = get_object_or_404(Comment, id=comment_id)
     reaction_type = clean_reaction_type(request.POST.get("reaction_type"))
 
@@ -647,7 +556,6 @@ def react_comment(request, comment_id):
 
     if wants_json(request):
         return json_success(
-            "Reaction updated." if reacted else "Reaction removed.",
             post_id=post.id,
             comment_id=comment.id,
             reacted=reacted,
@@ -657,6 +565,7 @@ def react_comment(request, comment_id):
 
     return redirect("feed:feed_home")
 
+
 @login_required
 @require_POST
 def report_post(request, post_id):
@@ -665,13 +574,8 @@ def report_post(request, post_id):
     if post.author_id == request.user.id:
         return respond_error(request, "You cannot report your own post.")
 
-    # Lightweight report handler. No migration required.
-    # Add PostReport saving later only when its model and migration are stable.
     if wants_json(request):
-        return json_success(
-            "Post reported. Our team will review it.",
-            post_id=post.id,
-        )
+        return json_success(post_id=post.id)
 
     messages.success(request, "Post reported. Our team will review it.")
     return redirect("feed:feed_home")

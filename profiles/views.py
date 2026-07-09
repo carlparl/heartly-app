@@ -110,6 +110,65 @@ def visible_posts_for(user):
     return queryset
 
 
+def visible_media_posts_for(user):
+    if Post is None:
+        return []
+
+    queryset = visible_posts_for(user)
+
+    if not hasattr(queryset, "filter"):
+        return []
+
+    return queryset.filter(
+        (Q(image__isnull=False) & ~Q(image=""))
+        | (Q(video__isnull=False) & ~Q(video=""))
+    )
+
+
+def safe_file_url(file_field):
+    if not file_field:
+        return ""
+
+    try:
+        return file_field.url
+    except Exception:
+        return ""
+
+
+def profile_summary_context(user):
+    profile = attach_profile_template_fields(get_profile(user))
+    posts = visible_posts_for(user)
+    media_posts = visible_media_posts_for(user)
+
+    posts_count = posts.count() if hasattr(posts, "count") else 0
+    media_count = media_posts.count() if hasattr(media_posts, "count") else 0
+
+    likes_count = 0
+    if PostLike is not None:
+        likes_count = PostLike.objects.filter(user=user).count()
+
+    block_list = (
+        UserBlock.objects
+        .filter(blocker=user)
+        .select_related("blocked")
+        .order_by("-created_at")
+    )
+
+    return {
+        "profile": profile,
+        "viewed_profile": profile,
+        "viewed_user": user,
+        "display_name": get_display_name(user),
+        "posts": posts,
+        "posts_count": posts_count,
+        "likes_count": likes_count,
+        "media_count": media_count,
+        "block_list": block_list,
+        "is_owner": True,
+        "is_blocked": False,
+    }
+
+
 def clear_notifications_between(user_one, user_two):
     if Notification is None:
         return
@@ -126,39 +185,85 @@ def clear_notifications_between(user_one, user_two):
 
 @login_required
 def profile_home(request):
-    profile = attach_profile_template_fields(get_profile(request.user))
-
-    posts = visible_posts_for(request.user)
-    posts_count = posts.count() if hasattr(posts, "count") else 0
-
-    likes_count = 0
-
-    if PostLike is not None:
-        likes_count = PostLike.objects.filter(user=request.user).count()
-
-    block_list = (
-        UserBlock.objects
-        .filter(blocker=request.user)
-        .select_related("blocked")
-        .order_by("-created_at")
-    )
-
     return render(
         request,
         "profiles/profile.html",
-        {
-            "profile": profile,
-            "viewed_profile": profile,
-            "viewed_user": request.user,
-            "display_name": get_display_name(request.user),
-            "posts": posts,
-            "posts_count": posts_count,
-            "likes_count": likes_count,
-            "block_list": block_list,
-            "is_owner": True,
-            "is_blocked": False,
-        },
+        profile_summary_context(request.user),
     )
+
+
+@login_required
+def profile_details(request):
+    ensure_default_interests()
+    context = profile_summary_context(request.user)
+    profile = context["profile"]
+    context.update(
+        {
+            "interests": profile.interests.all().order_by("name"),
+        }
+    )
+    return render(request, "profiles/profile_details.html", context)
+
+
+@login_required
+def profile_activity(request):
+    context = profile_summary_context(request.user)
+    posts = context["posts"]
+
+    if hasattr(posts, "select_related"):
+        posts = posts.select_related("author", "author__profile").prefetch_related("likes", "comments")
+
+    context.update({"posts": posts})
+    return render(request, "profiles/profile_activity.html", context)
+
+
+@login_required
+def profile_media(request):
+    context = profile_summary_context(request.user)
+    profile = context["profile"]
+    media_items = []
+
+    profile_photo_url = safe_file_url(getattr(profile, "profile_picture", None))
+    if profile_photo_url:
+        media_items.append(
+            {
+                "type": "Profile photo",
+                "url": profile_photo_url,
+                "kind": "image",
+                "caption": "Current profile photo",
+                "created_at": getattr(profile, "updated_at", None),
+            }
+        )
+
+    media_posts = visible_media_posts_for(request.user)
+    for post in media_posts[:60]:
+        image_url = safe_file_url(getattr(post, "image", None))
+        video_url = safe_file_url(getattr(post, "video", None))
+
+        if image_url:
+            media_items.append(
+                {
+                    "type": "Post photo",
+                    "url": image_url,
+                    "kind": "image",
+                    "caption": getattr(post, "content", "") or "Photo post",
+                    "created_at": getattr(post, "created_at", None),
+                }
+            )
+
+        if video_url:
+            media_items.append(
+                {
+                    "type": "Post video",
+                    "url": video_url,
+                    "kind": "video",
+                    "caption": getattr(post, "content", "") or "Video post",
+                    "created_at": getattr(post, "created_at", None),
+                }
+            )
+
+    context.update({"media_items": media_items})
+    return render(request, "profiles/profile_media.html", context)
 
 
 def public_profile(request, user_id):
@@ -189,17 +294,32 @@ def public_profile(request, user_id):
 
 @login_required
 def edit_profile(request):
+    ensure_default_interests()
     profile = get_profile(request.user)
 
     if request.method == "POST":
-        form = ProfileForm(request.POST, request.FILES, instance=profile)
+        form = ProfileForm(
+            request.POST,
+            request.FILES,
+            instance=profile,
+            user=request.user,
+        )
 
         if form.is_valid():
             form.save()
             messages.success(request, "Profile updated.")
             return redirect("profiles:profile_home")
     else:
-        form = ProfileForm(instance=profile)
+        form = ProfileForm(instance=profile, user=request.user)
+
+    selected_interests = list(profile.interests.all().order_by("name")[:12])
+    selected_interest_count = profile.interests.count()
+    extra_interest_count = max(selected_interest_count - len(selected_interests), 0)
+
+    if selected_interests:
+        interest_chips = selected_interests
+    else:
+        interest_chips = list(Interest.objects.all().order_by("name")[:10])
 
     return render(
         request,
@@ -207,6 +327,9 @@ def edit_profile(request):
         {
             "form": form,
             "profile": profile,
+            "interest_chips": interest_chips,
+            "selected_interest_count": selected_interest_count,
+            "extra_interest_count": extra_interest_count,
         },
     )
 

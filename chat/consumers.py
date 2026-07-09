@@ -7,12 +7,10 @@ from profiles.models import Profile, UserBlock
 
 from .models import Call, ChatMessage, ChatThread
 
-
 try:
     from profiles.blocking import block_exists_between
 except Exception:
     block_exists_between = None
-
 
 try:
     from notifications.models import Notification
@@ -22,6 +20,17 @@ except Exception:
 
 def model_has_field(model, field_name):
     return any(field.name == field_name for field in model._meta.fields)
+
+
+def display_name_for(user):
+    profile, created = Profile.objects.get_or_create(user=user)
+    return (
+        getattr(profile, "display_name", "")
+        or getattr(profile, "name", "")
+        or user.get_full_name()
+        or user.username
+        or "Heartly User"
+    )
 
 
 class ThreadConsumer(AsyncJsonWebsocketConsumer):
@@ -35,7 +44,6 @@ class ThreadConsumer(AsyncJsonWebsocketConsumer):
             return
 
         allowed = await self.user_can_access_thread()
-
         if not allowed:
             await self.close()
             return
@@ -53,33 +61,26 @@ class ThreadConsumer(AsyncJsonWebsocketConsumer):
 
         if event_type == "chat.message":
             await self.handle_chat_message(content)
-
         elif event_type == "typing.start":
             await self.relay_typing(True)
-
         elif event_type == "typing.stop":
             await self.relay_typing(False)
-
         elif event_type == "call.start":
             await self.handle_call_start(content)
-
         elif event_type == "call.accept":
             await self.handle_call_accept(content)
-
         elif event_type == "call.decline":
             await self.handle_call_decline(content)
-
         elif event_type == "call.end":
             await self.handle_call_end(content)
-
         elif event_type == "call.missed":
             await self.handle_call_missed(content)
-
         elif event_type in ["webrtc.offer", "webrtc.answer", "webrtc.ice"]:
             await self.relay_call_signal(content)
 
     async def handle_chat_message(self, content):
-        text = content.get("text", "").strip()
+        text = (content.get("text") or "").strip()
+        reply_to_id = content.get("reply_to_id")
 
         if not text:
             return
@@ -87,7 +88,10 @@ class ThreadConsumer(AsyncJsonWebsocketConsumer):
         if len(text) > 1200:
             text = text[:1200]
 
-        message_payload = await self.save_message(text)
+        message_payload = await self.save_message(text, reply_to_id)
+
+        if not message_payload:
+            return
 
         await self.channel_layer.group_send(
             self.group_name,
@@ -204,8 +208,7 @@ class ThreadConsumer(AsyncJsonWebsocketConsumer):
                 "type": "chat.broadcast",
                 "payload": {
                     "type": "call.missed",
-                    "call_id": call_id,
-                    "sender_id": self.user.id,
+                    **missed_payload,
                 },
             },
         )
@@ -223,7 +226,6 @@ class ThreadConsumer(AsyncJsonWebsocketConsumer):
 
     async def relay_call_signal(self, content):
         content["sender_id"] = self.user.id
-
         await self.channel_layer.group_send(
             self.group_name,
             {
@@ -237,14 +239,9 @@ class ThreadConsumer(AsyncJsonWebsocketConsumer):
 
     @database_sync_to_async
     def user_can_access_thread(self):
-        thread = (
-            ChatThread.objects
-            .select_related("user_one", "user_two")
-            .filter(id=self.thread_id)
-            .first()
-        )
-
-        if not thread:
+        try:
+            thread = ChatThread.objects.select_related("user_one", "user_two").get(id=self.thread_id)
+        except ChatThread.DoesNotExist:
             return False
 
         if not thread.has_user(self.user):
@@ -258,7 +255,6 @@ class ThreadConsumer(AsyncJsonWebsocketConsumer):
         else:
             if UserBlock.objects.filter(blocker=self.user, blocked=other_user).exists():
                 return False
-
             if UserBlock.objects.filter(blocker=other_user, blocked=self.user).exists():
                 return False
 
@@ -277,39 +273,55 @@ class ThreadConsumer(AsyncJsonWebsocketConsumer):
         ChatMessage.objects.filter(
             thread_id=self.thread_id,
             is_read=False,
-        ).exclude(
-            sender=self.user,
-        ).update(is_read=True)
+        ).exclude(sender=self.user).update(is_read=True)
 
     @database_sync_to_async
-    def save_message(self, text):
+    def save_message(self, text, reply_to_id=None):
         thread = ChatThread.objects.get(id=self.thread_id)
+        reply_to = None
+
+        if reply_to_id:
+            reply_to = ChatMessage.objects.filter(id=reply_to_id, thread=thread).first()
 
         message = ChatMessage.objects.create(
             thread=thread,
             sender=self.user,
+            reply_to=reply_to,
             text=text,
         )
 
         thread.save()
-
         self.create_message_notification(message)
 
-        profile, created = Profile.objects.get_or_create(user=self.user)
-        sender_name = (
-            getattr(profile, "display_name", "")
-            or self.user.get_full_name()
-            or self.user.username
-        )
-
-        return {
+        payload = {
+            "id": message.id,
             "message_id": message.id,
             "thread_id": thread.id,
             "sender_id": self.user.id,
-            "sender_name": sender_name,
+            "sender_name": display_name_for(self.user),
             "text": message.text,
             "created_at": timezone.localtime(message.created_at).strftime("%H:%M"),
+            "attachments": [],
+            "reply_to": None,
         }
+
+        if reply_to:
+            first_attachment = reply_to.attachments.first()
+            if reply_to.text:
+                preview = reply_to.text[:110]
+            elif first_attachment:
+                preview = first_attachment.attachment_type.title()
+            else:
+                preview = "Message"
+
+            payload["reply_to"] = {
+                "id": reply_to.id,
+                "sender_id": reply_to.sender_id,
+                "sender_name": display_name_for(reply_to.sender),
+                "text": preview,
+            }
+
+        return payload
 
     @database_sync_to_async
     def create_call(self, call_type):
@@ -324,17 +336,8 @@ class ThreadConsumer(AsyncJsonWebsocketConsumer):
             status=Call.STATUS_RINGING,
         )
 
-        caller_profile, created = Profile.objects.get_or_create(user=self.user)
-        caller_name = (
-            getattr(caller_profile, "display_name", "")
-            or self.user.get_full_name()
-            or self.user.username
-        )
-
-        accept_url = (
-            reverse("chat:chat_room", args=[thread.id])
-            + f"?accept_call={call.id}&call_type={call.call_type}"
-        )
+        caller_name = display_name_for(self.user)
+        accept_url = reverse("chat:chat_room", args=[thread.id]) + f"?accept_call={call.id}&call_type={call.call_type}"
 
         self.create_call_notification(
             recipient=receiver,
@@ -360,21 +363,13 @@ class ThreadConsumer(AsyncJsonWebsocketConsumer):
     def answer_call(self, call_id):
         if not call_id:
             return
-
-        Call.objects.filter(id=call_id).update(
-            status=Call.STATUS_ANSWERED,
-            answered_at=timezone.now(),
-        )
+        Call.objects.filter(id=call_id).update(status=Call.STATUS_ANSWERED, answered_at=timezone.now())
 
     @database_sync_to_async
     def close_call(self, call_id, status):
         if not call_id:
             return
-
-        Call.objects.filter(id=call_id).update(
-            status=status,
-            ended_at=timezone.now(),
-        )
+        Call.objects.filter(id=call_id).update(status=status, ended_at=timezone.now())
 
     @database_sync_to_async
     def mark_call_missed(self, call_id):
@@ -395,12 +390,7 @@ class ThreadConsumer(AsyncJsonWebsocketConsumer):
         call.ended_at = timezone.now()
         call.save(update_fields=["status", "ended_at"])
 
-        caller_profile, created = Profile.objects.get_or_create(user=call.caller)
-        caller_name = (
-            getattr(caller_profile, "display_name", "")
-            or call.caller.get_full_name()
-            or call.caller.username
-        )
+        caller_name = display_name_for(call.caller)
 
         self.create_call_notification(
             recipient=call.receiver,

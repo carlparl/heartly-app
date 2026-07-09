@@ -1,82 +1,66 @@
-<div class="{% if is_reply %}reply-item{% else %}comment-item{% endif %}" data-comment-id="{{ comment.id }}">
-    {% if comment.avatar_url %}
-        <img src="{{ comment.avatar_url }}" alt="{{ comment.display_name }}" class="{% if is_reply %}reply-avatar{% else %}comment-avatar{% endif %}">
-    {% else %}
-        <div class="{% if is_reply %}reply-avatar reply-avatar-fallback{% else %}comment-avatar comment-avatar-fallback{% endif %}">
-            {{ comment.avatar_initials }}
-        </div>
-    {% endif %}
-
-    <div class="comment-bubble">
-        <div class="comment-meta">
-            <strong>{{ comment.display_name }}</strong>
-            <span class="comment-time">{{ comment.created_at|timesince }} ago</span>
-        </div>
-
-        <div class="comment-text">{{ comment.content|linebreaksbr }}</div>
-
-        {% if comment.reaction_counts %}
-            <div class="reaction-summary">
-                {% for reaction_type, item in comment.reaction_counts.items %}
-                    <span class="reaction-pill">{{ item.emoji }} {{ item.count }}</span>
-                {% endfor %}
-            </div>
+<div class="{% if is_reply %}ig-sheet-reply{% else %}ig-sheet-comment{% endif %}" data-comment-id="{{ comment.id }}">
+    <div class="ig-sheet-comment-avatar">
+        {% if comment.avatar_url %}
+            <img src="{{ comment.avatar_url }}" alt="{{ comment.display_name }}">
+        {% else %}
+            <span>{{ comment.avatar_initials }}</span>
         {% endif %}
+    </div>
 
-        <div class="comment-actions">
-            <form method="post" action="{% url 'feed:react_comment' comment.id %}" data-feed-ajax data-comment-reaction>
-                {% csrf_token %}
-                <input type="hidden" name="reaction_type" value="love">
-                <button type="submit" class="comment-action-btn {% if comment.viewer_reaction == 'love' %}is-active{% endif %}">❤️</button>
-            </form>
-
-            <form method="post" action="{% url 'feed:react_comment' comment.id %}" data-feed-ajax data-comment-reaction>
-                {% csrf_token %}
-                <input type="hidden" name="reaction_type" value="funny">
-                <button type="submit" class="comment-action-btn {% if comment.viewer_reaction == 'funny' %}is-active{% endif %}">😂</button>
-            </form>
-
-            <form method="post" action="{% url 'feed:react_comment' comment.id %}" data-feed-ajax data-comment-reaction>
-                {% csrf_token %}
-                <input type="hidden" name="reaction_type" value="support">
-                <button type="submit" class="comment-action-btn {% if comment.viewer_reaction == 'support' %}is-active{% endif %}">👏</button>
-            </form>
-
-            {% if not is_reply %}
-                <button type="button" class="comment-action-btn" data-reply-toggle="reply-form-{{ comment.id }}">
-                    Reply
-                </button>
+    <div class="ig-sheet-comment-main">
+        <div class="ig-sheet-comment-head">
+            <strong>{{ comment.display_name }}</strong>
+            <span>{{ comment.created_at|timesince }}</span>
+            {% if comment.user_id == comment.post.author_id %}
+                <span>· ❤️ by author</span>
             {% endif %}
         </div>
 
+        <div class="ig-sheet-comment-text">{{ comment.content|linebreaksbr }}</div>
+
         {% if not is_reply %}
-            <form
-                method="post"
-                action="{% url 'feed:reply_comment' comment.id %}"
-                class="reply-form"
-                id="reply-form-{{ comment.id }}"
-                data-feed-ajax
-                data-reply-form
-                hidden
-            >
+            <button type="button" class="ig-sheet-reply-btn" data-reply-toggle="reply-form-{{ comment.id }}">Reply</button>
+
+            <form method="post"
+                  action="{% url 'feed:reply_comment' comment.id %}"
+                  class="reply-form ig-sheet-reply-form"
+                  id="reply-form-{{ comment.id }}"
+                  data-feed-ajax
+                  data-reply-form
+                  hidden>
                 {% csrf_token %}
-                <input type="text" name="content" placeholder="Reply..." autocomplete="off">
-                <button type="submit">Send</button>
+                <input type="text" name="content" maxlength="500" placeholder="Reply to {{ comment.display_name }}..." autocomplete="off" required>
+                <button type="submit" aria-label="Send reply">➤</button>
             </form>
 
             {% if comment.visible_replies %}
-                <div class="replies-list">
+                <div class="ig-sheet-replies">
                     {% for reply in comment.visible_replies %}
-                        {% include "feed/_comment_item.html" with comment=reply post=post is_reply=True %}
+                        {% include "feed/_comment_item.html" with comment=reply is_reply=True %}
                     {% endfor %}
                 </div>
             {% endif %}
 
-            {% if comment.replies_count > 2 %}
-                <div class="comments-note">
-                    More replies are collapsed.
-                </div>
+            {% if comment.more_replies_count %}
+                <button type="button" class="ig-view-more-replies" data-reply-toggle="reply-form-{{ comment.id }}">
+                    <span></span> View {{ comment.more_replies_count }} more repl{{ comment.more_replies_count|pluralize:"y,ies" }}
+                </button>
             {% endif %}
         {% endif %}
     </div>
+
+    <form method="post" action="{% url 'feed:react_comment' comment.id %}" class="ig-sheet-comment-like" data-feed-ajax data-comment-reaction>
+        {% csrf_token %}
+        <input type="hidden" name="reaction_type" value="love">
+        <button type="submit" class="{% if comment.viewer_reaction %}is-active{% endif %}" aria-label="Like comment">
+            {% if comment.viewer_reaction %}
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.08C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+            {% else %}
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            {% endif %}
+        </button>
+        {% if comment.reaction_total %}
+            <span>{{ comment.reaction_total }}</span>
+        {% endif %}
+    </form>
 </div>

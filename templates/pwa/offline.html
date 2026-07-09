@@ -1,0 +1,26 @@
+{% extends "heartly/base.html" %}
+{% load static %}
+
+{% block title %}Offline - Heartly{% endblock %}
+
+{% block content %}
+<section class="heartly-offline-page">
+    <div class="heartly-offline-card">
+        <img src="{% static 'icons/icon-192.png' %}" alt="Heartly" class="offline-icon">
+        <p class="offline-kicker">You are offline</p>
+        <h1>Heartly needs a connection</h1>
+        <p>Chats, feed posts, matches, and uploads need internet access. Reconnect and try again.</p>
+        <button type="button" class="offline-retry-btn" onclick="window.location.reload()">Try again</button>
+    </div>
+</section>
+
+<style>
+    .heartly-offline-page { min-height: 70vh; display: grid; place-items: center; padding: 24px 16px 96px; color: var(--heartly-text, #111827); }
+    .heartly-offline-card { width: min(100%, 420px); padding: 26px; border-radius: 30px; text-align: center; background: var(--heartly-card, #ffffff); border: 1px solid var(--heartly-border, rgba(17, 24, 39, 0.08)); box-shadow: var(--heartly-shadow-soft, 0 18px 50px rgba(15, 23, 42, 0.12)); }
+    .offline-icon { width: 72px; height: 72px; border-radius: 20px; object-fit: cover; }
+    .offline-kicker { margin: 16px 0 8px; color: var(--heartly-primary, #ec4899); font-weight: 950; letter-spacing: 0.08em; text-transform: uppercase; font-size: 0.78rem; }
+    .heartly-offline-card h1 { margin: 0; font-size: 1.7rem; font-weight: 950; letter-spacing: -0.05em; }
+    .heartly-offline-card p:not(.offline-kicker) { margin: 12px 0 22px; line-height: 1.55; color: var(--heartly-muted, #6b7280); font-weight: 750; }
+    .offline-retry-btn { width: 100%; border: 0; border-radius: 999px; padding: 14px 16px; color: #ffffff; background: var(--heartly-primary, #ec4899); font: inherit; font-weight: 950; cursor: pointer; }
+</style>
+{% endblock %}
