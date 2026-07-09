@@ -38,7 +38,7 @@
                     Select messages
                 </button>
 
-               <a href="{% url 'chat:start_call' thread.id 'audio' %}" class="chat-menu-item">
+                <a href="{% url 'chat:start_call' thread.id 'audio' %}" class="chat-menu-item">
                     Audio call
                 </a>
 
@@ -52,7 +52,11 @@
 
                 <form method="post" action="{% url 'chat:block_thread_user' thread.id %}">
                     {% csrf_token %}
-                    <button type="submit" class="danger" onclick="return confirm('Block this user? You will no longer receive messages from them.');">
+                    <button
+                        type="submit"
+                        class="danger"
+                        onclick="return confirm('Block this user? You will no longer receive messages from them.');"
+                    >
                         Block user
                     </button>
                 </form>
@@ -72,7 +76,7 @@
 
     <main class="chat-messages" id="chatMessages">
         {% for message in chat_messages %}
-            <article class="chat-message-row {% if message.sender == request.user %}mine{% else %}theirs{% endif %}">
+            <article class="chat-message-row {% if message.sender == request.user %}mine{% else %}theirs{% endif %}" data-message-id="{{ message.id }}">
                 {% if message.sender == request.user %}
                     <input
                         type="checkbox"
@@ -99,10 +103,34 @@
                         <div class="message-attachment">
                             {% if attachment.attachment_type == "image" %}
                                 <a href="{{ attachment.file.url }}" target="_blank" rel="noopener" class="image-attachment-link">
-                                    <img src="{{ attachment.file.url }}" alt="{{ attachment.original_filename|default:'Image attachment' }}" class="image-attachment" loading="lazy">
+                                    <img
+                                        src="{{ attachment.file.url }}"
+                                        alt="{{ attachment.original_filename|default:'Image attachment' }}"
+                                        class="image-attachment"
+                                        loading="lazy"
+                                    >
                                 </a>
+
                             {% elif attachment.attachment_type == "video" %}
-                                <video src="{{ attachment.file.url }}" controls preload="metadata" class="video-attachment"></video>
+                                <video
+                                    src="{{ attachment.file.url }}"
+                                    controls
+                                    playsinline
+                                    preload="metadata"
+                                    class="video-attachment"
+                                ></video>
+
+                            {% elif attachment.attachment_type == "audio" %}
+                                <div class="voice-note">
+                                    <span class="voice-note-icon">🎙️</span>
+                                    <audio
+                                        src="{{ attachment.file.url }}"
+                                        controls
+                                        preload="metadata"
+                                        class="voice-note-player"
+                                    ></audio>
+                                </div>
+
                             {% elif attachment.attachment_type == "file" %}
                                 <a href="{{ attachment.file.url }}" target="_blank" rel="noopener" class="file-attachment">
                                     <span class="file-icon">📎</span>
@@ -128,10 +156,10 @@
                 </div>
             </article>
         {% empty %}
-            <section class="chat-empty-state">
+            <section class="chat-empty-state" id="chatEmptyState">
                 <div class="chat-empty-icon">💬</div>
                 <h2>No messages yet</h2>
-                <p>Start with a simple message, photo, or video.</p>
+                <p>Start with a simple message, photo, video, file, or voice note.</p>
             </section>
         {% endfor %}
     </main>
@@ -151,6 +179,7 @@
 
     <section class="selected-media-bar" id="selectedMediaBar" hidden>
         <span id="selectedMediaText">No file selected</span>
+        <button type="button" id="previewSelectedVoiceBtn" hidden>Play</button>
         <button type="button" id="clearSelectedMediaBtn" aria-label="Remove selected file">×</button>
     </section>
 
@@ -203,6 +232,12 @@
                 placeholder="Message..."
                 autocomplete="off"
             ></textarea>
+
+            <input type="file" name="voice" id="voiceInput" accept="audio/wav,audio/*" hidden>
+
+            <button type="button" class="composer-mic" id="voiceRecordBtn" aria-label="Record voice note">
+                🎙️
+            </button>
 
             <button type="submit" class="composer-send" aria-label="Send message">
                 ➤
@@ -286,6 +321,7 @@
         gap: 8px;
         background: color-mix(in srgb, var(--heartly-bg, #ffffff) 92%, transparent);
         backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
         border-bottom: 1px solid var(--heartly-border, rgba(17, 24, 39, 0.08));
     }
 
@@ -293,6 +329,7 @@
     .chat-options summary,
     .composer-plus,
     .composer-send,
+    .composer-mic,
     .modal-close-btn {
         border: none;
         text-decoration: none;
@@ -551,21 +588,21 @@
         align-items: center;
         gap: 10px;
         color: inherit;
-        background: rgba(255, 255, 255, 0.18);
+        background: rgba(255, 255, 255, 0.12);
         text-decoration: none;
     }
 
     .chat-message-row.theirs .file-attachment {
-        background: rgba(17, 24, 39, 0.06);
+        background: rgba(0, 0, 0, 0.04);
     }
 
     .file-icon {
         width: 38px;
         height: 38px;
-        border-radius: 13px;
+        border-radius: 14px;
         display: grid;
         place-items: center;
-        background: rgba(255, 255, 255, 0.22);
+        background: rgba(255, 255, 255, 0.18);
         flex: 0 0 auto;
     }
 
@@ -574,24 +611,44 @@
         display: block;
     }
 
-    .file-attachment strong {
-        font-size: 0.82rem;
-        max-width: 170px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
     .file-attachment small {
         opacity: 0.72;
-        font-size: 0.72rem;
+        margin-top: 2px;
+    }
+
+    .voice-note {
+        min-width: 230px;
+        padding: 9px 10px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        background: rgba(255, 255, 255, 0.12);
+    }
+
+    .chat-message-row.theirs .voice-note {
+        background: rgba(0, 0, 0, 0.04);
+    }
+
+    .voice-note-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 999px;
+        display: grid;
+        place-items: center;
+        background: rgba(255, 255, 255, 0.18);
+        flex: 0 0 auto;
+    }
+
+    .voice-note-player {
+        width: 190px;
+        max-width: 100%;
+        height: 34px;
     }
 
     .chat-empty-state {
-        min-height: 46vh;
-        display: grid;
-        place-items: center;
-        align-content: center;
+        margin: auto;
+        padding: 34px 18px;
         text-align: center;
         color: var(--heartly-muted, #6b7280);
     }
@@ -599,292 +656,332 @@
     .chat-empty-icon {
         width: 62px;
         height: 62px;
+        margin: 0 auto 12px;
         border-radius: 24px;
         display: grid;
         place-items: center;
-        background: rgba(255, 79, 123, 0.10);
-        font-size: 1.8rem;
+        color: #ffffff;
+        background: linear-gradient(135deg, var(--heartly-primary, #ff4f7b), #e0355f);
+        font-size: 1.6rem;
     }
 
     .chat-empty-state h2 {
-        margin: 14px 0 6px;
+        margin: 0;
         color: var(--heartly-text, #111827);
-        font-size: 1.1rem;
+        font-size: 1.05rem;
+        font-weight: 900;
     }
 
     .chat-empty-state p {
-        margin: 0;
-        font-size: 0.9rem;
+        margin: 6px auto 0;
+        max-width: 260px;
+        font-size: 0.88rem;
+        font-weight: 700;
     }
 
     .selected-toolbar,
-    .selected-media-bar {
-        position: sticky;
-        z-index: 85;
-        margin: 0 12px 8px;
-        padding: 10px;
-        border-radius: 18px;
-        background: var(--heartly-card, #ffffff);
-        border: 1px solid var(--heartly-border, rgba(17, 24, 39, 0.08));
-        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+    .selected-media-bar,
+    .chat-composer {
+        position: fixed;
+        left: 50%;
+        width: min(100%, 620px);
+        transform: translateX(-50%);
+        z-index: 140;
     }
 
     .selected-toolbar {
-        bottom: calc(var(--heartly-bottomnav-height, 74px) + 80px);
+        bottom: calc(var(--heartly-bottomnav-height, 74px) + 68px);
+        padding: 10px 12px;
         display: flex;
         align-items: center;
-        justify-content: space-between;
         gap: 8px;
+        background: var(--heartly-card, #ffffff);
+        border-top: 1px solid var(--heartly-border, rgba(17, 24, 39, 0.08));
+        box-shadow: 0 -12px 30px rgba(15, 23, 42, 0.08);
     }
 
-    .selected-toolbar[hidden],
-    .selected-media-bar[hidden],
-    .attachment-drawer[hidden],
-    .chat-modal[hidden] {
-        display: none !important;
+    .selected-toolbar[hidden] {
+        display: none;
     }
 
-    .selected-toolbar span,
-    .selected-media-bar span {
-        color: var(--heartly-text, #111827);
-        font-size: 0.84rem;
-        font-weight: 800;
+    .selected-toolbar span {
+        margin-right: auto;
+        font-weight: 900;
     }
 
-    .selected-toolbar button,
-    .selected-media-bar button {
-        min-height: 34px;
+    .selected-toolbar button {
+        min-height: 38px;
         border: none;
         border-radius: 999px;
-        padding: 0 12px;
-        background: rgba(255, 79, 123, 0.12);
-        color: var(--heartly-primary, #ff4f7b);
-        font-size: 0.78rem;
+        padding: 0 14px;
+        color: #ffffff;
+        background: linear-gradient(135deg, var(--heartly-primary, #ff4f7b), #e0355f);
         font-weight: 900;
         cursor: pointer;
     }
 
     .selected-media-bar {
-        bottom: calc(var(--heartly-bottomnav-height, 74px) + 74px);
+        bottom: calc(var(--heartly-bottomnav-height, 74px) + 72px);
+        min-height: 42px;
+        padding: 8px 12px;
         display: flex;
         align-items: center;
-        justify-content: space-between;
         gap: 10px;
+        background: var(--heartly-card, #ffffff);
+        border-top: 1px solid var(--heartly-border, rgba(17, 24, 39, 0.08));
+        box-shadow: 0 -10px 24px rgba(15, 23, 42, 0.08);
+    }
+
+    .selected-media-bar[hidden] {
+        display: none;
+    }
+
+    .selected-media-bar span {
+        min-width: 0;
+        flex: 1;
+        color: var(--heartly-text, #111827);
+        font-size: 0.84rem;
+        font-weight: 800;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .selected-media-bar button {
+        min-width: 34px;
+        height: 32px;
+        border: none;
+        border-radius: 999px;
+        color: #ffffff;
+        background: #ef4444;
+        cursor: pointer;
+        font-size: 0.78rem;
+        font-weight: 900;
+    }
+
+    #previewSelectedVoiceBtn {
+        padding: 0 12px;
+        background: linear-gradient(135deg, var(--heartly-primary, #ff4f7b), #e0355f);
     }
 
     .chat-composer {
-        position: fixed;
-        left: 50%;
-        bottom: var(--heartly-bottomnav-height, 0px);
-        transform: translateX(-50%);
-        z-index: 90;
-        width: min(620px, 100%);
-        padding: 10px 12px 12px;
+        bottom: var(--heartly-bottomnav-height, 74px);
+        padding: 10px 12px;
         background: color-mix(in srgb, var(--heartly-bg, #ffffff) 92%, transparent);
         backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
         border-top: 1px solid var(--heartly-border, rgba(17, 24, 39, 0.08));
-        box-sizing: border-box;
     }
 
     .composer-shell {
         position: relative;
         display: flex;
         align-items: flex-end;
-        gap: 9px;
+        gap: 8px;
     }
 
     .composer-plus,
-    .composer-send {
-        width: 43px;
-        height: 43px;
-        flex: 0 0 auto;
+    .composer-send,
+    .composer-mic {
+        width: 44px;
+        height: 44px;
         border-radius: 999px;
         display: grid;
         place-items: center;
-        font-weight: 950;
+        flex: 0 0 auto;
+        font-weight: 900;
+    }
+
+    .composer-plus,
+    .composer-mic {
+        color: var(--heartly-text, #111827);
+        background: var(--heartly-card-soft, #f3f4f6);
+        font-size: 1rem;
     }
 
     .composer-plus {
-        background: rgba(255, 79, 123, 0.12);
-        color: var(--heartly-primary, #ff4f7b);
-        font-size: 1.7rem;
-        line-height: 1;
+        font-size: 1.5rem;
     }
 
     .composer-send {
-        background: linear-gradient(135deg, var(--heartly-primary, #ff4f7b), #e0355f);
         color: #ffffff;
-        font-size: 0.92rem;
-        box-shadow: 0 10px 22px rgba(255, 79, 123, 0.24);
+        background: linear-gradient(135deg, var(--heartly-primary, #ff4f7b), #e0355f);
+        font-size: 1rem;
+    }
+
+    .composer-mic.is-recording {
+        width: 64px;
+        color: #ffffff;
+        background: #ef4444;
+        animation: heartlyPulseRecord 1s infinite;
+        font-size: 0.75rem;
+    }
+
+    @keyframes heartlyPulseRecord {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.06); }
+        100% { transform: scale(1); }
     }
 
     .composer-textarea {
+        min-width: 0;
+        min-height: 44px;
+        max-height: 130px;
         flex: 1;
-        min-height: 43px;
-        max-height: 106px;
-        padding: 12px 16px;
-        border: 1px solid rgba(17, 24, 39, 0.06);
-        border-radius: 999px;
-        background: #f3f4f6;
-        color: #181018;
-        outline: none;
+        padding: 12px 14px;
+        border: 1px solid var(--heartly-border, rgba(17, 24, 39, 0.08));
+        border-radius: 22px;
         resize: none;
-        font-size: 0.95rem;
-        line-height: 1.25;
-        box-sizing: border-box;
-        caret-color: var(--heartly-primary, #ff4f7b);
-    }
-
-    .composer-textarea::placeholder {
-        color: #74707a;
-    }
-
-    .composer-textarea:focus {
-        background: #ffffff;
-        border-color: rgba(255, 79, 123, 0.45);
-        box-shadow: 0 0 0 4px rgba(255, 79, 123, 0.12);
+        outline: none;
+        color: var(--heartly-text, #111827);
+        background: var(--heartly-card, #ffffff);
+        font: inherit;
+        font-weight: 650;
     }
 
     .attachment-drawer {
         position: absolute;
         left: 0;
         bottom: 54px;
-        width: min(340px, calc(100vw - 24px));
-        padding: 12px;
-        border-radius: 24px;
+        width: min(330px, calc(100vw - 24px));
+        padding: 10px;
+        border-radius: 22px;
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        gap: 9px;
+        gap: 8px;
         background: var(--heartly-card, #ffffff);
         border: 1px solid var(--heartly-border, rgba(17, 24, 39, 0.08));
-        box-shadow: 0 22px 60px rgba(15, 23, 42, 0.18);
+        box-shadow: 0 18px 55px rgba(15, 23, 42, 0.18);
+    }
+
+    .attachment-drawer[hidden] {
+        display: none;
     }
 
     .attachment-option {
         min-height: 78px;
-        border-radius: 18px;
+        padding: 10px 6px;
+        border-radius: 17px;
         display: grid;
         place-items: center;
-        align-content: center;
-        gap: 5px;
-        background: rgba(255, 79, 123, 0.09);
+        gap: 4px;
         color: var(--heartly-text, #111827);
+        background: var(--heartly-card-soft, #f3f4f6);
         cursor: pointer;
         text-align: center;
-        font-size: 0.78rem;
-        font-weight: 850;
     }
 
     .attachment-option span {
-        font-size: 1.35rem;
+        font-size: 1.2rem;
+    }
+
+    .attachment-option strong {
+        font-size: 0.72rem;
+        font-weight: 900;
     }
 
     .chat-modal {
         position: fixed;
         inset: 0;
-        z-index: 1000;
-        padding: 18px;
+        z-index: 500;
+        padding: 20px;
         display: grid;
         place-items: center;
-        background: rgba(15, 23, 42, 0.55);
+        background: rgba(15, 23, 42, 0.52);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+    }
+
+    .chat-modal[hidden] {
+        display: none;
     }
 
     .chat-modal-card {
         position: relative;
-        width: min(420px, 100%);
-        padding: 28px;
-        border-radius: 28px;
+        width: min(100%, 390px);
+        padding: 22px;
+        border-radius: 26px;
         display: grid;
-        gap: 14px;
+        gap: 12px;
         background: var(--heartly-card, #ffffff);
-        color: var(--heartly-text, #111827);
-        box-shadow: 0 25px 70px rgba(0, 0, 0, 0.24);
-        box-sizing: border-box;
+        border: 1px solid var(--heartly-border, rgba(17, 24, 39, 0.08));
+        box-shadow: 0 22px 70px rgba(15, 23, 42, 0.22);
     }
 
     .modal-close-btn {
         position: absolute;
         top: 12px;
         right: 12px;
-        width: 34px;
-        height: 34px;
+        width: 38px;
+        height: 38px;
         border-radius: 999px;
+        display: grid;
+        place-items: center;
         background: var(--heartly-card-soft, #f3f4f6);
         color: var(--heartly-text, #111827);
-        font-size: 1.25rem;
+        font-size: 1.35rem;
+        font-weight: 900;
     }
 
     .profile-preview-avatar {
-        width: 84px;
-        height: 84px;
-        border-radius: 30px;
+        width: 86px;
+        height: 86px;
         margin: 0 auto;
-        font-size: 2rem;
+        border-radius: 28px;
+        font-size: 1.8rem;
     }
 
-    .chat-modal-card h2 {
-        margin: 0;
-        text-align: center;
-        font-size: 1.35rem;
-    }
-
+    .chat-modal-card h2,
     .chat-modal-card p {
         margin: 0;
         text-align: center;
+    }
+
+    .chat-modal-card h2 {
+        color: var(--heartly-text, #111827);
+        font-size: 1.15rem;
+        font-weight: 900;
+    }
+
+    .chat-modal-card p {
         color: var(--heartly-muted, #6b7280);
-        line-height: 1.5;
+        font-size: 0.88rem;
+        font-weight: 700;
     }
 
     .profile-preview-bio {
         padding: 12px;
-        border-radius: 16px;
+        border-radius: 18px;
         background: var(--heartly-card-soft, #f3f4f6);
+        text-align: left !important;
     }
 
     .chat-modal-card select,
     .chat-modal-card textarea {
         width: 100%;
-        border: 1px solid var(--heartly-border, rgba(17, 24, 39, 0.10));
+        border: 1px solid var(--heartly-border, rgba(17, 24, 39, 0.08));
         border-radius: 16px;
         padding: 12px;
-        background: #ffffff;
-        color: #181018;
-        font-size: 0.92rem;
+        color: var(--heartly-text, #111827);
+        background: var(--heartly-card-soft, #f3f4f6);
         outline: none;
-        box-sizing: border-box;
+        font: inherit;
+        font-weight: 700;
     }
 
     .modal-primary-btn {
-        min-height: 46px;
+        min-height: 44px;
         border: none;
-        border-radius: 16px;
-        background: linear-gradient(135deg, var(--heartly-primary, #ff4f7b), #e0355f);
+        border-radius: 999px;
         color: #ffffff;
+        background: linear-gradient(135deg, var(--heartly-primary, #ff4f7b), #e0355f);
         font-weight: 900;
         cursor: pointer;
     }
 
-    @media (max-width: 430px) {
+    @media (max-width: 520px) {
         .chat-room-page {
-            padding-bottom: calc(var(--heartly-bottomnav-height, 74px) + 82px);
-        }
-
-        .chat-room-header {
-            min-height: 60px;
-            grid-template-columns: 38px 1fr 38px;
-            padding-inline: 10px;
-        }
-
-        .chat-back-btn,
-        .chat-options summary {
-            width: 38px;
-            height: 38px;
-        }
-
-        .chat-user-avatar {
-            width: 38px;
-            height: 38px;
-            border-radius: 14px;
+            max-width: 100%;
         }
 
         .message-bubble {
@@ -892,131 +989,63 @@
         }
 
         .attachment-drawer {
-            grid-template-columns: repeat(4, 1fr);
-            gap: 7px;
-        }
-
-        .attachment-option {
-            min-height: 70px;
-            border-radius: 16px;
-            font-size: 0.7rem;
-        }
-    }
-
-    @media (max-width: 340px) {
-        .attachment-drawer {
             grid-template-columns: repeat(2, 1fr);
         }
 
-        .composer-plus,
-        .composer-send {
-            width: 39px;
-            height: 39px;
+        .voice-note {
+            min-width: 190px;
         }
 
-        .composer-textarea {
-            min-height: 39px;
-            padding-block: 10px;
+        .voice-note-player {
+            width: 150px;
+        }
+
+        .composer-mic.is-recording {
+            width: 58px;
         }
     }
 </style>
 
 <script>
-    document.addEventListener("DOMContentLoaded", function () {
+    (function () {
         const page = document.getElementById("chatRoomPage");
-        const messages = document.getElementById("chatMessages");
+        const messagesBox = document.getElementById("chatMessages");
+
+        const profilePreviewBtn = document.getElementById("profilePreviewBtn");
+        const openProfilePreviewBtn = document.getElementById("openProfilePreviewBtn");
+        const profilePreviewModal = document.getElementById("profilePreviewModal");
+
+        const openReportModalBtn = document.getElementById("openReportModalBtn");
+        const reportModal = document.getElementById("reportModal");
+
+        const toggleSelectModeBtn = document.getElementById("toggleSelectModeBtn");
+        const deleteSelectedForm = document.getElementById("deleteSelectedForm");
+        const selectedCount = document.getElementById("selectedCount");
+        const cancelSelectBtn = document.getElementById("cancelSelectBtn");
+
         const attachmentToggleBtn = document.getElementById("attachmentToggleBtn");
         const attachmentDrawer = document.getElementById("attachmentDrawer");
-        const messageInput = document.getElementById("messageInput");
-        const composerForm = document.getElementById("chatComposerForm");
+
         const selectedMediaBar = document.getElementById("selectedMediaBar");
         const selectedMediaText = document.getElementById("selectedMediaText");
         const clearSelectedMediaBtn = document.getElementById("clearSelectedMediaBtn");
-        const deleteSelectedForm = document.getElementById("deleteSelectedForm");
-        const selectedCount = document.getElementById("selectedCount");
-        const toggleSelectModeBtn = document.getElementById("toggleSelectModeBtn");
-        const cancelSelectBtn = document.getElementById("cancelSelectBtn");
-        const profilePreviewModal = document.getElementById("profilePreviewModal");
-        const reportModal = document.getElementById("reportModal");
+        const previewSelectedVoiceBtn = document.getElementById("previewSelectedVoiceBtn");
 
-        const fileInputs = [
-            document.getElementById("cameraInput"),
-            document.getElementById("photoInput"),
-            document.getElementById("videoInput"),
-            document.getElementById("fileInput")
-        ].filter(Boolean);
+        const chatComposerForm = document.getElementById("chatComposerForm");
+        const messageInput = document.getElementById("messageInput");
+        const voiceRecordBtn = document.getElementById("voiceRecordBtn");
+        const voiceInput = document.getElementById("voiceInput");
+
+        let selectedVoicePreviewUrl = "";
+        let isRecordingVoice = false;
 
         function scrollToBottom() {
-            window.requestAnimationFrame(function () {
-                window.scrollTo(0, document.body.scrollHeight);
-            });
-
-            if (messages) {
-                messages.scrollTop = messages.scrollHeight;
-            }
-        }
-
-        function closeAttachmentDrawer() {
-            if (attachmentDrawer) {
-                attachmentDrawer.hidden = true;
-            }
-        }
-
-        function clearAllFiles() {
-            fileInputs.forEach(function (input) {
-                input.value = "";
-            });
-
-            if (selectedMediaBar) {
-                selectedMediaBar.hidden = true;
-            }
-
-            if (selectedMediaText) {
-                selectedMediaText.textContent = "No file selected";
-            }
-        }
-
-        function showSelectedFile(file, label) {
-            if (!file || !selectedMediaBar || !selectedMediaText) {
-                return;
-            }
-
-            selectedMediaText.textContent = label + ": " + file.name;
-            selectedMediaBar.hidden = false;
-            closeAttachmentDrawer();
-        }
-
-        function clearOtherFiles(activeInput) {
-            fileInputs.forEach(function (input) {
-                if (input !== activeInput) {
-                    input.value = "";
-                }
-            });
-        }
-
-        function updateSelectedCount() {
-            const count = document.querySelectorAll(".message-check:checked").length;
-
-            if (selectedCount) {
-                selectedCount.textContent = count + " selected";
-            }
-        }
-
-        function setSelectMode(enabled) {
-            if (!page || !deleteSelectedForm) {
-                return;
-            }
-
-            page.classList.toggle("select-mode", enabled);
-            deleteSelectedForm.hidden = !enabled;
-
-            if (!enabled) {
-                document.querySelectorAll(".message-check").forEach(function (checkbox) {
-                    checkbox.checked = false;
+            if (messagesBox) {
+                messagesBox.scrollTop = messagesBox.scrollHeight;
+                window.requestAnimationFrame(function () {
+                    window.scrollTo(0, document.body.scrollHeight);
                 });
             }
-
-            updateSelectedCount();
         }
 
         function openModal(modal) {
@@ -1031,28 +1060,106 @@
             }
         }
 
-        scrollToBottom();
+        function closeAttachmentDrawer() {
+            if (attachmentDrawer) {
+                attachmentDrawer.hidden = true;
+            }
+        }
 
-        if (attachmentToggleBtn && attachmentDrawer) {
-            attachmentToggleBtn.addEventListener("click", function (event) {
-                event.stopPropagation();
-                attachmentDrawer.hidden = !attachmentDrawer.hidden;
+        function openAttachmentDrawer() {
+            if (attachmentDrawer) {
+                attachmentDrawer.hidden = false;
+            }
+        }
+
+        function updateSelectedCount() {
+            if (!deleteSelectedForm || !selectedCount) {
+                return;
+            }
+
+            const checked = document.querySelectorAll(".message-check:checked").length;
+            selectedCount.textContent = checked + " selected";
+        }
+
+        function exitSelectMode() {
+            if (page) {
+                page.classList.remove("select-mode");
+            }
+
+            if (deleteSelectedForm) {
+                deleteSelectedForm.hidden = true;
+            }
+
+            document.querySelectorAll(".message-check").forEach(function (check) {
+                check.checked = false;
             });
 
-            document.addEventListener("click", function (event) {
-                if (
-                    !attachmentDrawer.hidden &&
-                    !attachmentDrawer.contains(event.target) &&
-                    !attachmentToggleBtn.contains(event.target)
-                ) {
-                    closeAttachmentDrawer();
+            updateSelectedCount();
+        }
+
+        function clearVoicePreviewUrl() {
+            if (selectedVoicePreviewUrl) {
+                URL.revokeObjectURL(selectedVoicePreviewUrl);
+                selectedVoicePreviewUrl = "";
+            }
+
+            if (previewSelectedVoiceBtn) {
+                previewSelectedVoiceBtn.hidden = true;
+            }
+        }
+
+        function clearOtherFiles(activeInput) {
+            fileInputs.forEach(function (input) {
+                if (input !== activeInput) {
+                    input.value = "";
                 }
             });
+
+            if (activeInput !== voiceInput) {
+                clearVoicePreviewUrl();
+            }
         }
+
+        function showSelectedFile(file, label) {
+            if (!selectedMediaBar || !selectedMediaText) {
+                return;
+            }
+
+            selectedMediaText.textContent = label + ": " + file.name;
+            selectedMediaBar.hidden = false;
+
+            if (previewSelectedVoiceBtn) {
+                previewSelectedVoiceBtn.hidden = label !== "Voice note";
+            }
+        }
+
+        function clearSelectedFile() {
+            fileInputs.forEach(function (input) {
+                input.value = "";
+            });
+
+            clearVoicePreviewUrl();
+
+            if (selectedMediaBar) {
+                selectedMediaBar.hidden = true;
+            }
+
+            if (selectedMediaText) {
+                selectedMediaText.textContent = "No file selected";
+            }
+        }
+
+        const fileInputs = [
+            document.getElementById("cameraInput"),
+            document.getElementById("photoInput"),
+            document.getElementById("videoInput"),
+            document.getElementById("fileInput"),
+            document.getElementById("voiceInput")
+        ].filter(Boolean);
 
         fileInputs.forEach(function (input) {
             input.addEventListener("change", function () {
-                const file = input.files[0];
+                const file = input.files && input.files[0];
 
                 if (!file) {
                     return;
@@ -1064,117 +1171,413 @@
                     showSelectedFile(file, "Video");
                 } else if (input.id === "fileInput") {
                     showSelectedFile(file, "File");
+                } else if (input.id === "voiceInput") {
+                    if (selectedVoicePreviewUrl) {
+                        URL.revokeObjectURL(selectedVoicePreviewUrl);
+                    }
+
+                    selectedVoicePreviewUrl = URL.createObjectURL(file);
+                    showSelectedFile(file, "Voice note");
                 } else {
                     showSelectedFile(file, "Photo");
                 }
+
+                closeAttachmentDrawer();
             });
         });
 
+        if (previewSelectedVoiceBtn) {
+            previewSelectedVoiceBtn.addEventListener("click", function () {
+                if (!selectedVoicePreviewUrl) {
+                    return;
+                }
+
+                const previewAudio = new Audio(selectedVoicePreviewUrl);
+                previewAudio.play().catch(function (error) {
+                    console.warn("Voice preview failed:", error);
+                });
+            });
+        }
+
+        if (attachmentToggleBtn) {
+            attachmentToggleBtn.addEventListener("click", function () {
+                if (!attachmentDrawer) {
+                    return;
+                }
+
+                if (attachmentDrawer.hidden) {
+                    openAttachmentDrawer();
+                } else {
+                    closeAttachmentDrawer();
+                }
+            });
+        }
+
         if (clearSelectedMediaBtn) {
-            clearSelectedMediaBtn.addEventListener("click", clearAllFiles);
+            clearSelectedMediaBtn.addEventListener("click", clearSelectedFile);
         }
 
         if (messageInput) {
             messageInput.addEventListener("input", function () {
-                messageInput.style.height = "auto";
-                messageInput.style.height = Math.min(messageInput.scrollHeight, 106) + "px";
+                this.style.height = "auto";
+                this.style.height = Math.min(this.scrollHeight, 130) + "px";
             });
         }
 
-        if (composerForm) {
-            composerForm.addEventListener("submit", function (event) {
-                const text = messageInput ? messageInput.value.trim() : "";
-                const hasFile = fileInputs.some(function (input) {
-                    return input.files && input.files.length > 0;
-                });
-
-                if (!text && !hasFile) {
-                    event.preventDefault();
-                    if (messageInput) {
-                        messageInput.focus();
-                    }
-                }
+        if (profilePreviewBtn) {
+            profilePreviewBtn.addEventListener("click", function () {
+                openModal(profilePreviewModal);
             });
         }
+
+        if (openProfilePreviewBtn) {
+            openProfilePreviewBtn.addEventListener("click", function () {
+                openModal(profilePreviewModal);
+            });
+        }
+
+        if (openReportModalBtn) {
+            openReportModalBtn.addEventListener("click", function () {
+                openModal(reportModal);
+            });
+        }
+
+        document.addEventListener("click", function (event) {
+            const closeButton = event.target.closest("[data-close-modal]");
+
+            if (closeButton) {
+                const modal = document.getElementById(closeButton.getAttribute("data-close-modal"));
+                closeModal(modal);
+            }
+
+            if (event.target.classList && event.target.classList.contains("chat-modal")) {
+                closeModal(event.target);
+            }
+        });
 
         if (toggleSelectModeBtn) {
             toggleSelectModeBtn.addEventListener("click", function () {
-                const isEnabled = page && page.classList.contains("select-mode");
-                setSelectMode(!isEnabled);
-
-                const options = document.querySelector(".chat-options");
-                if (options) {
-                    options.removeAttribute("open");
+                if (!page || !deleteSelectedForm) {
+                    return;
                 }
+
+                page.classList.add("select-mode");
+                deleteSelectedForm.hidden = false;
+                updateSelectedCount();
             });
         }
 
         if (cancelSelectBtn) {
-            cancelSelectBtn.addEventListener("click", function () {
-                setSelectMode(false);
-            });
+            cancelSelectBtn.addEventListener("click", exitSelectMode);
         }
 
-        document.querySelectorAll(".message-check").forEach(function (checkbox) {
-            checkbox.addEventListener("change", updateSelectedCount);
+        document.addEventListener("change", function (event) {
+            if (event.target.matches(".message-check")) {
+                updateSelectedCount();
+            }
         });
 
         if (deleteSelectedForm) {
             deleteSelectedForm.addEventListener("submit", function (event) {
-                const count = document.querySelectorAll(".message-check:checked").length;
+                const checked = document.querySelectorAll(".message-check:checked").length;
 
-                if (count < 1) {
+                if (!checked) {
                     event.preventDefault();
-                    alert("Select at least one message first.");
+                    alert("Select at least one message.");
+                }
+            });
+        }
+
+        if (voiceRecordBtn && voiceInput) {
+            let activeVoiceStream = null;
+            let audioContext = null;
+            let sourceNode = null;
+            let processorNode = null;
+            let zeroGainNode = null;
+            let recordedBuffers = [];
+            let recordedLength = 0;
+            let recordingStartedAt = 0;
+            let recordingTimer = null;
+            let recordingSampleRate = 44100;
+
+            function formatSeconds(seconds) {
+                const clean = Math.max(0, Math.floor(seconds));
+                const mins = Math.floor(clean / 60);
+                const secs = clean % 60;
+                return mins + ":" + String(secs).padStart(2, "0");
+            }
+
+            function setRecordingUi(isRecording) {
+                isRecordingVoice = isRecording;
+
+                clearInterval(recordingTimer);
+                recordingTimer = null;
+
+                if (isRecording) {
+                    recordingStartedAt = Date.now();
+                    voiceRecordBtn.classList.add("is-recording");
+                    voiceRecordBtn.textContent = "0:00";
+                    voiceRecordBtn.setAttribute("aria-label", "Stop recording voice note");
+
+                    recordingTimer = setInterval(function () {
+                        const elapsed = (Date.now() - recordingStartedAt) / 1000;
+                        voiceRecordBtn.textContent = formatSeconds(elapsed);
+                    }, 300);
+                } else {
+                    voiceRecordBtn.classList.remove("is-recording");
+                    voiceRecordBtn.textContent = "🎙️";
+                    voiceRecordBtn.setAttribute("aria-label", "Record voice note");
+                }
+            }
+
+            function stopTracks() {
+                if (activeVoiceStream) {
+                    activeVoiceStream.getTracks().forEach(function (track) {
+                        track.stop();
+                    });
+                    activeVoiceStream = null;
+                }
+            }
+
+            function cleanupAudioNodes() {
+                try {
+                    if (processorNode) {
+                        processorNode.disconnect();
+                    }
+
+                    if (sourceNode) {
+                        sourceNode.disconnect();
+                    }
+
+                    if (zeroGainNode) {
+                        zeroGainNode.disconnect();
+                    }
+
+                    if (audioContext && audioContext.state !== "closed") {
+                        audioContext.close();
+                    }
+                } catch (error) {
+                    console.warn("Voice cleanup warning:", error);
+                }
+
+                processorNode = null;
+                sourceNode = null;
+                zeroGainNode = null;
+                audioContext = null;
+            }
+
+            function flattenBuffers(buffers, length) {
+                const result = new Float32Array(length);
+                let offset = 0;
+
+                buffers.forEach(function (buffer) {
+                    result.set(buffer, offset);
+                    offset += buffer.length;
+                });
+
+                return result;
+            }
+
+            function writeString(view, offset, string) {
+                for (let i = 0; i < string.length; i++) {
+                    view.setUint8(offset + i, string.charCodeAt(i));
+                }
+            }
+
+            function encodeWav(samples, sampleRate) {
+                const buffer = new ArrayBuffer(44 + samples.length * 2);
+                const view = new DataView(buffer);
+
+                writeString(view, 0, "RIFF");
+                view.setUint32(4, 36 + samples.length * 2, true);
+                writeString(view, 8, "WAVE");
+                writeString(view, 12, "fmt ");
+                view.setUint32(16, 16, true);
+                view.setUint16(20, 1, true);
+                view.setUint16(22, 1, true);
+                view.setUint32(24, sampleRate, true);
+                view.setUint32(28, sampleRate * 2, true);
+                view.setUint16(32, 2, true);
+                view.setUint16(34, 16, true);
+                writeString(view, 36, "data");
+                view.setUint32(40, samples.length * 2, true);
+
+                let offset = 44;
+
+                for (let i = 0; i < samples.length; i++) {
+                    let sample = Math.max(-1, Math.min(1, samples[i]));
+                    sample = sample < 0 ? sample * 0x8000 : sample * 0x7fff;
+                    view.setInt16(offset, sample, true);
+                    offset += 2;
+                }
+
+                return new Blob([view], { type: "audio/wav" });
+            }
+
+            async function startVoiceRecording() {
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    alert("Voice notes are not supported on this browser.");
                     return;
                 }
 
-                if (!confirm("Delete selected messages for you?")) {
+                try {
+                    activeVoiceStream = await navigator.mediaDevices.getUserMedia({
+                        audio: {
+                            echoCancellation: false,
+                            noiseSuppression: false,
+                            autoGainControl: true
+                        }
+                    });
+
+                    const tracks = activeVoiceStream.getAudioTracks();
+
+                    if (!tracks.length) {
+                        stopTracks();
+                        alert("No microphone input was found.");
+                        return;
+                    }
+
+                    recordedBuffers = [];
+                    recordedLength = 0;
+
+                    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+
+                    if (!AudioContextClass) {
+                        stopTracks();
+                        alert("This browser cannot record voice notes.");
+                        return;
+                    }
+
+                    audioContext = new AudioContextClass();
+
+                    if (audioContext.state === "suspended") {
+                        await audioContext.resume();
+                    }
+
+                    recordingSampleRate = audioContext.sampleRate;
+
+                    sourceNode = audioContext.createMediaStreamSource(activeVoiceStream);
+                    processorNode = audioContext.createScriptProcessor(4096, 1, 1);
+                    zeroGainNode = audioContext.createGain();
+                    zeroGainNode.gain.value = 0;
+
+                    processorNode.onaudioprocess = function (event) {
+                        if (!isRecordingVoice) {
+                            return;
+                        }
+
+                        const input = event.inputBuffer.getChannelData(0);
+                        const copy = new Float32Array(input.length);
+                        copy.set(input);
+
+                        recordedBuffers.push(copy);
+                        recordedLength += copy.length;
+                    };
+
+                    sourceNode.connect(processorNode);
+                    processorNode.connect(zeroGainNode);
+                    zeroGainNode.connect(audioContext.destination);
+
+                    clearSelectedFile();
+                    setRecordingUi(true);
+                    closeAttachmentDrawer();
+                } catch (error) {
+                    console.error("Voice note recording failed:", error);
+                    cleanupAudioNodes();
+                    stopTracks();
+                    setRecordingUi(false);
+                    alert("Microphone permission is needed to record a voice note.");
+                }
+            }
+
+            function stopVoiceRecording() {
+                const elapsedMs = Date.now() - recordingStartedAt;
+
+                setRecordingUi(false);
+
+                setTimeout(function () {
+                    cleanupAudioNodes();
+                    stopTracks();
+
+                    if (elapsedMs < 1200) {
+                        alert("Voice note was too short. Record for at least 2 seconds.");
+                        return;
+                    }
+
+                    if (!recordedBuffers.length || recordedLength < 1000) {
+                        alert("No voice was recorded. Check your microphone and try again.");
+                        return;
+                    }
+
+                    const samples = flattenBuffers(recordedBuffers, recordedLength);
+                    const blob = encodeWav(samples, recordingSampleRate);
+
+                    if (!blob || blob.size < 3000) {
+                        alert("Voice note was empty. Try recording again.");
+                        return;
+                    }
+
+                    const file = new File(
+                        [blob],
+                        "heartly-voice-note.wav",
+                        { type: "audio/wav" }
+                    );
+
+                    const transfer = new DataTransfer();
+                    transfer.items.add(file);
+                    voiceInput.files = transfer.files;
+
+                    clearOtherFiles(voiceInput);
+                    clearVoicePreviewUrl();
+                    selectedVoicePreviewUrl = URL.createObjectURL(file);
+                    showSelectedFile(file, "Voice note");
+
+                    console.log("Voice note ready:", {
+                        type: file.type,
+                        size: file.size,
+                        seconds: Math.round(elapsedMs / 1000),
+                        sampleRate: recordingSampleRate,
+                        samples: recordedLength
+                    });
+                }, 150);
+            }
+
+            voiceRecordBtn.addEventListener("click", function () {
+                if (isRecordingVoice) {
+                    stopVoiceRecording();
+                } else {
+                    startVoiceRecording();
+                }
+            });
+        }
+
+        if (chatComposerForm) {
+            chatComposerForm.addEventListener("submit", function (event) {
+                const hasText = messageInput && messageInput.value.trim().length > 0;
+                const hasFile = fileInputs.some(function (input) {
+                    return input.files && input.files.length > 0;
+                });
+
+                if (!hasText && !hasFile) {
                     event.preventDefault();
+                    alert("Message cannot be empty.");
+                    return;
+                }
+
+                if (isRecordingVoice) {
+                    event.preventDefault();
+                    alert("Stop the voice note first, then send.");
                 }
             });
         }
 
-        document.querySelectorAll("[data-disabled-feature]").forEach(function (button) {
-            button.addEventListener("click", function () {
-                alert(button.getAttribute("data-disabled-feature"));
-            });
+        document.addEventListener("click", function (event) {
+            if (!event.target.closest(".attachment-drawer") && !event.target.closest("#attachmentToggleBtn")) {
+                closeAttachmentDrawer();
+            }
         });
 
-        [
-            document.getElementById("profilePreviewBtn"),
-            document.getElementById("openProfilePreviewBtn")
-        ].filter(Boolean).forEach(function (button) {
-            button.addEventListener("click", function () {
-                openModal(profilePreviewModal);
-            });
-        });
-
-        const openReportModalBtn = document.getElementById("openReportModalBtn");
-        if (openReportModalBtn) {
-            openReportModalBtn.addEventListener("click", function () {
-                openModal(reportModal);
-
-                const options = document.querySelector(".chat-options");
-                if (options) {
-                    options.removeAttribute("open");
-                }
-            });
-        }
-
-        document.querySelectorAll("[data-close-modal]").forEach(function (button) {
-            button.addEventListener("click", function () {
-                closeModal(document.getElementById(button.getAttribute("data-close-modal")));
-            });
-        });
-
-        document.querySelectorAll(".chat-modal").forEach(function (modal) {
-            modal.addEventListener("click", function (event) {
-                if (event.target === modal) {
-                    closeModal(modal);
-                }
-            });
-        });
-    });
+        scrollToBottom();
+    })();
 </script>
 {% endblock %}

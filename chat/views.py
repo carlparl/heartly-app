@@ -2,6 +2,7 @@ from pathlib import Path
 
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
@@ -41,6 +42,7 @@ User = get_user_model()
 MAX_IMAGE_SIZE = 8 * 1024 * 1024
 MAX_VIDEO_SIZE = 50 * 1024 * 1024
 MAX_FILE_SIZE = 25 * 1024 * 1024
+MAX_AUDIO_SIZE = 15 * 1024 * 1024
 
 ALLOWED_IMAGE_TYPES = {
     "image/jpeg",
@@ -56,6 +58,16 @@ ALLOWED_VIDEO_TYPES = {
     "video/x-m4v",
     "video/3gpp",
     "video/3gpp2",
+}
+
+ALLOWED_AUDIO_TYPES = {
+    "audio/webm",
+    "audio/ogg",
+    "audio/mpeg",
+    "audio/mp4",
+    "audio/wav",
+    "audio/x-wav",
+    "audio/aac",
 }
 
 ALLOWED_FILE_TYPES = {
@@ -98,6 +110,16 @@ ALLOWED_FILE_EXTENSIONS = {
     ".xlsx",
     ".ppt",
     ".pptx",
+}
+
+ALLOWED_AUDIO_EXTENSIONS = {
+    ".webm",
+    ".ogg",
+    ".mp3",
+    ".mp4",
+    ".m4a",
+    ".wav",
+    ".aac",
 }
 
 
@@ -168,6 +190,15 @@ def blocked_between(user, other_user):
 
 
 def validate_upload(uploaded_file, allowed_types, allowed_extensions, max_size):
+    if not uploaded_file:
+        return "No file was selected."
+
+    if uploaded_file.size <= 0:
+        return "File is empty. Please record or select the file again."
+
+    if uploaded_file.size < 1500:
+        return "Voice note is too short or empty. Please record again."
+
     content_type = (uploaded_file.content_type or "").lower()
     extension = Path(uploaded_file.name or "").suffix.lower()
 
@@ -256,11 +287,14 @@ def latest_message_preview(message, viewer):
 
     if attachment.attachment_type == ChatAttachment.TYPE_VIDEO:
         return f"{prefix}Video"
+    
+    if attachment.attachment_type == ChatAttachment.TYPE_AUDIO:
+        return f"{prefix}Voice note"
 
     if attachment.attachment_type == ChatAttachment.TYPE_FILE:
         return f"{prefix}File"
 
-    return "New message"
+        return "New message"
 
 
 def build_thread_card(thread, user):
@@ -411,11 +445,13 @@ def send_message(request, thread_id):
         return redirect("chat:chat_home")
 
     text = request.POST.get("text", "").strip()
+
     image_file = request.FILES.get("image")
     video_file = request.FILES.get("video")
     regular_file = request.FILES.get("file")
+    voice_file = request.FILES.get("voice") or request.FILES.get("audio")
 
-    if not text and not image_file and not video_file and not regular_file:
+    if not text and not image_file and not video_file and not regular_file and not voice_file:
         messages.error(request, "Message cannot be empty.")
         return redirect("chat:chat_room", thread_id=thread.id)
 
@@ -455,44 +491,75 @@ def send_message(request, thread_id):
             messages.error(request, error)
             return redirect("chat:chat_room", thread_id=thread.id)
 
+    if voice_file:
+        error = validate_upload(
+            voice_file,
+            ALLOWED_AUDIO_TYPES,
+            ALLOWED_AUDIO_EXTENSIONS,
+            MAX_AUDIO_SIZE,
+        )
+
+        if error:
+            messages.error(request, error)
+            return redirect("chat:chat_room", thread_id=thread.id)
+
     message = ChatMessage.objects.create(
-        thread=thread,
-        sender=request.user,
-        text=text,
-    )
+    thread=thread,
+    sender=request.user,
+    text=text,
+)
 
-    if image_file:
-        ChatAttachment.objects.create(
-            message=message,
-            attachment_type=ChatAttachment.TYPE_IMAGE,
-            file=image_file,
-            original_filename=image_file.name,
-            file_size=image_file.size,
-        )
+    try:
+        if image_file:
+            ChatAttachment.objects.create(
+                message=message,
+                attachment_type=ChatAttachment.TYPE_IMAGE,
+                file=image_file,
+                original_filename=image_file.name,
+                file_size=image_file.size,
+            )
 
-    if video_file:
-        ChatAttachment.objects.create(
-            message=message,
-            attachment_type=ChatAttachment.TYPE_VIDEO,
-            file=video_file,
-            original_filename=video_file.name,
-            file_size=video_file.size,
-        )
+        if video_file:
+            ChatAttachment.objects.create(
+                message=message,
+                attachment_type=ChatAttachment.TYPE_VIDEO,
+                file=video_file,
+                original_filename=video_file.name,
+                file_size=video_file.size,
+            )
 
-    if regular_file:
-        ChatAttachment.objects.create(
-            message=message,
-            attachment_type=ChatAttachment.TYPE_FILE,
-            file=regular_file,
-            original_filename=regular_file.name,
-            file_size=regular_file.size,
-        )
+        if regular_file:
+            ChatAttachment.objects.create(
+                message=message,
+                attachment_type=ChatAttachment.TYPE_FILE,
+                file=regular_file,
+                original_filename=regular_file.name,
+                file_size=regular_file.size,
+            )
+
+        if voice_file:
+            ChatAttachment.objects.create(
+                message=message,
+                attachment_type=ChatAttachment.TYPE_AUDIO,
+                file=voice_file,
+                original_filename=voice_file.name or "heartly-voice-note.webm",
+                file_size=voice_file.size,
+            )
+
+    except Exception as exc:
+        message.delete()
+
+        if settings.DEBUG:
+            messages.error(request, f"Upload failed: {exc}")
+        else:
+            messages.error(request, "Upload failed. Please try again.")
+
+        return redirect("chat:chat_room", thread_id=thread.id)
 
     thread.save()
     create_message_notification(message)
 
     return redirect("chat:chat_room", thread_id=thread.id)
-
 
 @login_required
 @require_POST

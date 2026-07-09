@@ -2,20 +2,41 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from django.db.models import Prefetch
+from django.db.models import Count, Prefetch
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
+from httpx import request
 
 from .forms import EditPostForm, PostForm
-from .models import Comment, Post, PostLike
+from .models import Comment, CommentReaction, Post, PostLike
 
 
 POSTS_PER_PAGE = 12
+REACTION_EMOJIS = {
+    "like": "👍",
+    "love": "❤️",
+    "funny": "😂",
+    "cute": "😍",
+    "support": "👏",
+    "wow": "😮",
+}
 
+VALID_REACTIONS = set(REACTION_EMOJIS.keys())
+
+
+def clean_reaction_type(value):
+    value = (value or "love").strip().lower()
+    if value not in VALID_REACTIONS:
+        return "love"
+    return value
+
+
+def reaction_label(reaction_type):
+    return REACTION_EMOJIS.get(reaction_type, "❤️")
 
 def wants_json(request):
     """
@@ -182,8 +203,45 @@ def decorate_user_identity(target, user):
     return target
 
 
-def decorate_comment(comment):
+def decorate_comment(comment, viewer=None):
     decorate_user_identity(comment, comment.user)
+
+    comment.viewer_reaction = ""
+    comment.reaction_total = 0
+    comment.reaction_counts = {}
+
+    reaction_rows = (
+        comment.reactions
+        .values("reaction_type")
+        .annotate(total=Count("id"))
+        .order_by("-total")
+    )
+
+    for row in reaction_rows:
+        reaction_type = row["reaction_type"]
+        comment.reaction_counts[reaction_type] = {
+            "emoji": reaction_label(reaction_type),
+            "count": row["total"],
+        }
+        comment.reaction_total += row["total"]
+
+    if viewer and viewer.is_authenticated:
+        reaction = comment.reactions.filter(user=viewer).first()
+        comment.viewer_reaction = reaction.reaction_type if reaction else ""
+
+    replies = list(
+        comment.replies
+        .select_related("user")
+        .prefetch_related("reactions")
+        .order_by("created_at")[:2]
+    )
+
+    for reply in replies:
+        decorate_comment(reply, viewer)
+
+    comment.visible_replies = replies
+    comment.replies_count = comment.replies.count()
+
     return comment
 
 
@@ -192,20 +250,45 @@ def decorate_post(post, viewer):
 
     decorate_user_identity(post, owner)
 
-    post.is_liked_by_user = post.likes.filter(user=viewer).exists()
+    post.viewer_reaction = ""
+    post.is_liked_by_user = False
     post.likes_count = post.likes.count()
+    post.reaction_counts = {}
 
-    comments = list(
-        post.comments
-        .select_related("user")
-        .order_by("created_at")
+    reaction_rows = (
+        post.likes
+        .values("reaction_type")
+        .annotate(total=Count("id"))
+        .order_by("-total")
     )
 
-    for comment in comments:
-        decorate_comment(comment)
+    for row in reaction_rows:
+        reaction_type = row["reaction_type"]
+        post.reaction_counts[reaction_type] = {
+            "emoji": reaction_label(reaction_type),
+            "count": row["total"],
+        }
 
-    post.comments_count = len(comments)
-    post.visible_comments = comments[:3]
+    if viewer and viewer.is_authenticated:
+        reaction = post.likes.filter(user=viewer).first()
+        if reaction:
+            post.viewer_reaction = reaction.reaction_type
+            post.is_liked_by_user = True
+
+    top_comments = list(
+        post.comments
+        .filter(parent__isnull=True)
+        .select_related("user")
+        .prefetch_related("reactions", "replies", "replies__user", "replies__reactions")
+        .order_by("-created_at")[:2]
+    )
+    top_comments.reverse()
+
+    for comment in top_comments:
+        decorate_comment(comment, viewer)
+
+    post.comments_count = post.comments.filter(parent__isnull=True).count()
+    post.visible_comments = top_comments
 
     post.image_url = _safe_file_url(post.image)
     post.video_url = _safe_file_url(post.video)
@@ -214,32 +297,8 @@ def decorate_post(post, viewer):
 
 
 def enrich_posts(posts, viewer):
-    viewer_like_ids = set(
-        PostLike.objects
-        .filter(user=viewer, post__in=posts)
-        .values_list("post_id", flat=True)
-    )
-
     for post in posts:
-        owner = post_owner(post)
-
-        decorate_user_identity(post, owner)
-
-        post.is_liked_by_user = post.id in viewer_like_ids
-        post.likes_count = post.likes.count()
-
-        comments = list(post.comments.all())
-
-        for comment in comments:
-            decorate_comment(comment)
-
-        post.comments_count = len(comments)
-        post.visible_comments = comments[:3]
-
-        post.image_url = _safe_file_url(post.image)
-        post.video_url = _safe_file_url(post.video)
-
-        yield post
+        yield decorate_post(post, viewer)
 
 
 def render_post_card(request, post):
@@ -431,30 +490,36 @@ def delete_post(request, post_id):
 @require_POST
 def like_post(request, post_id):
     post = get_object_or_404(Post, id=post_id)
+    reaction_type = clean_reaction_type(request.POST.get("reaction_type"))
 
-    like, created = PostLike.objects.get_or_create(
+    reaction, created = PostLike.objects.get_or_create(
         post=post,
         user=request.user,
+        defaults={"reaction_type": reaction_type},
     )
 
-    liked = True
+    reacted = True
 
-    if not created:
-        like.delete()
-        liked = False
+    if not created and reaction.reaction_type == reaction_type:
+        reaction.delete()
+        reacted = False
+    else:
+        reaction.reaction_type = reaction_type
+        reaction.save(update_fields=["reaction_type"])
 
-    likes_count = post.likes.count()
+    post = decorate_post(post, request.user)
 
     if wants_json(request):
         return json_success(
-            "Liked." if liked else "Unliked.",
+            "Reaction updated." if reacted else "Reaction removed.",
             post_id=post.id,
-            liked=liked,
-            likes_count=likes_count,
+            reacted=reacted,
+            reaction_type=reaction_type if reacted else "",
+            likes_count=post.likes_count,
+            post_html=render_post_card(request, post),
         )
 
     return redirect(request.POST.get("next") or reverse("feed:feed_home"))
-
 
 @login_required
 @require_POST
@@ -470,25 +535,108 @@ def comment_post(request, post_id):
     if not content:
         return respond_error(request, "Comment cannot be empty.")
 
+    parent = None
+    parent_id = request.POST.get("parent_id")
+
+    if parent_id:
+        parent = get_object_or_404(
+            Comment,
+            id=parent_id,
+            post=post,
+            parent__isnull=True,
+        )
+
     comment = Comment.objects.create(
         post=post,
         user=request.user,
+        parent=parent,
         content=content,
     )
 
-    comments_count = post.comments.count()
+    post = decorate_post(post, request.user)
 
     if wants_json(request):
         return json_success(
-            "Comment added.",
+            "Reply added." if parent else "Comment added.",
             post_id=post.id,
             comment_id=comment.id,
-            comment_html=render_comment_html(request, comment),
-            comments_count=comments_count,
+            comments_count=post.comments_count,
+            post_html=render_post_card(request, post),
         )
 
     return redirect("feed:feed_home")
 
+@login_required
+@require_POST
+def reply_comment(request, comment_id):
+    parent = get_object_or_404(Comment, id=comment_id, parent__isnull=True)
+    post = parent.post
+
+    content = (
+        request.POST.get("content")
+        or request.POST.get("reply")
+        or ""
+    ).strip()
+
+    if not content:
+        return respond_error(request, "Reply cannot be empty.")
+
+    reply = Comment.objects.create(
+        post=post,
+        user=request.user,
+        parent=parent,
+        content=content,
+    )
+
+    post = decorate_post(post, request.user)
+
+    if wants_json(request):
+        return json_success(
+            "Reply added.",
+            post_id=post.id,
+            comment_id=parent.id,
+            reply_id=reply.id,
+            comments_count=post.comments_count,
+            post_html=render_post_card(request, post),
+        )
+
+    return redirect("feed:feed_home")
+
+
+@login_required
+@require_POST
+def react_comment(request, comment_id):
+    comment = get_object_or_404(Comment, id=comment_id)
+    reaction_type = clean_reaction_type(request.POST.get("reaction_type"))
+
+    reaction, created = CommentReaction.objects.get_or_create(
+        comment=comment,
+        user=request.user,
+        defaults={"reaction_type": reaction_type},
+    )
+
+    reacted = True
+
+    if not created and reaction.reaction_type == reaction_type:
+        reaction.delete()
+        reacted = False
+    else:
+        reaction.reaction_type = reaction_type
+        reaction.save(update_fields=["reaction_type"])
+
+    post = decorate_post(comment.post, request.user)
+
+    if wants_json(request):
+        return json_success(
+            "Reaction updated." if reacted else "Reaction removed.",
+            post_id=post.id,
+            comment_id=comment.id,
+            reacted=reacted,
+            reaction_type=reaction_type if reacted else "",
+            post_html=render_post_card(request, post),
+        )
+
+    return redirect("feed:feed_home")
 
 @login_required
 @require_POST

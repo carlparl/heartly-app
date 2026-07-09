@@ -87,12 +87,14 @@ class ChatAttachment(models.Model):
     TYPE_IMAGE = "image"
     TYPE_VIDEO = "video"
     TYPE_FILE = "file"
+    TYPE_AUDIO = "audio"
 
     TYPE_CHOICES = [
-        (TYPE_IMAGE, "Image"),
-        (TYPE_VIDEO, "Video"),
-        (TYPE_FILE, "File"),
-    ]
+    (TYPE_IMAGE, "Image"),
+    (TYPE_VIDEO, "Video"),
+    (TYPE_FILE, "File"),
+    (TYPE_AUDIO, "Voice note"),
+]
 
     message = models.ForeignKey(
         ChatMessage,

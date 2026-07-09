@@ -1,22 +1,82 @@
-<div class="comment-item" data-comment-id="{{ comment.id }}">
-    <div class="comment-avatar">
-        {% if comment.avatar_url %}
-            <img
-                src="{{ comment.avatar_url }}"
-                alt="{{ comment.display_name }}"
-                loading="lazy"
-                onerror="this.style.display='none'; this.nextElementSibling.style.display='grid';"
-            >
-            <span class="avatar-fallback" style="display:none;">{{ comment.avatar_initials }}</span>
-        {% else %}
-            <span class="avatar-fallback">{{ comment.avatar_initials }}</span>
-        {% endif %}
-    </div>
+<div class="{% if is_reply %}reply-item{% else %}comment-item{% endif %}" data-comment-id="{{ comment.id }}">
+    {% if comment.avatar_url %}
+        <img src="{{ comment.avatar_url }}" alt="{{ comment.display_name }}" class="{% if is_reply %}reply-avatar{% else %}comment-avatar{% endif %}">
+    {% else %}
+        <div class="{% if is_reply %}reply-avatar reply-avatar-fallback{% else %}comment-avatar comment-avatar-fallback{% endif %}">
+            {{ comment.avatar_initials }}
+        </div>
+    {% endif %}
+
     <div class="comment-bubble">
         <div class="comment-meta">
             <strong>{{ comment.display_name }}</strong>
             <span class="comment-time">{{ comment.created_at|timesince }} ago</span>
         </div>
+
         <div class="comment-text">{{ comment.content|linebreaksbr }}</div>
+
+        {% if comment.reaction_counts %}
+            <div class="reaction-summary">
+                {% for reaction_type, item in comment.reaction_counts.items %}
+                    <span class="reaction-pill">{{ item.emoji }} {{ item.count }}</span>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <div class="comment-actions">
+            <form method="post" action="{% url 'feed:react_comment' comment.id %}" data-feed-ajax data-comment-reaction>
+                {% csrf_token %}
+                <input type="hidden" name="reaction_type" value="love">
+                <button type="submit" class="comment-action-btn {% if comment.viewer_reaction == 'love' %}is-active{% endif %}">❤️</button>
+            </form>
+
+            <form method="post" action="{% url 'feed:react_comment' comment.id %}" data-feed-ajax data-comment-reaction>
+                {% csrf_token %}
+                <input type="hidden" name="reaction_type" value="funny">
+                <button type="submit" class="comment-action-btn {% if comment.viewer_reaction == 'funny' %}is-active{% endif %}">😂</button>
+            </form>
+
+            <form method="post" action="{% url 'feed:react_comment' comment.id %}" data-feed-ajax data-comment-reaction>
+                {% csrf_token %}
+                <input type="hidden" name="reaction_type" value="support">
+                <button type="submit" class="comment-action-btn {% if comment.viewer_reaction == 'support' %}is-active{% endif %}">👏</button>
+            </form>
+
+            {% if not is_reply %}
+                <button type="button" class="comment-action-btn" data-reply-toggle="reply-form-{{ comment.id }}">
+                    Reply
+                </button>
+            {% endif %}
+        </div>
+
+        {% if not is_reply %}
+            <form
+                method="post"
+                action="{% url 'feed:reply_comment' comment.id %}"
+                class="reply-form"
+                id="reply-form-{{ comment.id }}"
+                data-feed-ajax
+                data-reply-form
+                hidden
+            >
+                {% csrf_token %}
+                <input type="text" name="content" placeholder="Reply..." autocomplete="off">
+                <button type="submit">Send</button>
+            </form>
+
+            {% if comment.visible_replies %}
+                <div class="replies-list">
+                    {% for reply in comment.visible_replies %}
+                        {% include "feed/_comment_item.html" with comment=reply post=post is_reply=True %}
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            {% if comment.replies_count > 2 %}
+                <div class="comments-note">
+                    More replies are collapsed.
+                </div>
+            {% endif %}
+        {% endif %}
     </div>
 </div>

@@ -407,27 +407,47 @@ DEFAULT_FROM_EMAIL = os.environ.get(
 
 
 # ============================================================
-# CHANNELS
+# CHANNELS / WEBSOCKETS
 # ============================================================
 
-CHANNEL_LAYER_BACKEND = os.environ.get(
-    "CHANNEL_LAYER_BACKEND",
-    "channels.layers.InMemoryChannelLayer",
+REDIS_URL = os.environ.get("REDIS_URL", "").strip()
+
+USE_REDIS_CHANNEL_LAYER = env_bool(
+    "USE_REDIS_CHANNEL_LAYER",
+    bool(REDIS_URL) and IS_PRODUCTION,
 )
 
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": CHANNEL_LAYER_BACKEND,
-    }
-}
+if USE_REDIS_CHANNEL_LAYER:
+    if not REDIS_URL:
+        raise RuntimeError(
+            "USE_REDIS_CHANNEL_LAYER=True but REDIS_URL is missing."
+        )
 
-if CHANNEL_LAYER_BACKEND == "channels_redis.core.RedisChannelLayer":
-    CHANNEL_LAYERS["default"]["CONFIG"] = {
-        "hosts": [
-            os.environ.get("REDIS_URL", "redis://127.0.0.1:6379/0"),
-        ],
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {
+                "hosts": [
+                    {
+                        "address": REDIS_URL,
+                        "socket_connect_timeout": 10,
+                        "socket_timeout": 30,
+                        "retry_on_timeout": True,
+                        "health_check_interval": 30,
+                    }
+                ],
+                "capacity": int(os.environ.get("CHANNEL_LAYER_CAPACITY", "1500")),
+                "expiry": int(os.environ.get("CHANNEL_LAYER_EXPIRY", "60")),
+                "group_expiry": int(os.environ.get("CHANNEL_LAYER_GROUP_EXPIRY", "86400")),
+            },
+        }
     }
-
+else:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
+        }
+    }
 
 # ============================================================
 # REST FRAMEWORK

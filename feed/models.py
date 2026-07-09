@@ -1,6 +1,3 @@
-
-from django.utils import timezone
-
 from django.conf import settings
 from django.db import models
 
@@ -14,14 +11,14 @@ class Post(models.Model):
     author = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name="feed_posts"
+        related_name="feed_posts",
     )
     content = models.TextField(blank=True)
 
     image = models.ImageField(
         upload_to="feed/images/",
         blank=True,
-        null=True
+        null=True,
     )
 
     if VideoMediaCloudinaryStorage:
@@ -29,13 +26,13 @@ class Post(models.Model):
             upload_to="feed/videos/",
             blank=True,
             null=True,
-            storage=VideoMediaCloudinaryStorage()
+            storage=VideoMediaCloudinaryStorage(),
         )
     else:
         video = models.FileField(
             upload_to="feed/videos/",
             blank=True,
-            null=True
+            null=True,
         )
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -49,9 +46,23 @@ class Post(models.Model):
         return f"Post by {self.author} - {self.created_at:%Y-%m-%d %H:%M}"
 
 
-
-
 class PostLike(models.Model):
+    REACTION_LIKE = "like"
+    REACTION_LOVE = "love"
+    REACTION_FUNNY = "funny"
+    REACTION_CUTE = "cute"
+    REACTION_SUPPORT = "support"
+    REACTION_WOW = "wow"
+
+    REACTION_CHOICES = [
+        (REACTION_LIKE, "Like"),
+        (REACTION_LOVE, "Love"),
+        (REACTION_FUNNY, "Funny"),
+        (REACTION_CUTE, "Cute"),
+        (REACTION_SUPPORT, "Support"),
+        (REACTION_WOW, "Wow"),
+    ]
+
     post = models.ForeignKey(
         Post,
         on_delete=models.CASCADE,
@@ -62,6 +73,11 @@ class PostLike(models.Model):
         on_delete=models.CASCADE,
         related_name="feed_likes",
     )
+    reaction_type = models.CharField(
+        max_length=20,
+        choices=REACTION_CHOICES,
+        default=REACTION_LOVE,
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -69,7 +85,7 @@ class PostLike(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self):
-        return f"{self.user} liked post {self.post_id}"
+        return f"{self.user} reacted {self.reaction_type} to post {self.post_id}"
 
 
 class Comment(models.Model):
@@ -83,11 +99,16 @@ class Comment(models.Model):
         on_delete=models.CASCADE,
         related_name="feed_comments",
     )
+    parent = models.ForeignKey(
+        "self",
+        on_delete=models.CASCADE,
+        related_name="replies",
+        blank=True,
+        null=True,
+    )
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
 
-    # Existing database column is feed_comment.edited_at.
-    # Python code can safely use comment.updated_at.
     updated_at = models.DateTimeField(
         auto_now=True,
         db_column="edited_at",
@@ -97,6 +118,10 @@ class Comment(models.Model):
 
     class Meta:
         ordering = ["created_at"]
+        indexes = [
+            models.Index(fields=["post", "parent", "created_at"]),
+            models.Index(fields=["user", "created_at"]),
+        ]
 
     def __str__(self):
         preview = (self.content or "").strip()
@@ -106,12 +131,57 @@ class Comment(models.Model):
 
     @property
     def edited_at(self):
-        """Backward-compatible alias for old templates/admin code."""
         return self.updated_at
 
     @edited_at.setter
     def edited_at(self, value):
         self.updated_at = value
+
+
+class CommentReaction(models.Model):
+    REACTION_LIKE = "like"
+    REACTION_LOVE = "love"
+    REACTION_FUNNY = "funny"
+    REACTION_CUTE = "cute"
+    REACTION_SUPPORT = "support"
+    REACTION_WOW = "wow"
+
+    REACTION_CHOICES = [
+        (REACTION_LIKE, "Like"),
+        (REACTION_LOVE, "Love"),
+        (REACTION_FUNNY, "Funny"),
+        (REACTION_CUTE, "Cute"),
+        (REACTION_SUPPORT, "Support"),
+        (REACTION_WOW, "Wow"),
+    ]
+
+    comment = models.ForeignKey(
+        Comment,
+        on_delete=models.CASCADE,
+        related_name="reactions",
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="feed_comment_reactions",
+    )
+    reaction_type = models.CharField(
+        max_length=20,
+        choices=REACTION_CHOICES,
+        default=REACTION_LOVE,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("comment", "user")
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["comment", "reaction_type"]),
+            models.Index(fields=["user", "created_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.user} reacted {self.reaction_type} to comment {self.comment_id}"
 
 
 class PostReport(models.Model):
