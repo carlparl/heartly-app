@@ -2,7 +2,7 @@ from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from django.utils import timezone
 
-from chat.models import Call
+from chat.models import CallSession
 
 
 class NotificationConsumer(AsyncJsonWebsocketConsumer):
@@ -54,10 +54,10 @@ class NotificationConsumer(AsyncJsonWebsocketConsumer):
 
     @database_sync_to_async
     def mark_call_declined(self, call_id):
-        Call.objects.filter(
+        CallSession.objects.filter(
             id=call_id,
             receiver=self.user,
         ).update(
-            status=Call.STATUS_DECLINED,
+            status=CallSession.STATUS_DECLINED,
             ended_at=timezone.now(),
         )

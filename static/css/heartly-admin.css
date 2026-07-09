@@ -1,0 +1,2103 @@
+/* ============================================================
+   Heartly Admin v2 — Bulletproof Django Admin Theme
+   ============================================================ */
+
+/* -----------------------------------------------------------
+   1. Variables
+   ----------------------------------------------------------- */
+:root {
+    --ha-bg:        #080d14;
+    --ha-panel:      #111821;
+    --ha-panel-2:    #162231;
+    --ha-border:     rgba(255,255,255,0.08);
+    --ha-text:       #eaf2fb;
+    --ha-muted:      #9aa8ba;
+    --ha-teal:       #18ada0;
+    --ha-teal-2:     #28c7b8;
+    --ha-pink:       #ff4f7b;
+    --ha-yellow:     #f5c542;
+    --ha-danger:     #ff5d5d;
+    --ha-shadow:     0 10px 28px rgba(0,0,0,0.28);
+    --ha-transition: 0.2s ease;
+    --ha-radius:     18px;
+    --ha-radius-sm:  14px;
+    --ha-radius-pill:999px;
+}
+
+/* -----------------------------------------------------------
+   2. Base
+   ----------------------------------------------------------- */
+html, body {
+    background: var(--ha-bg) !important;
+    color: var(--ha-text) !important;
+    font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif !important;
+    -webkit-font-smoothing: antialiased;
+}
+
+body { min-height: 100vh; }
+
+#container, #main, .main, #content, #content-main {
+    background: var(--ha-bg) !important;
+    color: var(--ha-text) !important;
+}
+
+a {
+    color: var(--ha-teal-2);
+    text-decoration: none;
+    transition: color var(--ha-transition);
+}
+a:hover { color: #fff; }
+
+/* -----------------------------------------------------------
+   3. Header
+   ----------------------------------------------------------- */
+#header {
+    height: 68px;
+    padding: 0 28px;
+    background: #070c12 !important;
+    border-bottom: 1px solid var(--ha-border);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+#branding { display: flex; align-items: center; }
+
+.heartly-admin-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.heartly-admin-logo {
+    width: 42px;
+    height: 42px;
+    display: grid;
+    place-items: center;
+    border-radius: var(--ha-radius-sm);
+    color: #fff;
+    background: linear-gradient(135deg, var(--ha-teal), var(--ha-teal-2));
+    font-size: 19px;
+    font-weight: 800;
+    box-shadow: 0 4px 12px rgba(24,173,160,0.25);
+}
+
+.heartly-admin-brand strong {
+    display: block;
+    color: var(--ha-text);
+    font-size: 18px;
+    font-weight: 750;
+    letter-spacing: -0.02em;
+}
+.heartly-admin-brand span {
+    display: block;
+    margin-top: 2px;
+    color: var(--ha-muted);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+#user-tools {
+    color: var(--ha-muted) !important;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+}
+#user-tools a {
+    color: var(--ha-text) !important;
+    border-bottom: none !important;
+}
+#user-tools a:hover { color: var(--ha-teal-2) !important; }
+
+/* -----------------------------------------------------------
+   4. Breadcrumbs
+   ----------------------------------------------------------- */
+div.breadcrumbs {
+    padding: 14px 28px;
+    background: #0b1119 !important;
+    color: var(--ha-muted) !important;
+    border-bottom: 1px solid var(--ha-border);
+    font-size: 13px;
+    font-weight: 600;
+}
+div.breadcrumbs a { color: var(--ha-teal-2) !important; }
+
+/* -----------------------------------------------------------
+   5. Content
+   ----------------------------------------------------------- */
+#content {
+    padding: 28px !important;
+}
+#content h1 {
+    margin: 0 0 20px;
+    color: var(--ha-text);
+    font-size: 24px;
+    font-weight: 750;
+    letter-spacing: -0.02em;
+}
+
+/* Dashboard */
+.dashboard #content {
+    max-width: 1180px;
+    margin: 0 auto;
+}
+#content-main {
+    width: min(760px, 100%);
+}
+#content-related {
+    width: 320px;
+    margin-right: 0;
+    background: var(--ha-panel) !important;
+    border: 1px solid var(--ha-border);
+    border-radius: var(--ha-radius);
+    box-shadow: var(--ha-shadow);
+    overflow: hidden;
+}
+#content-related .module { background: transparent !important; }
+#content-related h2 {
+    padding: 15px 18px;
+    margin: 0;
+    background: var(--ha-panel-2) !important;
+    color: var(--ha-text) !important;
+    border-bottom: 1px solid var(--ha-border);
+    font-size: 14px;
+    font-weight: 750;
+}
+#content-related h3 {
+    color: var(--ha-text);
+    font-size: 13px;
+    font-weight: 750;
+}
+#content-related p,
+#content-related li { color: var(--ha-muted); }
+
+/* -----------------------------------------------------------
+   6. Sidebar
+   ----------------------------------------------------------- */
+#nav-sidebar {
+    background: var(--ha-bg) !important;
+    border-right: 1px solid var(--ha-border) !important;
+    width: 280px !important;
+}
+.main.shifted > #nav-sidebar + .content,
+#main.shifted #content {
+    margin-left: 280px !important;
+}
+
+#nav-sidebar .module {
+    background: var(--ha-panel) !important;
+    border: 1px solid var(--ha-border) !important;
+    border-radius: 16px !important;
+    overflow: hidden !important;
+    margin: 12px !important;
+    box-shadow: none !important;
+}
+#nav-sidebar .module caption {
+    background: var(--ha-panel-2) !important;
+    color: var(--ha-text) !important;
+    padding: 13px 16px !important;
+    font-weight: 750 !important;
+    font-size: 11px !important;
+    letter-spacing: 0.06em !important;
+    text-transform: uppercase;
+}
+#nav-sidebar .module table,
+#nav-sidebar .module tbody,
+#nav-sidebar .module tr,
+#nav-sidebar .module th,
+#nav-sidebar .module td {
+    background: var(--ha-panel) !important;
+    color: var(--ha-text) !important;
+}
+#nav-sidebar .module tr {
+    border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+}
+#nav-sidebar .module tr:last-child { border-bottom: none !important; }
+#nav-sidebar .module th,
+#nav-sidebar .module td { padding: 12px 16px !important; }
+#nav-sidebar .module a {
+    color: var(--ha-text) !important;
+    font-weight: 700 !important;
+    transition: color var(--ha-transition);
+}
+#nav-sidebar .module a:hover { color: var(--ha-teal-2) !important; }
+#nav-sidebar .addlink { color: var(--ha-teal-2) !important; }
+#nav-sidebar .current-app,
+#nav-sidebar .current-model {
+    background: rgba(24,173,160,0.14) !important;
+}
+
+#nav-filter {
+    width: calc(100% - 24px) !important;
+    margin: 10px 12px 0 !important;
+    background: #0b1119 !important;
+    color: var(--ha-text) !important;
+    border: 1px solid var(--ha-border) !important;
+    border-radius: 12px !important;
+    padding: 11px 13px !important;
+    outline: none;
+    transition: border-color var(--ha-transition), box-shadow var(--ha-transition);
+}
+#nav-filter:focus {
+    border-color: var(--ha-teal) !important;
+    box-shadow: 0 0 0 3px rgba(24,173,160,0.14) !important;
+}
+#nav-filter::placeholder { color: #7f8da0 !important; }
+
+/* -----------------------------------------------------------
+   7. Modules
+   ----------------------------------------------------------- */
+.module {
+    margin-bottom: 16px;
+    background: var(--ha-panel) !important;
+    border: 1px solid var(--ha-border);
+    border-radius: var(--ha-radius);
+    box-shadow: var(--ha-shadow);
+    overflow: hidden;
+}
+.module h2,
+.module caption,
+.inline-group h2 {
+    padding: 13px 16px !important;
+    background: var(--ha-panel-2) !important;
+    color: var(--ha-teal-2) !important;
+    border-bottom: 1px solid var(--ha-border);
+    font-size: 12px !important;
+    font-weight: 750 !important;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+.module table {
+    width: 100%;
+    background: transparent !important;
+}
+.module table th,
+.module table td {
+    padding: 13px 16px !important;
+    border-bottom: 1px solid var(--ha-border) !important;
+    color: var(--ha-text) !important;
+}
+.module table tr:last-child th,
+.module table tr:last-child td { border-bottom: none !important; }
+.module table th a {
+    color: var(--ha-text) !important;
+    font-weight: 700;
+    transition: color var(--ha-transition);
+}
+.module table th a:hover { color: var(--ha-teal-2) !important; }
+.module table td a { color: var(--ha-teal-2) !important; font-weight: 700; }
+
+tr:nth-child(even), .row1, .row2 { background: transparent !important; }
+
+.addlink, .changelink, .deletelink {
+    padding-left: 20px !important;
+    font-weight: 700 !important;
+}
+.addlink    { color: var(--ha-teal-2) !important; }
+.changelink { color: var(--ha-yellow) !important; }
+.deletelink { color: var(--ha-danger) !important; }
+
+/* -----------------------------------------------------------
+   8. Buttons
+   ----------------------------------------------------------- */
+.button,
+input[type="submit"],
+input[type="button"],
+.submit-row input,
+a.button {
+    border: none !important;
+    border-radius: var(--ha-radius-pill) !important;
+    padding: 10px 18px !important;
+    color: #fff !important;
+    background: linear-gradient(135deg, var(--ha-teal), var(--ha-teal-2)) !important;
+    font-weight: 750 !important;
+    box-shadow: 0 6px 16px rgba(24,173,160,0.2);
+    cursor: pointer;
+    transition: filter var(--ha-transition), transform var(--ha-transition);
+}
+.button:hover,
+input[type="submit"]:hover,
+input[type="button"]:hover,
+.submit-row input:hover,
+a.button:hover {
+    filter: brightness(1.08);
+    transform: translateY(-1px);
+}
+
+.submit-row {
+    background: var(--ha-panel) !important;
+    border: 1px solid var(--ha-border) !important;
+    border-radius: var(--ha-radius);
+    box-shadow: var(--ha-shadow);
+    padding: 16px !important;
+}
+.submit-row .deletelink {
+    background: var(--ha-danger) !important;
+    color: #fff !important;
+    border-radius: var(--ha-radius-pill);
+    padding: 10px 18px;
+}
+
+/* Object tools */
+.object-tools {
+    margin-bottom: 18px !important;
+}
+.object-tools a,
+.object-tools a:link,
+.object-tools a:visited {
+    background: linear-gradient(135deg, var(--ha-teal), var(--ha-teal-2)) !important;
+    color: #fff !important;
+    border-radius: var(--ha-radius-pill) !important;
+    padding: 10px 18px !important;
+    font-weight: 750 !important;
+    letter-spacing: 0.02em !important;
+    box-shadow: 0 6px 16px rgba(24,173,160,0.2) !important;
+    transition: filter var(--ha-transition), transform var(--ha-transition);
+}
+.object-tools a:hover {
+    filter: brightness(1.08) !important;
+    transform: translateY(-1px);
+}
+
+/* -----------------------------------------------------------
+   9. Forms
+   ----------------------------------------------------------- */
+fieldset.module { padding: 0; }
+.form-row {
+    padding: 16px !important;
+    border-bottom: 1px solid var(--ha-border) !important;
+}
+.form-row label {
+    color: var(--ha-text) !important;
+    font-weight: 700;
+}
+input, textarea, select, .vTextField {
+    background: #0b1119 !important;
+    color: var(--ha-text) !important;
+    border: 1px solid var(--ha-border) !important;
+    border-radius: 12px !important;
+    padding: 10px 12px !important;
+    outline: none !important;
+    transition: border-color var(--ha-transition), box-shadow var(--ha-transition);
+}
+input:focus,
+textarea:focus,
+select:focus {
+    border-color: var(--ha-teal) !important;
+    box-shadow: 0 0 0 3px rgba(24,173,160,0.14) !important;
+}
+.help, p.help, form p.help, div.help, form div.help, .help li {
+    color: var(--ha-muted) !important;
+}
+
+/* -----------------------------------------------------------
+   10. Messages
+   ----------------------------------------------------------- */
+.messagelist li {
+    border-radius: var(--ha-radius-sm);
+    border: 1px solid var(--ha-border);
+    box-shadow: var(--ha-shadow);
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+.messagelist li.success {
+    background: rgba(24,173,160,0.14) !important;
+    color: #55fff0 !important;
+}
+.messagelist li.error {
+    background: rgba(255,79,123,0.14) !important;
+    color: #ff9ab3 !important;
+}
+
+/* ============================================================
+   11. CHANGELIST — Bulletproof Layout
+   ============================================================ */
+
+/* Reset content constraints on changelist pages */
+body.change-list #content {
+    max-width: none !important;
+    width: auto !important;
+    padding: 28px !important;
+}
+
+body.change-list #content-main {
+    width: 100% !important;
+    max-width: 100% !important;
+    float: none !important;
+}
+
+body.change-list #content h1 {
+    margin: 0 0 24px !important;
+    color: #fff !important;
+    font-size: 26px !important;
+    line-height: 1.15 !important;
+    font-weight: 750 !important;
+    letter-spacing: -0.02em !important;
+}
+
+/* Object tools — force below title, right aligned */
+body.change-list .object-tools {
+    float: none !important;
+    display: flex !important;
+    justify-content: flex-end !important;
+    margin: 0 0 24px !important;
+    padding: 0 !important;
+    list-style: none !important;
+}
+body.change-list .object-tools li { margin: 0 !important; }
+body.change-list .object-tools a {
+    min-height: 42px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* Grid layout */
+body.change-list #changelist {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 280px !important;
+    grid-template-rows: auto auto auto !important;
+    grid-template-areas:
+        "toolbar   filter"
+        "form      filter"
+        "paginator filter" !important;
+    gap: 24px !important;
+    align-items: start !important;
+    width: 100% !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* Toolbar / Search */
+body.change-list #toolbar {
+    grid-area: toolbar !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 14px !important;
+    background: var(--ha-panel) !important;
+    border: 1px solid var(--ha-border) !important;
+    border-radius: var(--ha-radius) !important;
+    box-shadow: none !important;
+}
+
+body.change-list #toolbar #changelist-search {
+    margin: 0 !important;
+}
+body.change-list #toolbar #changelist-search > div {
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    margin: 0 !important;
+}
+body.change-list #toolbar #changelist-search label {
+    width: 20px !important;
+    height: 20px !important;
+    display: grid !important;
+    place-items: center !important;
+    margin: 0 !important;
+    opacity: 0.7 !important;
+    flex: 0 0 20px !important;
+}
+body.change-list #toolbar #changelist-search label img {
+    width: 16px !important;
+    height: 16px !important;
+    filter: invert(1) opacity(0.7) !important;
+}
+body.change-list #toolbar #changelist-search input[type="hidden"] {
+    display: none !important;
+}
+body.change-list #toolbar #searchbar {
+    flex: 1 1 auto !important;
+    width: auto !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    height: 42px !important;
+    margin: 0 !important;
+    padding: 0 14px !important;
+    background: var(--ha-bg) !important;
+    color: var(--ha-text) !important;
+    border: 1px solid var(--ha-border) !important;
+    border-radius: var(--ha-radius-sm) !important;
+    font-weight: 700 !important;
+}
+body.change-list #toolbar #searchbar::placeholder {
+    color: #7f8da0 !important;
+}
+body.change-list #toolbar #changelist-search input[type="submit"] {
+    flex: 0 0 auto !important;
+    min-width: 90px !important;
+    height: 42px !important;
+    margin: 0 !important;
+    padding: 0 16px !important;
+    border-radius: var(--ha-radius-pill) !important;
+}
+
+/* Form / Table */
+body.change-list #changelist-form {
+    grid-area: form !important;
+    width: 100% !important;
+    margin: 0 !important;
+    background: transparent !important;
+}
+
+/* Actions bar */
+body.change-list #changelist .actions {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 14px 16px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    flex-wrap: wrap !important;
+    background: var(--ha-panel) !important;
+    color: var(--ha-text) !important;
+    border: 1px solid var(--ha-border) !important;
+    border-radius: var(--ha-radius) var(--ha-radius) 0 0 !important;
+}
+body.change-list #changelist .actions label {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    margin: 0 !important;
+    color: var(--ha-muted) !important;
+    font-weight: 700 !important;
+}
+body.change-list #changelist .actions select {
+    height: 36px !important;
+    min-width: 240px !important;
+    background: var(--ha-bg) !important;
+    color: var(--ha-text) !important;
+    border: 1px solid var(--ha-border) !important;
+    border-radius: var(--ha-radius-pill) !important;
+    padding: 0 14px !important;
+}
+body.change-list #changelist .actions button {
+    height: 36px !important;
+    padding: 0 16px !important;
+    border-radius: var(--ha-radius-pill) !important;
+    background: linear-gradient(135deg, var(--ha-teal), var(--ha-teal-2)) !important;
+    color: #fff !important;
+    font-weight: 750 !important;
+    border: none !important;
+    cursor: pointer;
+    transition: filter var(--ha-transition);
+}
+body.change-list #changelist .actions button:hover {
+    filter: brightness(1.08);
+}
+body.change-list #changelist .actions span {
+    color: var(--ha-muted) !important;
+    font-weight: 600 !important;
+}
+
+/* Results table */
+body.change-list .results {
+    width: 100% !important;
+    margin: 0 !important;
+    background: var(--ha-panel) !important;
+    border: 1px solid var(--ha-border) !important;
+    border-top: none !important;
+    border-radius: 0 0 var(--ha-radius) var(--ha-radius) !important;
+    overflow-x: auto !important;
+}
+body.change-list #result_list {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    background: var(--ha-panel) !important;
+}
+body.change-list #result_list thead th {
+    height: 48px !important;
+    padding: 0 16px !important;
+    background: var(--ha-panel-2) !important;
+    color: #fff !important;
+    border-bottom: 1px solid var(--ha-border) !important;
+    white-space: nowrap !important;
+    font-weight: 750 !important;
+    font-size: 12px;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+body.change-list #result_list thead th a,
+body.change-list #result_list thead th div.text a {
+    color: #fff !important;
+    font-weight: 750 !important;
+}
+body.change-list #result_list tbody tr,
+body.change-list #result_list tbody tr.row1,
+body.change-list #result_list tbody tr.row2 {
+    background: var(--ha-panel) !important;
+    transition: background var(--ha-transition);
+}
+body.change-list #result_list tbody tr:nth-child(even) {
+    background: #0e151e !important;
+}
+body.change-list #result_list tbody tr:hover {
+    background: rgba(24,173,160,0.1) !important;
+}
+body.change-list #result_list tbody th,
+body.change-list #result_list tbody td {
+    height: 48px !important;
+    padding: 0 16px !important;
+    color: var(--ha-text) !important;
+    border-bottom: 1px solid rgba(255,255,255,0.05) !important;
+    vertical-align: middle !important;
+}
+body.change-list #result_list tbody th a,
+body.change-list #result_list tbody td a {
+    color: #fff !important;
+    font-weight: 700 !important;
+    transition: color var(--ha-transition);
+}
+body.change-list #result_list tbody th a:hover,
+body.change-list #result_list tbody td a:hover {
+    color: var(--ha-teal-2) !important;
+}
+body.change-list #result_list input[type="checkbox"],
+body.change-list .action-select {
+    width: 16px !important;
+    height: 16px !important;
+    accent-color: var(--ha-teal) !important;
+    cursor: pointer;
+}
+
+/* Filter panel */
+body.change-list #changelist-filter {
+    grid-area: filter !important;
+    position: sticky !important;
+    top: 88px !important;
+    width: 280px !important;
+    margin: 0 !important;
+    float: none !important;
+    background: var(--ha-panel) !important;
+    color: var(--ha-text) !important;
+    border: 1px solid var(--ha-border) !important;
+    border-radius: var(--ha-radius) !important;
+    overflow: hidden !important;
+    box-shadow: var(--ha-shadow) !important;
+}
+body.change-list #changelist-filter h2 {
+    margin: 0 !important;
+    padding: 15px 16px !important;
+    background: var(--ha-panel-2) !important;
+    color: #fff !important;
+    font-size: 12px !important;
+    font-weight: 750 !important;
+    letter-spacing: 0.05em !important;
+    text-transform: uppercase !important;
+}
+body.change-list #changelist-filter h3 {
+    margin: 0 !important;
+    padding: 14px 16px 6px !important;
+    color: #fff !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+}
+body.change-list #changelist-filter ul {
+    margin: 0 !important;
+    padding: 0 16px 12px !important;
+    list-style: none !important;
+}
+body.change-list #changelist-filter li {
+    margin: 6px 0 !important;
+    color: var(--ha-muted) !important;
+}
+body.change-list #changelist-filter li a {
+    color: var(--ha-muted) !important;
+    font-weight: 700 !important;
+    transition: color var(--ha-transition);
+}
+body.change-list #changelist-filter li.selected a,
+body.change-list #changelist-filter li a:hover {
+    color: var(--ha-teal-2) !important;
+}
+
+/* Pagination */
+body.change-list .paginator {
+    grid-area: paginator !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 14px 16px !important;
+    background: var(--ha-panel) !important;
+    color: var(--ha-muted) !important;
+    border: 1px solid var(--ha-border) !important;
+    border-top: none !important;
+    border-radius: 0 0 var(--ha-radius) var(--ha-radius) !important;
+    font-weight: 700 !important;
+}
+body.change-list .paginator a,
+body.change-list .paginator .this-page {
+    color: var(--ha-teal-2) !important;
+}
+
+/* ============================================================
+   12. Login
+   ============================================================ */
+.login {
+    background:
+        radial-gradient(circle at top left, rgba(24,173,160,0.16), transparent 34%),
+        radial-gradient(circle at bottom right, rgba(255,79,123,0.14), transparent 30%),
+        var(--ha-bg) !important;
+}
+.login #container {
+    background: var(--ha-panel) !important;
+    border: 1px solid var(--ha-border);
+    border-radius: 22px;
+    box-shadow: var(--ha-shadow);
+    overflow: hidden;
+}
+.login #header {
+    height: auto;
+    padding: 22px;
+    background: var(--ha-panel-2) !important;
+}
+.login #content {
+    padding: 24px !important;
+}
+
+.heartly-admin-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+.heartly-admin-card {
+    width: min(100%, 420px);
+    padding: 32px 28px;
+    background: var(--ha-panel);
+    border: 1px solid var(--ha-border);
+    border-radius: 22px;
+    box-shadow: var(--ha-shadow);
+}
+.heartly-admin-card .heartly-admin-brand {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 6px;
+    margin-bottom: 24px;
+}
+.heartly-admin-card .heartly-admin-logo {
+    width: 52px;
+    height: 52px;
+    margin-bottom: 6px;
+    border-radius: 16px;
+    font-size: 24px;
+    box-shadow: 0 6px 16px rgba(24,173,160,0.25);
+}
+.heartly-admin-card .heartly-admin-brand h1 {
+    margin: 0;
+    color: var(--ha-text);
+    font-size: 20px;
+    font-weight: 750;
+    letter-spacing: -0.02em;
+}
+.heartly-admin-card .heartly-admin-brand p {
+    margin: 0;
+    color: var(--ha-muted);
+    font-size: 13px;
+    font-weight: 600;
+}
+.heartly-admin-error {
+    margin-bottom: 16px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: rgba(255,79,123,0.14);
+    color: #ff9ab3;
+    font-size: 13px;
+    font-weight: 700;
+}
+.heartly-admin-form {
+    display: grid;
+    gap: 16px;
+}
+.heartly-field label {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--ha-muted);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.heartly-input-wrap input { width: 100%; }
+.heartly-admin-btn {
+    width: 100%;
+    min-height: 46px;
+    border: none;
+    border-radius: var(--ha-radius-pill);
+    background: linear-gradient(135deg, var(--ha-teal), var(--ha-teal-2));
+    color: #fff;
+    font-size: 14px;
+    font-weight: 750;
+    cursor: pointer;
+    box-shadow: 0 8px 20px rgba(24,173,160,0.22);
+    transition: filter var(--ha-transition), transform var(--ha-transition);
+}
+.heartly-admin-btn:hover {
+    filter: brightness(1.08);
+    transform: translateY(-1px);
+}
+.heartly-admin-footer {
+    margin-top: 20px;
+    text-align: center;
+    color: var(--ha-muted);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* ============================================================
+   13. Responsive
+   ============================================================ */
+@media (max-width: 1050px) {
+    body.change-list #content {
+        padding: 18px !important;
+    }
+    body.change-list .object-tools {
+        justify-content: flex-start !important;
+    }
+    body.change-list #changelist {
+        grid-template-columns: 1fr !important;
+        grid-template-areas:
+            "toolbar"
+            "filter"
+            "form"
+            "paginator" !important;
+    }
+    body.change-list #changelist-filter {
+        position: static !important;
+        width: 100% !important;
+    }
+    #nav-sidebar {
+        width: 260px !important;
+    }
+    .main.shifted > #nav-sidebar + .content,
+    #main.shifted #content {
+        margin-left: 260px !important;
+    }
+}
+
+@media (max-width: 900px) {
+    #header {
+        height: auto;
+        padding: 16px;
+    }
+    #content {
+        padding: 16px !important;
+    }
+    #content-related {
+        width: 100%;
+        margin-top: 18px;
+    }
+    #content-main {
+        width: 100%;
+    }
+    body.change-list #content h1 {
+        font-size: 22px !important;
+    }
+}
+
+@media (max-width: 640px) {
+    body.change-list .object-tools {
+        width: 100% !important;
+    }
+    body.change-list .object-tools a {
+        width: 100% !important;
+        justify-content: center !important;
+    }
+    body.change-list #toolbar #changelist-search > div {
+        flex-wrap: wrap !important;
+    }
+    body.change-list #toolbar #searchbar {
+        width: 100% !important;
+        order: 2;
+    }
+    body.change-list #toolbar #changelist-search input[type="submit"] {
+        width: 100% !important;
+        order: 3;
+    }
+}
+
+/* ============================================================
+   HEARTLY CUSTOM ADMIN DASHBOARD
+   templates/admin/index.html
+   ============================================================ */
+
+.dashboard #content {
+    max-width: 1240px !important;
+    margin: 0 auto !important;
+}
+
+.heartly-dashboard {
+    display: grid;
+    gap: 22px;
+}
+
+.heartly-dashboard-hero {
+    min-height: 190px;
+    padding: 30px;
+    border-radius: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    background:
+        radial-gradient(circle at top left, rgba(24, 173, 160, 0.28), transparent 34%),
+        radial-gradient(circle at bottom right, rgba(255, 79, 123, 0.20), transparent 34%),
+        linear-gradient(135deg, #111821, #0b1119);
+    border: 1px solid var(--ha-border);
+    box-shadow: var(--ha-shadow);
+}
+
+.heartly-dashboard-kicker {
+    margin: 0 0 8px;
+    color: var(--ha-teal-2);
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.heartly-dashboard-hero h1 {
+    margin: 0;
+    color: #ffffff !important;
+    font-size: clamp(34px, 5vw, 54px) !important;
+    line-height: 0.95;
+    font-weight: 950 !important;
+    letter-spacing: -0.06em;
+}
+
+.heartly-dashboard-hero p {
+    max-width: 620px;
+    margin: 14px 0 0;
+    color: var(--ha-muted);
+    font-size: 15px;
+    line-height: 1.6;
+    font-weight: 650;
+}
+
+.heartly-dashboard-badge {
+    min-width: 150px;
+    padding: 18px;
+    border-radius: 24px;
+    display: grid;
+    place-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+.heartly-dashboard-badge span {
+    width: 58px;
+    height: 58px;
+    border-radius: 22px;
+    display: grid;
+    place-items: center;
+    background: linear-gradient(135deg, var(--ha-pink), var(--ha-teal-2));
+    color: #ffffff;
+    font-size: 28px;
+    font-weight: 950;
+}
+
+.heartly-dashboard-badge strong {
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 900;
+}
+
+.heartly-dashboard-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.heartly-stat-card {
+    padding: 18px;
+    border-radius: 22px;
+    background: var(--ha-panel);
+    border: 1px solid var(--ha-border);
+    box-shadow: var(--ha-shadow);
+}
+
+.heartly-stat-card span {
+    display: block;
+    color: var(--ha-muted);
+    font-size: 12px;
+    font-weight: 850;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.heartly-stat-card strong {
+    display: block;
+    margin-top: 8px;
+    color: #ffffff;
+    font-size: 28px;
+    line-height: 1;
+    font-weight: 950;
+}
+
+.heartly-stat-card small {
+    display: block;
+    margin-top: 8px;
+    color: var(--ha-muted);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.heartly-dashboard-section {
+    padding: 20px;
+    border-radius: 26px;
+    background: var(--ha-panel);
+    border: 1px solid var(--ha-border);
+    box-shadow: var(--ha-shadow);
+}
+
+.heartly-section-head {
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.heartly-section-head h2 {
+    margin: 0;
+    color: #ffffff;
+    font-size: 18px;
+    font-weight: 950;
+    letter-spacing: -0.03em;
+}
+
+.heartly-section-head p {
+    margin: 5px 0 0;
+    color: var(--ha-muted);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.heartly-quick-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.heartly-quick-card {
+    min-height: 112px;
+    padding: 16px;
+    border-radius: 22px;
+    display: grid;
+    align-content: space-between;
+    gap: 14px;
+    background: #0b1119;
+    border: 1px solid var(--ha-border);
+    color: var(--ha-text) !important;
+    text-decoration: none !important;
+    transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.heartly-quick-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(40, 199, 184, 0.45);
+    background: #0f1823;
+}
+
+.heartly-quick-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 16px;
+    display: grid;
+    place-items: center;
+    background: rgba(24, 173, 160, 0.14);
+    font-size: 20px;
+}
+
+.heartly-quick-card strong {
+    display: block;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 950;
+}
+
+.heartly-quick-card span {
+    display: block;
+    margin-top: 3px;
+    color: var(--ha-muted);
+    font-size: 12px;
+    font-weight: 750;
+}
+
+.heartly-admin-apps {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.heartly-admin-app-card {
+    overflow: hidden;
+    border-radius: 22px;
+    background: #0b1119;
+    border: 1px solid var(--ha-border);
+}
+
+.heartly-admin-app-card header {
+    padding: 15px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    background: var(--ha-panel-2);
+    border-bottom: 1px solid var(--ha-border);
+}
+
+.heartly-admin-app-card h3 {
+    margin: 0;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 950;
+}
+
+.heartly-admin-app-card header span {
+    display: block;
+    margin-top: 3px;
+    color: var(--ha-muted);
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+}
+
+.heartly-admin-app-card header a {
+    color: var(--ha-teal-2) !important;
+    font-size: 12px;
+    font-weight: 900;
+}
+
+.heartly-admin-model-list {
+    display: grid;
+}
+
+.heartly-admin-model-row {
+    min-height: 52px;
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.heartly-admin-model-row:first-child {
+    border-top: none;
+}
+
+.heartly-admin-model-row > a,
+.heartly-admin-model-row > span {
+    color: var(--ha-text) !important;
+    font-size: 13px;
+    font-weight: 850;
+}
+
+.heartly-model-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.heartly-model-actions a {
+    min-height: 30px;
+    padding: 0 10px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 900;
+}
+
+.heartly-add-action {
+    background: rgba(24, 173, 160, 0.14);
+    color: var(--ha-teal-2) !important;
+}
+
+.heartly-change-action {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff !important;
+}
+
+.heartly-empty-dashboard {
+    padding: 28px;
+    border-radius: 24px;
+    background: var(--ha-panel);
+    border: 1px solid var(--ha-border);
+    text-align: center;
+}
+
+.heartly-empty-dashboard h2 {
+    margin: 0 0 8px;
+    color: #ffffff;
+}
+
+.heartly-empty-dashboard p {
+    margin: 0;
+    color: var(--ha-muted);
+}
+
+.heartly-admin-recent {
+    margin-top: 28px;
+    padding: 18px;
+    border-radius: 24px;
+    background: var(--ha-panel);
+    border: 1px solid var(--ha-border);
+    box-shadow: var(--ha-shadow);
+}
+
+.heartly-admin-recent h2 {
+    margin: 0 0 14px;
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 950;
+}
+
+.heartly-recent-list {
+    display: grid;
+    gap: 10px;
+}
+
+.heartly-recent-item {
+    padding: 12px;
+    border-radius: 16px;
+    background: #0b1119;
+    border: 1px solid var(--ha-border);
+}
+
+.heartly-recent-item strong {
+    display: block;
+    color: var(--ha-teal-2);
+    font-size: 12px;
+    font-weight: 950;
+}
+
+.heartly-recent-item span {
+    display: block;
+    margin-top: 3px;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 850;
+}
+
+.heartly-recent-item small,
+.heartly-recent-empty {
+    color: var(--ha-muted);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+@media (max-width: 1050px) {
+    .heartly-quick-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .heartly-admin-apps {
+        grid-template-columns: 1fr;
+    }
+
+    .heartly-dashboard-hero {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .heartly-dashboard-stats {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .heartly-dashboard-hero {
+        padding: 22px;
+        border-radius: 24px;
+    }
+
+    .heartly-quick-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .heartly-admin-model-row {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
+
+/* ============================================================
+   HEARTLY ADMIN — SAFE CHANGELIST LAYOUT RESET
+   Put this at the VERY BOTTOM of heartly-admin.css
+   ============================================================ */
+
+body.change-list #content {
+    max-width: none !important;
+    padding: 28px !important;
+}
+
+body.change-list #content-main {
+    width: 100% !important;
+    max-width: 100% !important;
+    float: none !important;
+}
+
+body.change-list #changelist {
+    display: block !important;
+    position: relative !important;
+    width: 100% !important;
+    min-height: 520px !important;
+    padding-right: 320px !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+}
+
+/* Search toolbar */
+body.change-list #toolbar {
+    display: block !important;
+    width: 100% !important;
+    margin: 0 0 14px 0 !important;
+    padding: 14px !important;
+    background: var(--ha-panel) !important;
+    border: 1px solid var(--ha-border) !important;
+    border-radius: 18px !important;
+    box-sizing: border-box !important;
+}
+
+body.change-list #toolbar form,
+body.change-list #toolbar form > div,
+body.change-list #changelist-search,
+body.change-list #changelist-search > div {
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    margin: 0 !important;
+}
+
+body.change-list #toolbar label,
+body.change-list #changelist-search label {
+    width: 22px !important;
+    height: 22px !important;
+    flex: 0 0 22px !important;
+    display: grid !important;
+    place-items: center !important;
+    margin: 0 !important;
+}
+
+body.change-list #toolbar label img,
+body.change-list #changelist-search label img {
+    width: 17px !important;
+    height: 17px !important;
+    filter: invert(1) opacity(0.75) !important;
+}
+
+body.change-list #searchbar {
+    flex: 1 1 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: 44px !important;
+    margin: 0 !important;
+    padding: 0 14px !important;
+    background: #080d14 !important;
+    color: var(--ha-text) !important;
+    border: 1px solid var(--ha-border) !important;
+    border-radius: 999px !important;
+}
+
+body.change-list #toolbar input[type="submit"],
+body.change-list #changelist-search input[type="submit"] {
+    flex: 0 0 auto !important;
+    min-width: 96px !important;
+    height: 44px !important;
+    margin: 0 !important;
+    padding: 0 18px !important;
+    border-radius: 999px !important;
+}
+
+/* Form and results */
+body.change-list #changelist-form {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+}
+
+body.change-list #changelist .actions {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 14px 16px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    flex-wrap: wrap !important;
+    background: var(--ha-panel) !important;
+    border: 1px solid var(--ha-border) !important;
+    border-radius: 18px 18px 0 0 !important;
+    box-sizing: border-box !important;
+}
+
+body.change-list #changelist .actions select {
+    min-width: 260px !important;
+    height: 38px !important;
+    background: #080d14 !important;
+    color: var(--ha-text) !important;
+    border: 1px solid var(--ha-border) !important;
+    border-radius: 999px !important;
+}
+
+body.change-list .results {
+    width: 100% !important;
+    margin: 0 !important;
+    background: var(--ha-panel) !important;
+    border: 1px solid var(--ha-border) !important;
+    border-top: none !important;
+    border-radius: 0 0 18px 18px !important;
+    overflow-x: auto !important;
+    box-sizing: border-box !important;
+}
+
+body.change-list #result_list {
+    width: 100% !important;
+    min-width: 720px !important;
+    background: var(--ha-panel) !important;
+    border-collapse: collapse !important;
+}
+
+body.change-list #result_list thead th {
+    height: 50px !important;
+    padding: 0 16px !important;
+    background: var(--ha-panel-2) !important;
+    color: #ffffff !important;
+    border-bottom: 1px solid var(--ha-border) !important;
+}
+
+body.change-list #result_list tbody tr,
+body.change-list #result_list tbody tr.row1,
+body.change-list #result_list tbody tr.row2 {
+    background: var(--ha-panel) !important;
+}
+
+body.change-list #result_list tbody tr:nth-child(even) {
+    background: #0e151e !important;
+}
+
+body.change-list #result_list tbody th,
+body.change-list #result_list tbody td {
+    height: 50px !important;
+    padding: 0 16px !important;
+    color: var(--ha-text) !important;
+    border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+}
+
+body.change-list #result_list tbody a {
+    color: #ffffff !important;
+    font-weight: 800 !important;
+}
+
+body.change-list #result_list tbody a:hover {
+    color: var(--ha-teal-2) !important;
+}
+
+/* Right filter panel */
+body.change-list #changelist-filter {
+    position: absolute !important;
+    top: 0 !important;
+    right: 0 !important;
+    float: none !important;
+    width: 290px !important;
+    margin: 0 !important;
+    background: var(--ha-panel) !important;
+    color: var(--ha-text) !important;
+    border: 1px solid var(--ha-border) !important;
+    border-radius: 18px !important;
+    overflow: hidden !important;
+    box-shadow: var(--ha-shadow) !important;
+    box-sizing: border-box !important;
+}
+
+body.change-list #changelist-filter h2 {
+    margin: 0 !important;
+    padding: 15px 16px !important;
+    background: var(--ha-panel-2) !important;
+    color: #ffffff !important;
+    font-size: 12px !important;
+    font-weight: 900 !important;
+    letter-spacing: 0.08em !important;
+    text-transform: uppercase !important;
+}
+
+body.change-list #changelist-filter h3 {
+    margin: 0 !important;
+    padding: 14px 16px 6px !important;
+    color: #ffffff !important;
+    font-size: 13px !important;
+    font-weight: 850 !important;
+}
+
+body.change-list #changelist-filter ul {
+    margin: 0 !important;
+    padding: 0 16px 12px !important;
+    list-style: none !important;
+}
+
+body.change-list #changelist-filter li {
+    margin: 7px 0 !important;
+}
+
+body.change-list #changelist-filter li a {
+    color: var(--ha-muted) !important;
+    font-weight: 800 !important;
+}
+
+body.change-list #changelist-filter li.selected a,
+body.change-list #changelist-filter li a:hover {
+    color: var(--ha-teal-2) !important;
+}
+
+/* Paginator */
+body.change-list .paginator {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 14px 16px !important;
+    background: var(--ha-panel) !important;
+    color: var(--ha-muted) !important;
+    border: 1px solid var(--ha-border) !important;
+    border-top: none !important;
+    border-radius: 0 0 18px 18px !important;
+    box-sizing: border-box !important;
+}
+
+/* Object tools */
+body.change-list .object-tools {
+    float: none !important;
+    display: flex !important;
+    justify-content: flex-end !important;
+    margin: 0 0 20px !important;
+    padding: 0 !important;
+}
+
+body.change-list .object-tools a {
+    white-space: nowrap !important;
+}
+
+/* Mobile */
+@media (max-width: 1050px) {
+    body.change-list #changelist {
+        padding-right: 0 !important;
+    }
+
+    body.change-list #changelist-filter {
+        position: static !important;
+        width: 100% !important;
+        margin: 0 0 14px !important;
+    }
+
+    body.change-list #toolbar form,
+    body.change-list #toolbar form > div,
+    body.change-list #changelist-search,
+    body.change-list #changelist-search > div {
+        flex-wrap: wrap !important;
+    }
+
+    body.change-list #searchbar {
+        flex-basis: calc(100% - 40px) !important;
+    }
+}
+/* ============================================================
+   HEARTLY ADMIN — TABLE POLISH PATCH
+   Improves changelist rows, email/user columns, scrollbars
+   ============================================================ */
+
+body.change-list .results {
+    border-radius: 18px !important;
+    overflow: auto !important;
+    scrollbar-width: thin !important;
+    scrollbar-color: rgba(40, 199, 184, 0.45) rgba(255, 255, 255, 0.05) !important;
+}
+
+body.change-list .results::-webkit-scrollbar {
+    height: 8px !important;
+    width: 8px !important;
+}
+
+body.change-list .results::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.04) !important;
+    border-radius: 999px !important;
+}
+
+body.change-list .results::-webkit-scrollbar-thumb {
+    background: rgba(40, 199, 184, 0.45) !important;
+    border-radius: 999px !important;
+}
+
+body.change-list #result_list {
+    min-width: 100% !important;
+    table-layout: fixed !important;
+}
+
+body.change-list #result_list thead th {
+    height: 46px !important;
+    padding: 0 14px !important;
+    font-size: 11px !important;
+    color: #b8c7d9 !important;
+    background: #162231 !important;
+}
+
+body.change-list #result_list tbody th,
+body.change-list #result_list tbody td {
+    height: 54px !important;
+    padding: 0 14px !important;
+    font-size: 13px !important;
+    line-height: 1.35 !important;
+}
+
+body.change-list #result_list tbody tr {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.055) !important;
+}
+
+body.change-list #result_list tbody tr:hover {
+    background: rgba(24, 173, 160, 0.13) !important;
+}
+
+body.change-list #result_list tbody a {
+    color: #eef6ff !important;
+    font-weight: 760 !important;
+    text-decoration: none !important;
+}
+
+body.change-list #result_list tbody a:hover {
+    color: var(--ha-teal-2) !important;
+}
+
+/* Checkbox column */
+body.change-list #result_list .action-checkbox-column,
+body.change-list #result_list .action-checkbox {
+    width: 44px !important;
+    min-width: 44px !important;
+    max-width: 44px !important;
+    text-align: center !important;
+}
+
+body.change-list #result_list input[type="checkbox"] {
+    width: 15px !important;
+    height: 15px !important;
+    accent-color: var(--ha-teal) !important;
+}
+
+/* Email/user style */
+body.change-list #result_list .field-email,
+body.change-list #result_list .field-email_address,
+body.change-list #result_list .field-user,
+body.change-list #result_list .field-username {
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+}
+
+body.change-list #result_list .field-email a,
+body.change-list #result_list .field-email_address a {
+    color: #ffffff !important;
+    font-weight: 820 !important;
+}
+
+/* Give the email column more room */
+body.change-list #result_list th.field-email,
+body.change-list #result_list td.field-email,
+body.change-list #result_list th.field-email_address,
+body.change-list #result_list td.field-email_address {
+    width: 56% !important;
+}
+
+/* User/name column */
+body.change-list #result_list th.field-user,
+body.change-list #result_list td.field-user {
+    width: 34% !important;
+    color: #dbe7f5 !important;
+    font-weight: 650 !important;
+}
+
+/* Bottom count/paginator */
+body.change-list .paginator {
+    margin-top: 12px !important;
+    border-radius: 18px !important;
+    padding: 16px 18px !important;
+    background: #111821 !important;
+    color: #aebccd !important;
+    font-size: 13px !important;
+    font-weight: 850 !important;
+}
+
+/* Reduce bulky table bottom spacing */
+body.change-list #changelist-form {
+    margin-bottom: 0 !important;
+}
+
+body.change-list #changelist .actions + .results {
+    border-radius: 0 0 18px 18px !important;
+}
+
+/* Small screens */
+@media (max-width: 760px) {
+    body.change-list #result_list tbody th,
+    body.change-list #result_list tbody td {
+        height: 50px !important;
+        padding: 0 10px !important;
+        font-size: 12px !important;
+    }
+
+    body.change-list #result_list th.field-email,
+    body.change-list #result_list td.field-email,
+    body.change-list #result_list th.field-email_address,
+    body.change-list #result_list td.field-email_address {
+        width: 62% !important;
+    }
+
+    body.change-list #result_list th.field-user,
+    body.change-list #result_list td.field-user {
+        width: 30% !important;
+    }
+
+    body.change-list .paginator {
+        padding: 14px !important;
+    }
+}
+/* ============================================================
+   HEARTLY ADMIN — BALANCED DASHBOARD LAYOUT FIX
+   Put this at the VERY BOTTOM of heartly-admin.css
+   ============================================================ */
+
+/* Stop the dashboard from drifting too far right */
+body.dashboard #content {
+    max-width: none !important;
+    width: auto !important;
+    margin: 0 !important;
+    padding: 28px 34px !important;
+}
+
+/* Make the dashboard fill the available admin area */
+body.dashboard #content-main {
+    width: 100% !important;
+    max-width: 1180px !important;
+    margin: 0 auto !important;
+    float: none !important;
+}
+
+/* Remove empty Django sidebar spacing on the custom dashboard */
+body.dashboard #content-related {
+    display: none !important;
+}
+
+/* Give the custom dashboard a clean centered structure */
+body.dashboard .heartly-dashboard {
+    width: 100% !important;
+    max-width: 1180px !important;
+    margin: 0 auto !important;
+    display: grid !important;
+    gap: 22px !important;
+}
+
+/* Balance hero layout */
+body.dashboard .heartly-dashboard-hero {
+    width: 100% !important;
+    min-height: 230px !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1.2fr) 230px !important;
+    align-items: center !important;
+    gap: 28px !important;
+    box-sizing: border-box !important;
+}
+
+/* Keep the hero text from becoming too narrow */
+body.dashboard .heartly-dashboard-hero > div:first-child {
+    max-width: 620px !important;
+}
+
+/* Balance the Live Admin card */
+body.dashboard .heartly-dashboard-badge {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 120px !important;
+    box-sizing: border-box !important;
+}
+
+/* Stats should stretch evenly */
+body.dashboard .heartly-dashboard-stats {
+    width: 100% !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+}
+
+/* Dashboard sections should align with hero/stats */
+body.dashboard .heartly-dashboard-section {
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+/* Quick cards balanced */
+body.dashboard .heartly-quick-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+}
+
+/* Admin app cards balanced */
+body.dashboard .heartly-admin-apps {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+}
+
+/* Fix nav-sidebar + content spacing */
+body.dashboard #main.shifted #content,
+body.dashboard .main.shifted > #nav-sidebar + .content {
+    margin-left: 280px !important;
+}
+
+/* Responsive */
+@media (max-width: 1150px) {
+    body.dashboard #content {
+        padding: 22px !important;
+    }
+
+    body.dashboard .heartly-dashboard-hero {
+        grid-template-columns: 1fr !important;
+    }
+
+    body.dashboard .heartly-dashboard-badge {
+        max-width: 240px !important;
+    }
+
+    body.dashboard .heartly-quick-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    body.dashboard .heartly-admin-apps {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+@media (max-width: 760px) {
+    body.dashboard #main.shifted #content,
+    body.dashboard .main.shifted > #nav-sidebar + .content {
+        margin-left: 0 !important;
+    }
+
+    body.dashboard #content {
+        padding: 16px !important;
+    }
+
+    body.dashboard .heartly-dashboard-stats {
+        grid-template-columns: 1fr !important;
+    }
+
+    body.dashboard .heartly-quick-grid {
+        grid-template-columns: 1fr !important;
+    }
+}
+/* ============================================================
+   HEARTLY ADMIN — TRUE DASHBOARD BALANCE FIX
+   Forces the custom dashboard to use the full area beside sidebar
+   ============================================================ */
+
+/* Make the Django admin main shell predictable */
+body.dashboard #main,
+body.dashboard .main.shifted {
+    display: grid !important;
+    grid-template-columns: 280px minmax(0, 1fr) !important;
+    align-items: start !important;
+    width: 100% !important;
+    max-width: none !important;
+    background: var(--ha-bg) !important;
+}
+
+/* Keep sidebar fixed in the first column */
+body.dashboard #nav-sidebar {
+    grid-column: 1 !important;
+    width: 280px !important;
+    min-width: 280px !important;
+    max-width: 280px !important;
+    margin: 0 !important;
+}
+
+/* Force content into the second column */
+body.dashboard #main > .content,
+body.dashboard .main.shifted > .content,
+body.dashboard .main.shifted > #nav-sidebar + .content {
+    grid-column: 2 !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Reset the inner admin content */
+body.dashboard #content {
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 28px 32px 42px !important;
+    box-sizing: border-box !important;
+}
+
+/* Kill old Django dashboard float behavior */
+body.dashboard #content-main {
+    float: none !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Hide default right sidebar/recent actions space */
+body.dashboard #content-related {
+    display: none !important;
+}
+
+/* Center the Heartly dashboard inside available space */
+body.dashboard .heartly-dashboard {
+    width: 100% !important;
+    max-width: 1040px !important;
+    margin: 0 auto !important;
+    display: grid !important;
+    gap: 22px !important;
+}
+
+/* Hero should be balanced, not pushed right */
+body.dashboard .heartly-dashboard-hero {
+    width: 100% !important;
+    min-height: 220px !important;
+    padding: 30px !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 220px !important;
+    gap: 26px !important;
+    align-items: center !important;
+    box-sizing: border-box !important;
+}
+
+body.dashboard .heartly-dashboard-hero > div:first-child {
+    max-width: 620px !important;
+}
+
+body.dashboard .heartly-dashboard-hero h1 {
+    max-width: 420px !important;
+}
+
+/* Make the Live Admin badge sit correctly */
+body.dashboard .heartly-dashboard-badge {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 120px !important;
+    box-sizing: border-box !important;
+}
+
+/* Stats balanced */
+body.dashboard .heartly-dashboard-stats {
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 14px !important;
+}
+
+/* Sections full width */
+body.dashboard .heartly-dashboard-section {
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+/* Quick access grid */
+body.dashboard .heartly-quick-grid {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+}
+
+/* App cards */
+body.dashboard .heartly-admin-apps {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 14px !important;
+}
+
+/* Stop horizontal page overflow */
+body.dashboard,
+body.dashboard #container,
+body.dashboard #main,
+body.dashboard .content,
+body.dashboard #content {
+    overflow-x: hidden !important;
+}
+
+/* Responsive */
+@media (max-width: 1100px) {
+    body.dashboard #main,
+    body.dashboard .main.shifted {
+        grid-template-columns: 260px minmax(0, 1fr) !important;
+    }
+
+    body.dashboard #nav-sidebar {
+        width: 260px !important;
+        min-width: 260px !important;
+        max-width: 260px !important;
+    }
+
+    body.dashboard #content {
+        padding: 22px !important;
+    }
+
+    body.dashboard .heartly-dashboard {
+        max-width: 100% !important;
+    }
+
+    body.dashboard .heartly-dashboard-hero {
+        grid-template-columns: 1fr !important;
+    }
+
+    body.dashboard .heartly-dashboard-badge {
+        max-width: 240px !important;
+    }
+
+    body.dashboard .heartly-quick-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    body.dashboard .heartly-admin-apps {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+@media (max-width: 780px) {
+    body.dashboard #main,
+    body.dashboard .main.shifted {
+        display: block !important;
+    }
+
+    body.dashboard #nav-sidebar {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+    }
+
+    body.dashboard #main > .content,
+    body.dashboard .main.shifted > .content,
+    body.dashboard .main.shifted > #nav-sidebar + .content {
+        width: 100% !important;
+        margin: 0 !important;
+    }
+
+    body.dashboard #content {
+        padding: 16px !important;
+    }
+
+    body.dashboard .heartly-dashboard-stats {
+        grid-template-columns: 1fr !important;
+    }
+
+    body.dashboard .heartly-quick-grid {
+        grid-template-columns: 1fr !important;
+    }
+}

@@ -1,0 +1,25 @@
+{% extends "admin/base.html" %}
+{% load static i18n %}
+
+{% block title %}
+    {% if subtitle %}{{ subtitle }} | {% endif %}
+    {% if title %}{{ title }} | {% endif %}
+    Heartly Admin
+{% endblock %}
+
+{% block extrastyle %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'css/heartly-admin.css' %}">
+{% endblock %}
+
+{% block branding %}
+<div id="site-name" class="heartly-admin-brand">
+    <div class="heartly-admin-logo">♥</div>
+    <div>
+        <strong>Heartly Admin</strong>
+        <span>Control Center</span>
+    </div>
+</div>
+{% endblock %}
+
+{% block nav-global %}{% endblock %}

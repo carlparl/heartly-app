@@ -1,0 +1,190 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static log %}
+
+{% block title %}Heartly Control Center{% endblock %}
+
+{% block content %}
+<div class="heartly-dashboard">
+
+    <section class="heartly-dashboard-hero">
+        <div>
+            <p class="heartly-dashboard-kicker">Heartly Admin</p>
+            <h1>Control Center</h1>
+            <p>
+                Manage users, profiles, matches, chats, feed content, reports, notifications, and AI features from one clean dashboard.
+            </p>
+        </div>
+
+        <div class="heartly-dashboard-badge">
+            <span>♥</span>
+            <strong>Live Admin</strong>
+        </div>
+    </section>
+
+    <section class="heartly-dashboard-stats">
+        <div class="heartly-stat-card">
+            <span>Apps</span>
+            <strong>{{ app_list|length }}</strong>
+            <small>Registered modules</small>
+        </div>
+
+        <div class="heartly-stat-card">
+            <span>Access</span>
+            <strong>Staff</strong>
+            <small>Private admin area</small>
+        </div>
+
+        <div class="heartly-stat-card">
+            <span>Mode</span>
+            <strong>Secure</strong>
+            <small>Django admin</small>
+        </div>
+    </section>
+
+    {% if app_list %}
+        <section class="heartly-dashboard-section">
+            <div class="heartly-section-head">
+                <div>
+                    <h2>Quick access</h2>
+                    <p>Open the most important Heartly admin areas.</p>
+                </div>
+            </div>
+
+            <div class="heartly-quick-grid">
+                {% for app in app_list %}
+                    {% for model in app.models %}
+                        {% if model.admin_url %}
+                            <a href="{{ model.admin_url }}" class="heartly-quick-card heartly-model-{{ model.object_name|lower }}">
+                                <div class="heartly-quick-icon">
+                                    {% if model.object_name == "CustomUser" or model.object_name == "User" %}
+                                        👤
+                                    {% elif model.object_name == "Profile" %}
+                                        🪪
+                                    {% elif model.object_name == "Post" %}
+                                        📝
+                                    {% elif model.object_name == "Comment" %}
+                                        💬
+                                    {% elif model.object_name == "ChatThread" %}
+                                        💌
+                                    {% elif model.object_name == "ChatMessage" %}
+                                        🗨️
+                                    {% elif model.object_name == "Call" or model.object_name == "CallSession" %}
+                                        📞
+                                    {% elif model.object_name == "Notification" %}
+                                        🔔
+                                    {% elif model.object_name == "Report" or model.object_name == "ChatReport" %}
+                                        🚩
+                                    {% elif model.object_name == "Match" %}
+                                        💞
+                                    {% else %}
+                                        ⚙️
+                                    {% endif %}
+                                </div>
+
+                                <div>
+                                    <strong>{{ model.name }}</strong>
+                                    <span>{{ app.name }}</span>
+                                </div>
+                            </a>
+                        {% endif %}
+                    {% endfor %}
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="heartly-dashboard-section">
+            <div class="heartly-section-head">
+                <div>
+                    <h2>Administration sections</h2>
+                    <p>Grouped by Django app.</p>
+                </div>
+            </div>
+
+            <div class="heartly-admin-apps">
+                {% for app in app_list %}
+                    <article class="heartly-admin-app-card">
+                        <header>
+                            <div>
+                                <h3>{{ app.name }}</h3>
+                                <span>{{ app.app_label }}</span>
+                            </div>
+
+                            {% if app.app_url %}
+                                <a href="{{ app.app_url }}">Open</a>
+                            {% endif %}
+                        </header>
+
+                        <div class="heartly-admin-model-list">
+                            {% for model in app.models %}
+                                <div class="heartly-admin-model-row">
+                                    {% if model.admin_url %}
+                                        <a href="{{ model.admin_url }}">{{ model.name }}</a>
+                                    {% else %}
+                                        <span>{{ model.name }}</span>
+                                    {% endif %}
+
+                                    <div class="heartly-model-actions">
+                                        {% if model.add_url %}
+                                            <a href="{{ model.add_url }}" class="heartly-add-action">Add</a>
+                                        {% endif %}
+
+                                        {% if model.admin_url %}
+                                            <a href="{{ model.admin_url }}" class="heartly-change-action">Manage</a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+        </section>
+    {% else %}
+        <section class="heartly-empty-dashboard">
+            <h2>No admin apps available</h2>
+            <p>Your account may not have permission to view admin modules.</p>
+        </section>
+    {% endif %}
+
+</div>
+{% endblock %}
+
+{% block sidebar %}
+<aside class="heartly-admin-recent">
+    <h2>Recent actions</h2>
+
+    {% get_admin_log 8 as admin_log for_user user %}
+
+    {% if admin_log %}
+        <div class="heartly-recent-list">
+            {% for entry in admin_log %}
+                <div class="heartly-recent-item">
+                    <strong>
+                        {% if entry.is_addition %}
+                            Added
+                        {% elif entry.is_change %}
+                            Changed
+                        {% elif entry.is_deletion %}
+                            Deleted
+                        {% else %}
+                            Updated
+                        {% endif %}
+                    </strong>
+
+                    <span>
+                        {% if entry.content_type %}
+                            {{ entry.content_type.name|capfirst }}
+                        {% else %}
+                            Item
+                        {% endif %}
+                    </span>
+
+                    <small>{{ entry.action_time|timesince }} ago</small>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="heartly-recent-empty">No recent admin actions yet.</p>
+    {% endif %}
+</aside>
+{% endblock %}

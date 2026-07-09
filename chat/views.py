@@ -630,8 +630,32 @@ def start_call(request, thread_id, call_type):
         status=CallSession.STATUS_RINGING,
     )
 
-    return redirect("chat:call_room", call_id=call.id)
+    call_url = reverse("chat:call_room", args=[call.id])
+    channel_layer = get_channel_layer()
 
+    if channel_layer:
+        try:
+            async_to_sync(channel_layer.group_send)(
+                f"heartly_user_{other_user.id}",
+                {
+                    "type": "notification.event",
+                    "payload": {
+                        "type": "incoming_call",
+                        "call_id": call.id,
+                        "thread_id": thread.id,
+                        "call_type": call.call_type,
+                        "caller_id": request.user.id,
+                        "receiver_id": other_user.id,
+                        "caller_name": get_display_name(request.user),
+                        "url": call_url,
+                        "accept_url": call_url,
+                    },
+                },
+            )
+        except Exception:
+            pass
+
+    return redirect("chat:call_room", call_id=call.id)
 
 @login_required
 def call_room(request, call_id):
