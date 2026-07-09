@@ -9,7 +9,6 @@ from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
-from httpx import request
 
 from .forms import EditPostForm, PostForm
 from .models import Comment, CommentReaction, Post, PostLike
@@ -154,7 +153,7 @@ def username_for(user):
 
 
 def display_name_for(user):
-    return f"@{username_for(user)}"
+    return username_for(user)
 
 
 def avatar_url_for(user):
@@ -194,7 +193,7 @@ def initials_for(name):
 def decorate_user_identity(target, user):
     username = username_for(user)
 
-    target.display_name = f"@{username}"
+    target.display_name = username
     target.username = username
     target.username_label = ""
     target.avatar_url = avatar_url_for(user)
@@ -231,7 +230,7 @@ def decorate_comment(comment, viewer=None):
 
     replies = list(
         comment.replies
-        .select_related("user")
+        .select_related("user", "user__profile")
         .prefetch_related("reactions")
         .order_by("created_at")[:2]
     )
@@ -278,8 +277,8 @@ def decorate_post(post, viewer):
     top_comments = list(
         post.comments
         .filter(parent__isnull=True)
-        .select_related("user")
-        .prefetch_related("reactions", "replies", "replies__user", "replies__reactions")
+        .select_related("user", "user__profile")
+        .prefetch_related("reactions", "replies", "replies__user", "replies__user__profile", "replies__reactions")
         .order_by("-created_at")[:2]
     )
     top_comments.reverse()
@@ -292,6 +291,12 @@ def decorate_post(post, viewer):
 
     post.image_url = _safe_file_url(post.image)
     post.video_url = _safe_file_url(post.video)
+
+    # Safety guard: the profile picture must never render as post media.
+    # If an old/broken post saved the same file as the author's avatar,
+    # keep it only as the small avatar and hide it from the media area.
+    if post.image_url and post.avatar_url and post.image_url == post.avatar_url:
+        post.image_url = ""
 
     return post
 
@@ -331,12 +336,12 @@ def render_comment_html(request, comment):
 def feed_home(request):
     posts_qs = (
         Post.objects
-        .select_related("author")
+        .select_related("author", "author__profile")
         .prefetch_related(
             "likes",
             Prefetch(
                 "comments",
-                queryset=Comment.objects.select_related("user").order_by("created_at"),
+                queryset=Comment.objects.select_related("user", "user__profile").order_by("created_at"),
             ),
         )
         .order_by("-created_at")
@@ -368,6 +373,7 @@ def feed_home(request):
 @login_required
 @require_POST
 def create_post(request):
+    content = (request.POST.get("content") or "").strip()
     image = request.FILES.get("image")
     video = request.FILES.get("video")
 
@@ -377,6 +383,12 @@ def create_post(request):
             "Please upload either an image or a video, not both.",
         )
 
+    if not content and not image and not video:
+        return respond_error(
+            request,
+            "A post cannot be empty. Add text, an image, or a video.",
+        )
+
     form = PostForm(request.POST, request.FILES)
 
     if not form.is_valid():
@@ -384,6 +396,13 @@ def create_post(request):
 
     post = form.save(commit=False)
     post.author = request.user
+    post.content = content
+
+    # Critical fix:
+    # Only files uploaded through the post form can become post media.
+    # Do not use the user's profile picture/logo as a fallback post image.
+    post.image = image if image else None
+    post.video = video if video else None
 
     try:
         post.save()
@@ -480,7 +499,7 @@ def delete_post(request, post_id):
     post.delete()
 
     if wants_json(request):
-        return json_success("Post deleted.", post_id=post_id)
+        return json_success("Post deleted.", post_id=post_id, remove_post_id=post_id)
 
     messages.success(request, "Post deleted.")
     return redirect("feed:feed_home")

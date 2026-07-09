@@ -12,12 +12,14 @@
             {% if viewer_avatar_url %}
                 <img src="{{ viewer_avatar_url }}" alt="{{ viewer_username }}" class="composer-avatar">
             {% else %}
-                <div class="composer-avatar composer-avatar-fallback">{{ viewer_initials }}</div>
+                <div class="composer-avatar composer-avatar-fallback">
+                    {{ viewer_initials }}
+                </div>
             {% endif %}
 
-            <div class="composer-user-copy">
+            <div>
                 <strong>{{ viewer_name }}</strong>
-                <span>@{{ viewer_username }}</span>
+                <span>{{ viewer_username }}</span>
             </div>
         </div>
 
@@ -39,12 +41,22 @@
 
             <div class="composer-media-row">
                 <label class="media-chip">
-                    <input type="file" name="image" id="composerImageInput" accept="image/jpeg,image/png,image/webp">
+                    <input
+                        type="file"
+                        name="image"
+                        id="composerImageInput"
+                        accept="image/jpeg,image/png,image/webp"
+                    >
                     <span>Photo</span>
                 </label>
 
                 <label class="media-chip">
-                    <input type="file" name="video" id="composerVideoInput" accept="video/mp4,video/quicktime,video/webm">
+                    <input
+                        type="file"
+                        name="video"
+                        id="composerVideoInput"
+                        accept="video/mp4,video/quicktime,video/webm"
+                    >
                     <span>Video</span>
                 </label>
 
@@ -52,7 +64,9 @@
                 <button type="submit" class="post-submit-btn">Post</button>
             </div>
 
-            <p class="composer-note">Upload either one photo or one video per post.</p>
+            <p class="composer-note">
+                Upload either one photo or one video per post.
+            </p>
         </form>
     </section>
 
@@ -110,12 +124,16 @@
     box-shadow: var(--heartly-shadow-soft);
 }
 
+<<<<<<< HEAD
 .feed-composer-card,
 .post-card {
     padding: 14px;
 }
 
+=======
+>>>>>>> 81aa6dc (Configure Cloudinary and Render deployment)
 .feed-composer-card {
+    padding: 16px;
     margin-bottom: 16px;
 }
 
@@ -133,6 +151,10 @@
     align-items: flex-start;
     gap: 10px;
     min-width: 0;
+}
+
+.composer-user {
+    align-items: center;
 }
 
 .composer-avatar,
@@ -153,6 +175,11 @@
     flex: 0 0 auto;
 }
 
+.reply-avatar {
+    width: 28px;
+    height: 28px;
+}
+
 .composer-avatar-fallback,
 .post-avatar-fallback,
 .comment-avatar-fallback,
@@ -170,7 +197,7 @@
     min-width: 0;
 }
 
-.composer-user-copy strong,
+.composer-user strong,
 .post-author-text strong,
 .comment-meta strong {
     display: block;
@@ -181,12 +208,16 @@
     white-space: nowrap;
 }
 
-.composer-user-copy span,
+.composer-user span,
 .post-author-text span,
 .comment-time {
     display: block;
+    font-size: 0.86rem;
     color: var(--heartly-muted);
+<<<<<<< HEAD
     font-size: .8rem;
+=======
+>>>>>>> 81aa6dc (Configure Cloudinary and Render deployment)
     font-weight: 700;
 }
 
@@ -210,6 +241,30 @@
     font-weight: 650;
 }
 
+<<<<<<< HEAD
+=======
+.composer-textarea::placeholder,
+.edit-textarea::placeholder {
+    color: var(--heartly-muted);
+}
+
+.composer-preview {
+    margin-top: 12px;
+    border-radius: 22px;
+    overflow: hidden;
+    background: #000000;
+}
+
+.composer-preview img,
+.composer-preview video {
+    width: 100%;
+    max-height: 420px;
+    display: block;
+    object-fit: contain;
+    background: #000000;
+}
+
+>>>>>>> 81aa6dc (Configure Cloudinary and Render deployment)
 .composer-media-row,
 .edit-media-row,
 .edit-actions,
@@ -218,7 +273,7 @@
 .comment-actions {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     flex-wrap: wrap;
 }
 
@@ -226,6 +281,7 @@
     margin-top: 12px;
 }
 
+<<<<<<< HEAD
 .media-chip,
 .clear-media-btn,
 .secondary-btn,
@@ -235,33 +291,59 @@
     min-height: 36px;
     padding: 0 12px;
     border: 1px solid var(--heartly-border);
+=======
+.media-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 42px;
+    padding: 0 14px;
+>>>>>>> 81aa6dc (Configure Cloudinary and Render deployment)
     border-radius: 999px;
     cursor: pointer;
+    font-weight: 900;
     color: var(--heartly-text);
     background: var(--heartly-card-soft);
+<<<<<<< HEAD
     font-weight: 900;
     box-sizing: border-box;
+=======
+    border: 1px solid var(--heartly-border);
+>>>>>>> 81aa6dc (Configure Cloudinary and Render deployment)
 }
 
 .media-chip input {
     display: none;
 }
 
+.clear-media-btn,
+.secondary-btn {
+    min-height: 42px;
+    padding: 0 14px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-weight: 900;
+    color: var(--heartly-text);
+    background: var(--heartly-card-soft);
+    border: 1px solid var(--heartly-border);
+}
+
 .post-submit-btn {
     margin-left: auto;
     min-height: 40px;
     padding: 0 20px;
-    border: none;
+    border: 0;
     border-radius: 999px;
     cursor: pointer;
     font-weight: 950;
-    color: #fff;
+    color: #ffffff;
     background: linear-gradient(135deg, var(--heartly-accent), var(--heartly-accent-2));
     box-shadow: var(--heartly-shadow-btn);
 }
 
 .composer-note {
     margin: 10px 2px 0;
+<<<<<<< HEAD
     color: var(--heartly-muted);
     font-size: .82rem;
     font-weight: 650;
@@ -269,13 +351,52 @@
 
 /* Media fix */
 .composer-preview,
+=======
+    font-size: 0.84rem;
+    color: var(--heartly-muted);
+    font-weight: 650;
+}
+
+.feed-list {
+    display: grid;
+    gap: 16px;
+}
+
+.post-card {
+    padding: 16px;
+}
+
+.post-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: flex-start;
+}
+
+.post-author-wrap {
+    min-width: 0;
+}
+
+.post-author-text {
+    min-width: 0;
+}
+
+.post-content {
+    margin: 14px 0;
+    color: var(--heartly-text);
+    line-height: 1.55;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+>>>>>>> 81aa6dc (Configure Cloudinary and Render deployment)
 .post-media {
     width: 100%;
     box-sizing: border-box;
     margin-top: 12px;
     border-radius: 18px;
     overflow: hidden;
-    background: #000;
+    background: #000000;
 }
 
 .composer-preview img,
@@ -283,10 +404,14 @@
 .post-image-wrap img,
 .post-video-wrap video {
     width: 100%;
+<<<<<<< HEAD
     max-width: 100%;
+=======
+    max-height: 560px;
+>>>>>>> 81aa6dc (Configure Cloudinary and Render deployment)
     display: block;
     object-fit: contain;
-    background: #000;
+    background: #000000;
 }
 
 .composer-preview img,
@@ -321,19 +446,26 @@
 
 .post-menu {
     position: relative;
-    flex: 0 0 auto;
 }
 
 .post-menu summary {
+<<<<<<< HEAD
     width: 38px;
     height: 38px;
     border-radius: 999px;
     display: grid;
     place-items: center;
+=======
+>>>>>>> 81aa6dc (Configure Cloudinary and Render deployment)
     list-style: none;
     cursor: pointer;
-    color: var(--heartly-muted);
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
     background: var(--heartly-card-soft);
+    color: var(--heartly-text);
     font-weight: 950;
 }
 
@@ -343,30 +475,32 @@
 
 .post-menu-panel {
     position: absolute;
+<<<<<<< HEAD
     top: 44px;
+=======
+>>>>>>> 81aa6dc (Configure Cloudinary and Render deployment)
     right: 0;
-    z-index: 40;
+    top: 44px;
     min-width: 170px;
-    padding: 6px;
+    padding: 8px;
     border-radius: 18px;
     background: var(--heartly-card);
     border: 1px solid var(--heartly-border);
     box-shadow: var(--heartly-shadow);
+    z-index: 20;
 }
 
 .post-menu-item {
     width: 100%;
-    min-height: 38px;
-    padding: 0 12px;
-    border: none;
-    border-radius: 13px;
-    display: flex;
-    align-items: center;
-    color: var(--heartly-text);
+    border: 0;
     background: transparent;
     text-align: left;
+    padding: 10px 12px;
+    border-radius: 12px;
     cursor: pointer;
-    font-weight: 850;
+    font: inherit;
+    font-weight: 900;
+    color: var(--heartly-text);
 }
 
 .post-menu-item:hover {
@@ -374,18 +508,19 @@
 }
 
 .post-menu-item.danger {
-    color: var(--heartly-accent);
+    color: #ef4444;
 }
 
 /* Stats and reactions */
 .post-stats {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
     margin-top: 12px;
     padding-top: 12px;
     border-top: 1px solid var(--heartly-border);
-    display: flex;
-    justify-content: space-between;
-    gap: 10px;
     color: var(--heartly-muted);
+<<<<<<< HEAD
     font-size: .82rem;
     font-weight: 800;
 }
@@ -410,116 +545,213 @@
     font-weight: 850;
 }
 
+=======
+    font-size: 0.9rem;
+    font-weight: 850;
+}
+
+.reaction-summary {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
+.reaction-pill {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 0 10px;
+    border-radius: 999px;
+    background: var(--heartly-card-soft);
+    border: 1px solid var(--heartly-border);
+    color: var(--heartly-text);
+    font-weight: 900;
+    font-size: 0.84rem;
+}
+
+>>>>>>> 81aa6dc (Configure Cloudinary and Render deployment)
 .post-actions,
 .reaction-row {
     margin-top: 10px;
 }
 
+<<<<<<< HEAD
 .reaction-btn,
 .comment-action-btn {
     min-height: 34px;
     padding: 0 10px;
     font-size: .8rem;
+=======
+.post-action-form,
+.reaction-row form,
+.comment-actions form {
+    margin: 0;
+>>>>>>> 81aa6dc (Configure Cloudinary and Render deployment)
 }
 
+.post-action-btn,
+.reaction-btn,
+.comment-action-btn {
+    border: 0;
+    border-radius: 999px;
+    min-height: 38px;
+    padding: 0 14px;
+    cursor: pointer;
+    font-weight: 950;
+    color: var(--heartly-text);
+    background: var(--heartly-card-soft);
+}
+
+.reaction-btn {
+    min-width: 42px;
+    padding: 0 10px;
+    font-size: 1rem;
+}
+
+.post-action-btn.is-active,
 .reaction-btn.is-active,
 .comment-action-btn.is-active {
-    color: #fff;
-    border-color: transparent;
-    background: linear-gradient(135deg, var(--heartly-accent), var(--heartly-primary));
-    box-shadow: var(--heartly-shadow-btn);
+    color: #ffffff;
+    background: linear-gradient(135deg, var(--heartly-accent), var(--heartly-accent-2));
 }
 
 /* Comments */
 .comments-wrap {
     margin-top: 12px;
-    display: grid;
-    gap: 10px;
 }
 
 .comments-list,
 .replies-list {
     display: grid;
     gap: 10px;
+    margin-bottom: 10px;
+}
+
+.replies-list {
+    margin-top: 10px;
+    margin-left: 10px;
 }
 
 .comment-bubble {
-    min-width: 0;
     flex: 1;
-    padding: 10px 12px;
-    border-radius: 18px;
+    min-width: 0;
     background: var(--heartly-card-soft);
+    border-radius: 18px;
+    padding: 10px 12px;
+    border: 1px solid var(--heartly-border);
 }
 
-.comment-text {
-    margin-top: 4px;
+.comment-text,
+.comment-text p {
+    margin: 0;
     color: var(--heartly-text);
-    line-height: 1.38;
-    font-weight: 650;
+    line-height: 1.4;
+    font-weight: 700;
     overflow-wrap: anywhere;
 }
 
 .comment-actions {
-    margin-top: 7px;
+    margin-top: 8px;
+    gap: 6px;
 }
 
+<<<<<<< HEAD
 .replies-list {
     margin: 8px 0 0 36px;
 }
 
 .reply-form,
 .comment-form {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
+=======
+.comment-action-btn {
+    min-height: 32px;
+    padding: 0 10px;
+    font-size: 0.84rem;
 }
 
-.reply-form[hidden] {
-    display: none;
+.comment-form,
+.reply-form {
+>>>>>>> 81aa6dc (Configure Cloudinary and Render deployment)
+    display: flex;
+    gap: 8px;
+<<<<<<< HEAD
+    min-width: 0;
+=======
+    align-items: center;
+>>>>>>> 81aa6dc (Configure Cloudinary and Render deployment)
+}
+
+.reply-form {
+    margin-top: 10px;
 }
 
 .comment-form input,
 .reply-form input {
-    min-width: 0;
     flex: 1;
+<<<<<<< HEAD
     height: 40px;
     padding: 0 13px;
+=======
+    min-width: 0;
+>>>>>>> 81aa6dc (Configure Cloudinary and Render deployment)
     border: 1px solid var(--heartly-border);
     border-radius: 999px;
+    padding: 12px 14px;
     outline: none;
     background: var(--heartly-card-soft);
     color: var(--heartly-text);
-    font-weight: 700;
+    font-weight: 750;
+}
+
+.comment-form input::placeholder,
+.reply-form input::placeholder {
+    color: var(--heartly-muted);
+    opacity: 1;
 }
 
 .comment-form button,
 .reply-form button {
+<<<<<<< HEAD
     height: 40px;
     padding: 0 15px;
     border: none;
+=======
+    border: 0;
+>>>>>>> 81aa6dc (Configure Cloudinary and Render deployment)
     border-radius: 999px;
+    min-height: 42px;
+    padding: 0 16px;
     cursor: pointer;
-    color: #fff;
-    background: linear-gradient(135deg, var(--heartly-primary), var(--heartly-primary-2));
     font-weight: 950;
+    color: #ffffff;
+    background: linear-gradient(135deg, var(--heartly-accent), var(--heartly-accent-2));
 }
 
 .comments-note {
     color: var(--heartly-muted);
+<<<<<<< HEAD
     font-size: .76rem;
+=======
+    font-size: 0.84rem;
+>>>>>>> 81aa6dc (Configure Cloudinary and Render deployment)
     font-weight: 750;
+    margin: 6px 0 10px;
 }
 
 /* Edit modal */
 .edit-post-panel {
     position: fixed;
     inset: 0;
-    z-index: 700;
-    padding: 18px;
+    z-index: 1000;
     display: grid;
     place-items: center;
+<<<<<<< HEAD
     background: rgba(0, 0, 0, .52);
+=======
+    padding: 18px;
+    background: rgba(10, 10, 20, 0.52);
+>>>>>>> 81aa6dc (Configure Cloudinary and Render deployment)
     backdrop-filter: blur(10px);
 }
 
@@ -528,85 +760,109 @@
 }
 
 .edit-post-card {
-    width: min(100%, 480px);
-    max-height: min(82vh, 720px);
+    width: min(620px, 100%);
+    max-height: 88vh;
     overflow: auto;
+<<<<<<< HEAD
     padding: 16px;
     border-radius: 26px;
+=======
+    border-radius: 28px;
+    padding: 16px;
+>>>>>>> 81aa6dc (Configure Cloudinary and Render deployment)
     background: var(--heartly-card);
     border: 1px solid var(--heartly-border);
     box-shadow: var(--heartly-shadow);
 }
 
 .edit-post-head {
-    margin-bottom: 12px;
     display: flex;
     align-items: center;
     justify-content: space-between;
+    margin-bottom: 12px;
 }
 
-.edit-close-btn {
-    width: 40px;
-    height: 40px;
-    border: none;
-    border-radius: 999px;
-    display: grid;
-    place-items: center;
-    cursor: pointer;
+.edit-post-head strong {
+    font-size: 1.1rem;
     color: var(--heartly-text);
-    background: var(--heartly-card-soft);
-    font-size: 1.35rem;
     font-weight: 950;
 }
 
-.edit-post-form {
-    display: grid;
-    gap: 12px;
+.edit-close-btn {
+    width: 38px;
+    height: 38px;
+    border: 0;
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 1.4rem;
+    background: var(--heartly-card-soft);
+    color: var(--heartly-text);
+}
+
+.remove-media-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 12px 0;
+    color: var(--heartly-text);
+    font-weight: 800;
+}
+
+.edit-media-row {
+    margin-top: 12px;
+}
+
+.edit-actions {
+    justify-content: flex-end;
+    margin-top: 16px;
 }
 
 /* Empty + pagination */
 .empty-feed-card {
-    padding: 34px 18px;
     text-align: center;
+    padding: 34px 18px;
 }
 
 .empty-icon {
     width: 62px;
     height: 62px;
     margin: 0 auto 12px;
-    border-radius: 24px;
     display: grid;
     place-items: center;
-    color: #fff;
-    background: linear-gradient(135deg, var(--heartly-accent), var(--heartly-primary));
-    font-size: 1.7rem;
+    border-radius: 999px;
+    color: #ffffff;
+    background: linear-gradient(135deg, var(--heartly-accent), var(--heartly-accent-2));
+    font-size: 2rem;
+}
+
+.empty-feed-card h2 {
+    margin: 0;
+    color: var(--heartly-text);
     font-weight: 950;
+}
+
+.empty-feed-card p {
+    margin: 8px 0 0;
+    color: var(--heartly-muted);
+    font-weight: 700;
 }
 
 .feed-pagination {
-    margin-top: 16px;
-    padding: 12px;
-    border-radius: 22px;
     display: flex;
     justify-content: center;
-    gap: 12px;
-    background: var(--heartly-card);
-    border: 1px solid var(--heartly-border);
+    align-items: center;
+    gap: 14px;
+    margin-top: 20px;
     color: var(--heartly-muted);
-    font-weight: 850;
+    font-weight: 800;
 }
 
 .feed-pagination a {
-    min-height: 38px;
-    padding: 0 14px;
-    border-radius: 999px;
-    display: inline-flex;
-    align-items: center;
-    color: #fff;
-    background: linear-gradient(135deg, var(--heartly-primary), var(--heartly-primary-2));
     font-weight: 950;
+    color: var(--heartly-accent);
 }
 
+<<<<<<< HEAD
 /* Mobile */
 @media (max-width: 520px) {
     .heartly-feed-page {
@@ -633,6 +889,76 @@
     .post-video-wrap video,
     .composer-preview video {
         max-height: 500px;
+=======
+/* DARK MODE — HARD CONTRAST FIX */
+html.heartly-dark-root .heartly-feed-page .comment-bubble,
+body.heartly-dark .heartly-feed-page .comment-bubble {
+    background: #182230 !important;
+    color: #e6eef7 !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+html.heartly-dark-root .heartly-feed-page .comment-bubble *,
+body.heartly-dark .heartly-feed-page .comment-bubble * {
+    color: #e6eef7 !important;
+    opacity: 1 !important;
+}
+
+html.heartly-dark-root .heartly-feed-page .comment-bubble strong,
+body.heartly-dark .heartly-feed-page .comment-bubble strong {
+    color: #ffffff !important;
+}
+
+html.heartly-dark-root .heartly-feed-page .post-action-btn,
+html.heartly-dark-root .heartly-feed-page .reaction-btn,
+html.heartly-dark-root .heartly-feed-page .comment-action-btn,
+body.heartly-dark .heartly-feed-page .post-action-btn,
+body.heartly-dark .heartly-feed-page .reaction-btn,
+body.heartly-dark .heartly-feed-page .comment-action-btn {
+    background: #ffffff !important;
+    color: #111827 !important;
+    opacity: 1 !important;
+}
+
+html.heartly-dark-root .heartly-feed-page .post-action-btn.is-active,
+html.heartly-dark-root .heartly-feed-page .reaction-btn.is-active,
+html.heartly-dark-root .heartly-feed-page .comment-action-btn.is-active,
+body.heartly-dark .heartly-feed-page .post-action-btn.is-active,
+body.heartly-dark .heartly-feed-page .reaction-btn.is-active,
+body.heartly-dark .heartly-feed-page .comment-action-btn.is-active {
+    background: linear-gradient(135deg, #ff4f7b, #ff6f8c) !important;
+    color: #ffffff !important;
+}
+
+html.heartly-dark-root .heartly-feed-page .comment-form input,
+html.heartly-dark-root .heartly-feed-page .reply-form input,
+body.heartly-dark .heartly-feed-page .comment-form input,
+body.heartly-dark .heartly-feed-page .reply-form input {
+    background: #ffffff !important;
+    color: #111827 !important;
+    opacity: 1 !important;
+}
+
+html.heartly-dark-root .heartly-feed-page .comment-form input::placeholder,
+html.heartly-dark-root .heartly-feed-page .reply-form input::placeholder,
+body.heartly-dark .heartly-feed-page .comment-form input::placeholder,
+body.heartly-dark .heartly-feed-page .reply-form input::placeholder {
+    color: #6b7280 !important;
+    opacity: 1 !important;
+}
+
+html.heartly-dark-root .heartly-feed-page .post-menu summary,
+body.heartly-dark .heartly-feed-page .post-menu summary {
+    background: #ffffff !important;
+    color: #111827 !important;
+}
+
+@media (max-width: 560px) {
+    .feed-composer-card,
+    .post-card {
+        border-radius: 24px;
+        padding: 14px;
+>>>>>>> 81aa6dc (Configure Cloudinary and Render deployment)
     }
 
     .post-submit-btn {
@@ -640,6 +966,7 @@
         margin-left: 0;
     }
 
+<<<<<<< HEAD
     .post-actions,
     .reaction-row {
         display: grid;
@@ -655,10 +982,25 @@
 
     .replies-list {
         margin-left: 18px;
+=======
+    .composer-media-row .media-chip,
+    .clear-media-btn {
+        flex: 1;
+    }
+
+    .comment-form,
+    .reply-form {
+        align-items: stretch;
+    }
+
+    .comment-form button,
+    .reply-form button {
+        padding: 0 13px;
+>>>>>>> 81aa6dc (Configure Cloudinary and Render deployment)
     }
 }
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/heartly-feed-ajax.js' %}" defer></script>
+<script src="{% static 'js/heartly-feed-ajax.js' %}"></script>
 {% endblock %}

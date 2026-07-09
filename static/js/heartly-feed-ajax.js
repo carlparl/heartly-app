@@ -127,8 +127,10 @@
         return;
       }
 
-      if (data.remove_post_id) {
-        const post = document.getElementById("post-" + data.remove_post_id);
+      const removePostId = data.remove_post_id || (form.matches("[data-delete-post]") ? data.post_id : null);
+
+      if (removePostId) {
+        const post = document.getElementById("post-" + removePostId);
         if (post) post.remove();
       }
 
@@ -312,5 +314,4 @@
     }
   });
 
-  console.log("Heartly feed AJAX loaded.");
 })();
