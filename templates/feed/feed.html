@@ -6,6 +6,7 @@
 {% block content %}
 <section class="heartly-feed-page">
 
+    <!-- Composer -->
     <section class="feed-composer-card">
         <div class="composer-user">
             {% if viewer_avatar_url %}
@@ -20,23 +21,19 @@
             </div>
         </div>
 
-        <form
-            method="post"
-            action="{% url 'feed:create_post' %}"
-            enctype="multipart/form-data"
-            class="feed-composer-form"
-            id="feedComposerForm"
-            data-feed-ajax
-            data-create-post
-        >
+        <form method="post"
+              action="{% url 'feed:create_post' %}"
+              enctype="multipart/form-data"
+              class="feed-composer-form"
+              id="feedComposerForm"
+              data-feed-ajax
+              data-create-post>
             {% csrf_token %}
 
-            <textarea
-                name="content"
-                class="composer-textarea"
-                placeholder="What do you want to share?"
-                rows="4"
-            ></textarea>
+            <textarea name="content"
+                      class="composer-textarea"
+                      placeholder="What do you want to share?"
+                      rows="4"></textarea>
 
             <div class="composer-preview" id="composerPreview" hidden></div>
 
@@ -51,19 +48,15 @@
                     <span>Video</span>
                 </label>
 
-                <button type="button" class="clear-media-btn" id="clearComposerMedia" hidden>
-                    Clear
-                </button>
-
-                <button type="submit" class="post-submit-btn">
-                    Post
-                </button>
+                <button type="button" class="clear-media-btn" id="clearComposerMedia" hidden>Clear</button>
+                <button type="submit" class="post-submit-btn">Post</button>
             </div>
 
             <p class="composer-note">Upload either one photo or one video per post.</p>
         </form>
     </section>
 
+    <!-- Posts -->
     <section class="feed-list" data-feed-list aria-label="Heartly posts">
         {% if posts %}
             {% for post in posts %}
@@ -78,6 +71,7 @@
         {% endif %}
     </section>
 
+    <!-- Pagination -->
     {% if page_obj.has_other_pages %}
         <nav class="feed-pagination" aria-label="Feed pagination">
             {% if page_obj.has_previous %}
@@ -98,40 +92,53 @@
 {% block extra_css %}
 .heartly-feed-page {
     width: 100%;
-    padding: 0 0 96px;
+    max-width: 620px;
+    margin: 0 auto;
+    padding: 0 12px 96px;
+    box-sizing: border-box;
+    overflow-x: hidden;
 }
 
 .feed-composer-card,
 .post-card,
 .empty-feed-card {
+    width: 100%;
+    box-sizing: border-box;
     background: var(--heartly-card);
     border: 1px solid var(--heartly-border);
-    border-radius: 28px;
+    border-radius: 24px;
     box-shadow: var(--heartly-shadow-soft);
 }
 
 .feed-composer-card,
 .post-card {
-    padding: 16px;
+    padding: 14px;
 }
 
 .feed-composer-card {
     margin-bottom: 16px;
 }
 
+.feed-list {
+    display: grid;
+    gap: 16px;
+}
+
+/* User rows */
 .composer-user,
 .post-author-wrap,
 .comment-item,
 .reply-item {
     display: flex;
     align-items: flex-start;
-    gap: 12px;
+    gap: 10px;
+    min-width: 0;
 }
 
 .composer-avatar,
 .post-avatar {
-    width: 46px;
-    height: 46px;
+    width: 44px;
+    height: 44px;
     border-radius: 999px;
     object-fit: cover;
     flex: 0 0 auto;
@@ -139,8 +146,8 @@
 
 .comment-avatar,
 .reply-avatar {
-    width: 34px;
-    height: 34px;
+    width: 32px;
+    height: 32px;
     border-radius: 999px;
     object-fit: cover;
     flex: 0 0 auto;
@@ -154,7 +161,13 @@
     place-items: center;
     font-weight: 950;
     background: linear-gradient(135deg, var(--heartly-accent), var(--heartly-primary));
-    color: #ffffff;
+    color: #fff;
+}
+
+.composer-user-copy,
+.post-author-text,
+.comment-meta {
+    min-width: 0;
 }
 
 .composer-user-copy strong,
@@ -163,6 +176,9 @@
     display: block;
     color: var(--heartly-text);
     font-weight: 950;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .composer-user-copy span,
@@ -170,10 +186,11 @@
 .comment-time {
     display: block;
     color: var(--heartly-muted);
-    font-size: 0.8rem;
+    font-size: .8rem;
     font-weight: 700;
 }
 
+/* Composer */
 .feed-composer-form {
     margin-top: 14px;
 }
@@ -181,8 +198,9 @@
 .composer-textarea,
 .edit-textarea {
     width: 100%;
+    box-sizing: border-box;
     border: 1px solid var(--heartly-border);
-    border-radius: 22px;
+    border-radius: 20px;
     padding: 14px;
     resize: vertical;
     outline: none;
@@ -190,22 +208,6 @@
     color: var(--heartly-text);
     font: inherit;
     font-weight: 650;
-}
-
-.composer-preview {
-    margin-top: 12px;
-    border-radius: 22px;
-    overflow: hidden;
-    background: #000;
-}
-
-.composer-preview img,
-.composer-preview video {
-    width: 100%;
-    max-height: 420px;
-    display: block;
-    object-fit: contain;
-    background: #000;
 }
 
 .composer-media-row,
@@ -230,14 +232,15 @@
 .post-action-btn,
 .reaction-btn,
 .comment-action-btn {
-    min-height: 38px;
-    padding: 0 13px;
+    min-height: 36px;
+    padding: 0 12px;
     border: 1px solid var(--heartly-border);
     border-radius: 999px;
     cursor: pointer;
     color: var(--heartly-text);
     background: var(--heartly-card-soft);
     font-weight: 900;
+    box-sizing: border-box;
 }
 
 .media-chip input {
@@ -246,7 +249,7 @@
 
 .post-submit-btn {
     margin-left: auto;
-    min-height: 42px;
+    min-height: 40px;
     padding: 0 20px;
     border: none;
     border-radius: 999px;
@@ -260,44 +263,60 @@
 .composer-note {
     margin: 10px 2px 0;
     color: var(--heartly-muted);
-    font-size: 0.84rem;
+    font-size: .82rem;
     font-weight: 650;
 }
 
-.feed-list {
-    display: grid;
-    gap: 16px;
-}
-
-.post-header {
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    align-items: flex-start;
-}
-
-.post-content {
-    margin: 14px 0;
-    color: var(--heartly-text);
-    line-height: 1.55;
-    font-weight: 700;
-    overflow-wrap: anywhere;
-}
-
+/* Media fix */
+.composer-preview,
 .post-media {
+    width: 100%;
+    box-sizing: border-box;
     margin-top: 12px;
-    border-radius: 24px;
+    border-radius: 18px;
     overflow: hidden;
     background: #000;
 }
 
+.composer-preview img,
+.composer-preview video,
 .post-image-wrap img,
 .post-video-wrap video {
     width: 100%;
+    max-width: 100%;
     display: block;
-    max-height: 520px;
     object-fit: contain;
     background: #000;
+}
+
+.composer-preview img,
+.post-image-wrap img {
+    height: auto;
+    max-height: 520px;
+}
+
+.composer-preview video,
+.post-video-wrap video {
+    height: auto;
+    max-height: 560px;
+    aspect-ratio: 9 / 16;
+}
+
+/* Post */
+.post-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: flex-start;
+    min-width: 0;
+}
+
+.post-content {
+    margin: 12px 0;
+    color: var(--heartly-text);
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
 }
 
 .post-menu {
@@ -306,8 +325,8 @@
 }
 
 .post-menu summary {
-    width: 40px;
-    height: 40px;
+    width: 38px;
+    height: 38px;
     border-radius: 999px;
     display: grid;
     place-items: center;
@@ -316,7 +335,6 @@
     color: var(--heartly-muted);
     background: var(--heartly-card-soft);
     font-weight: 950;
-    letter-spacing: -0.15em;
 }
 
 .post-menu summary::-webkit-details-marker {
@@ -325,7 +343,7 @@
 
 .post-menu-panel {
     position: absolute;
-    top: 46px;
+    top: 44px;
     right: 0;
     z-index: 40;
     min-width: 170px;
@@ -334,10 +352,6 @@
     background: var(--heartly-card);
     border: 1px solid var(--heartly-border);
     box-shadow: var(--heartly-shadow);
-}
-
-.post-menu-panel form {
-    margin: 0;
 }
 
 .post-menu-item {
@@ -363,6 +377,7 @@
     color: var(--heartly-accent);
 }
 
+/* Stats and reactions */
 .post-stats {
     margin-top: 12px;
     padding-top: 12px;
@@ -371,7 +386,7 @@
     justify-content: space-between;
     gap: 10px;
     color: var(--heartly-muted);
-    font-size: 0.84rem;
+    font-size: .82rem;
     font-weight: 800;
 }
 
@@ -391,14 +406,11 @@
     gap: 4px;
     background: var(--heartly-card-soft);
     color: var(--heartly-text);
-    font-size: 0.78rem;
+    font-size: .76rem;
     font-weight: 850;
 }
 
-.post-actions {
-    margin-top: 10px;
-}
-
+.post-actions,
 .reaction-row {
     margin-top: 10px;
 }
@@ -406,8 +418,8 @@
 .reaction-btn,
 .comment-action-btn {
     min-height: 34px;
-    padding: 0 11px;
-    font-size: 0.82rem;
+    padding: 0 10px;
+    font-size: .8rem;
 }
 
 .reaction-btn.is-active,
@@ -418,6 +430,7 @@
     box-shadow: var(--heartly-shadow-btn);
 }
 
+/* Comments */
 .comments-wrap {
     margin-top: 12px;
     display: grid;
@@ -451,11 +464,7 @@
 }
 
 .replies-list {
-    margin: 8px 0 0 46px;
-}
-
-.reply-item {
-    opacity: 0.95;
+    margin: 8px 0 0 36px;
 }
 
 .reply-form,
@@ -463,6 +472,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    min-width: 0;
 }
 
 .reply-form[hidden] {
@@ -473,8 +483,8 @@
 .reply-form input {
     min-width: 0;
     flex: 1;
-    height: 42px;
-    padding: 0 14px;
+    height: 40px;
+    padding: 0 13px;
     border: 1px solid var(--heartly-border);
     border-radius: 999px;
     outline: none;
@@ -485,8 +495,8 @@
 
 .comment-form button,
 .reply-form button {
-    height: 42px;
-    padding: 0 16px;
+    height: 40px;
+    padding: 0 15px;
     border: none;
     border-radius: 999px;
     cursor: pointer;
@@ -497,10 +507,11 @@
 
 .comments-note {
     color: var(--heartly-muted);
-    font-size: 0.78rem;
+    font-size: .76rem;
     font-weight: 750;
 }
 
+/* Edit modal */
 .edit-post-panel {
     position: fixed;
     inset: 0;
@@ -508,7 +519,7 @@
     padding: 18px;
     display: grid;
     place-items: center;
-    background: rgba(0, 0, 0, 0.52);
+    background: rgba(0, 0, 0, .52);
     backdrop-filter: blur(10px);
 }
 
@@ -521,7 +532,7 @@
     max-height: min(82vh, 720px);
     overflow: auto;
     padding: 16px;
-    border-radius: 28px;
+    border-radius: 26px;
     background: var(--heartly-card);
     border: 1px solid var(--heartly-border);
     box-shadow: var(--heartly-shadow);
@@ -553,6 +564,7 @@
     gap: 12px;
 }
 
+/* Empty + pagination */
 .empty-feed-card {
     padding: 34px 18px;
     text-align: center;
@@ -595,11 +607,32 @@
     font-weight: 950;
 }
 
+/* Mobile */
 @media (max-width: 520px) {
+    .heartly-feed-page {
+        max-width: 100%;
+        padding: 0 10px 90px;
+    }
+
     .feed-composer-card,
     .post-card {
-        padding: 14px;
-        border-radius: 24px;
+        padding: 12px;
+        border-radius: 20px;
+    }
+
+    .post-media,
+    .composer-preview {
+        border-radius: 16px;
+    }
+
+    .post-image-wrap img,
+    .composer-preview img {
+        max-height: 460px;
+    }
+
+    .post-video-wrap video,
+    .composer-preview video {
+        max-height: 500px;
     }
 
     .post-submit-btn {
@@ -610,17 +643,18 @@
     .post-actions,
     .reaction-row {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
     .reaction-btn,
     .comment-action-btn {
         width: 100%;
         justify-content: center;
+        padding: 0 6px;
     }
 
     .replies-list {
-        margin-left: 20px;
+        margin-left: 18px;
     }
 }
 {% endblock %}
