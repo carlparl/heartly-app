@@ -25,7 +25,10 @@
 
     window.addEventListener("load", function () {
       navigator.serviceWorker
-        .register("/sw.js", { scope: "/" })
+        .register("/sw.js?v=3", { scope: "/", updateViaCache: "none" })
+        .then(function (registration) {
+          registration.update();
+        })
         .catch(function (error) {
           if (window.console) {
             console.warn("Heartly service worker registration failed:", error);
@@ -67,6 +70,17 @@
   if (isStandalone()) {
     document.documentElement.classList.add("heartly-pwa-installed");
     setInstallButtonsVisible(false);
+  }
+
+
+
+  let refreshing = false;
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.addEventListener("controllerchange", function () {
+      if (refreshing) return;
+      refreshing = true;
+      window.location.reload();
+    });
   }
 
   registerServiceWorker();

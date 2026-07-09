@@ -1,13 +1,13 @@
-const HEARTLY_CACHE = "heartly-pwa-v2";
+const HEARTLY_CACHE = "heartly-pwa-v3";
 const HEARTLY_OFFLINE_URL = "/offline/";
 const HEARTLY_STATIC_ASSETS = [
   HEARTLY_OFFLINE_URL,
-  "/static/manifest.webmanifest",
-  "/static/js/heartly-pwa.js",
-  "/static/icons/icon-192.png",
-  "/static/icons/icon-512.png",
-  "/static/icons/maskable-192.png",
-  "/static/icons/maskable-512.png"
+  "/manifest.webmanifest?v=3",
+  "/static/js/heartly-pwa.js?v=3",
+  "/static/icons/icon-192.png?v=3",
+  "/static/icons/icon-512.png?v=3",
+  "/static/icons/maskable-192.png?v=3",
+  "/static/icons/maskable-512.png?v=3"
 ];
 
 self.addEventListener("install", (event) => {

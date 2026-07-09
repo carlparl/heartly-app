@@ -714,27 +714,52 @@ def start_call(request, thread_id, call_type):
     call_url = reverse("chat:call_room", args=[call.id])
     channel_layer = get_channel_layer()
 
+    call_payload = {
+        "type": "incoming_call",
+        "call_id": call.id,
+        "thread_id": thread.id,
+        "call_type": call.call_type,
+        "caller_id": request.user.id,
+        "receiver_id": other_user.id,
+        "caller_name": get_display_name(request.user),
+        "url": call_url,
+        "accept_url": call_url,
+    }
+
     if channel_layer:
+        # Send through the notification socket for users outside the room.
         try:
             async_to_sync(channel_layer.group_send)(
                 f"heartly_user_{other_user.id}",
                 {
                     "type": "notification.event",
+                    "payload": call_payload,
+                },
+            )
+        except Exception:
+            pass
+
+        # Also send to the open chat room. This fixes calls when notification JS/socket is not active.
+        try:
+            async_to_sync(channel_layer.group_send)(
+                f"chat_thread_{thread.id}",
+                {
+                    "type": "chat.broadcast",
                     "payload": {
-                        "type": "incoming_call",
-                        "call_id": call.id,
-                        "thread_id": thread.id,
-                        "call_type": call.call_type,
-                        "caller_id": request.user.id,
-                        "receiver_id": other_user.id,
-                        "caller_name": get_display_name(request.user),
-                        "url": call_url,
-                        "accept_url": call_url,
+                        "type": "call.incoming",
+                        **call_payload,
                     },
                 },
             )
         except Exception:
             pass
+
+    if wants_json(request):
+        return json_success(
+            message="Call started.",
+            call=call_payload,
+            call_url=call_url,
+        )
 
     return redirect("chat:call_room", call_id=call.id)
 
