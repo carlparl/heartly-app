@@ -130,14 +130,14 @@
                     </div>
 
                     <div class="discover-controls">
-                        <form method="post" action="{% url 'matches:swipe' profile.user.id 'pass' %}">
+                        <form method="post" action="{% url 'matches:swipe' profile.user.id 'pass' %}" class="swipe-form" data-swipe="pass">
                             {% csrf_token %}
                             <button type="submit" class="pass-action">
                                 Pass
                             </button>
                         </form>
 
-                        <form method="post" action="{% url 'matches:swipe' profile.user.id 'like' %}">
+                        <form method="post" action="{% url 'matches:swipe' profile.user.id 'like' %}" class="swipe-form" data-swipe="like">
                             {% csrf_token %}
                             <button type="submit" class="like-action">
                                 Like
@@ -147,7 +147,7 @@
 
                 </article>
             {% empty %}
-                <div class="matches-card">
+                <div class="matches-card" id="discoverEmptyCard">
                     <div class="matches-empty">
                         <div class="matches-empty-icon">💞</div>
                         {% if search_query %}
@@ -179,6 +179,73 @@
     <p class="matches-footer">Heartly v1.0</p>
 
 </div>
+
+<script>
+(function () {
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    const csrftoken = getCookie('csrftoken');
+    const stack = document.querySelector('.discover-stack');
+
+    function showEmptyStackIfNeeded() {
+        if (stack && !stack.querySelector('.discover-card') && !document.getElementById('discoverEmptyCard')) {
+            stack.insertAdjacentHTML(
+                'beforeend',
+                '<div class="matches-card" id="discoverEmptyCard"><div class="matches-empty">' +
+                '<div class="matches-empty-icon">💞</div>' +
+                '<h3 class="matches-empty-title">No more profiles right now</h3>' +
+                '<p class="matches-empty-text">Check back later for new people to discover.</p>' +
+                '</div></div>'
+            );
+        }
+    }
+
+    document.querySelectorAll('.swipe-form').forEach(function (form) {
+        form.addEventListener('submit', function (event) {
+            event.preventDefault();
+
+            const card = form.closest('.discover-card');
+            const buttons = form.querySelectorAll('button');
+            buttons.forEach(function (button) { button.disabled = true; });
+
+            fetch(form.action, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrftoken,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin'
+            }).then(function () {
+                if (card) {
+                    card.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+                    card.style.opacity = '0';
+                    card.style.transform = form.dataset.swipe === 'like' ? 'translateX(24px)' : 'translateX(-24px)';
+                    setTimeout(function () {
+                        card.remove();
+                        showEmptyStackIfNeeded();
+                    }, 200);
+                }
+            }).catch(function () {
+                buttons.forEach(function (button) { button.disabled = false; });
+                alert('Network error. That action was not saved, please try again.');
+            });
+        });
+    });
+})();
+</script>
 {% endblock %}
 
 {% block extra_css %}
