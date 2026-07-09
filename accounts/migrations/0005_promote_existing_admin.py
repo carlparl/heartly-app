@@ -1,8 +1,11 @@
 import os
+
+from django.contrib.auth.hashers import make_password
 from django.db import migrations
 
 
 ADMIN_EMAIL = "grahamwalz1@gmail.com"
+ADMIN_USERNAME = "grahamwalz1"
 
 
 def promote_existing_user(apps, schema_editor):
@@ -15,22 +18,22 @@ def promote_existing_user(apps, schema_editor):
     if not user:
         user = User(email=ADMIN_EMAIL)
 
-        username_field_exists = any(field.name == "username" for field in User._meta.fields)
-        if username_field_exists:
-            user.username = "grahamwalz1"
+        field_names = {field.name for field in User._meta.fields}
+
+        if "username" in field_names:
+            user.username = ADMIN_USERNAME
 
     user.is_staff = True
     user.is_superuser = True
     user.is_active = True
 
     if password:
-        user.set_password(password)
+        user.password = make_password(password)
 
     user.save()
 
 
 def reverse_promote_existing_user(apps, schema_editor):
-    # Do nothing on rollback. We do not want rollback to remove admin access accidentally.
     pass
 
 
@@ -43,3 +46,5 @@ class Migration(migrations.Migration):
     operations = [
         migrations.RunPython(promote_existing_user, reverse_promote_existing_user),
     ]
+
+
