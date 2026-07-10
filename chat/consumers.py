@@ -5,7 +5,7 @@ from django.utils import timezone
 
 from profiles.models import Profile, UserBlock
 
-from .models import Call, ChatMessage, ChatThread
+from .models import CallSession, ChatMessage, ChatThread
 
 try:
     from profiles.blocking import block_exists_between
@@ -165,7 +165,7 @@ class ThreadConsumer(AsyncJsonWebsocketConsumer):
 
     async def handle_call_decline(self, content):
         call_id = content.get("call_id")
-        await self.close_call(call_id, Call.STATUS_DECLINED)
+        await self.close_call(call_id, CallSession.STATUS_DECLINED)
 
         await self.channel_layer.group_send(
             self.group_name,
@@ -181,7 +181,7 @@ class ThreadConsumer(AsyncJsonWebsocketConsumer):
 
     async def handle_call_end(self, content):
         call_id = content.get("call_id")
-        await self.close_call(call_id, Call.STATUS_ENDED)
+        await self.close_call(call_id, CallSession.STATUS_ENDED)
 
         await self.channel_layer.group_send(
             self.group_name,
@@ -323,21 +323,22 @@ class ThreadConsumer(AsyncJsonWebsocketConsumer):
 
         return payload
 
+
     @database_sync_to_async
     def create_call(self, call_type):
         thread = ChatThread.objects.select_related("user_one", "user_two").get(id=self.thread_id)
         receiver = thread.other_user(self.user)
 
-        call = Call.objects.create(
+        call = CallSession.objects.create(
             thread=thread,
             caller=self.user,
             receiver=receiver,
             call_type=call_type,
-            status=Call.STATUS_RINGING,
+            status=CallSession.STATUS_RINGING,
         )
 
         caller_name = display_name_for(self.user)
-        accept_url = reverse("chat:chat_room", args=[thread.id]) + f"?accept_call={call.id}&call_type={call.call_type}"
+        call_url = reverse("chat:call_room", args=[call.id])
 
         self.create_call_notification(
             recipient=receiver,
@@ -346,7 +347,7 @@ class ThreadConsumer(AsyncJsonWebsocketConsumer):
             title="Incoming call",
             message=f"{caller_name} is calling you.",
             notification_type=getattr(Notification, "TYPE_CALL", "call") if Notification else "call",
-            url=accept_url,
+            url=call_url,
         )
 
         return {
@@ -356,20 +357,30 @@ class ThreadConsumer(AsyncJsonWebsocketConsumer):
             "caller_id": self.user.id,
             "receiver_id": receiver.id,
             "caller_name": caller_name,
-            "accept_url": accept_url,
+            "url": call_url,
+            "accept_url": call_url,
+            "decline_url": reverse("chat:decline_call", args=[call.id]),
         }
 
     @database_sync_to_async
     def answer_call(self, call_id):
         if not call_id:
             return
-        Call.objects.filter(id=call_id).update(status=Call.STATUS_ANSWERED, answered_at=timezone.now())
+
+        CallSession.objects.filter(id=call_id).update(
+            status=CallSession.STATUS_ACCEPTED,
+            accepted_at=timezone.now(),
+        )
 
     @database_sync_to_async
     def close_call(self, call_id, status):
         if not call_id:
             return
-        Call.objects.filter(id=call_id).update(status=status, ended_at=timezone.now())
+
+        CallSession.objects.filter(id=call_id).update(
+            status=status,
+            ended_at=timezone.now(),
+        )
 
     @database_sync_to_async
     def mark_call_missed(self, call_id):
@@ -377,20 +388,21 @@ class ThreadConsumer(AsyncJsonWebsocketConsumer):
             return None
 
         call = (
-            Call.objects
+            CallSession.objects
             .select_related("thread", "caller", "receiver")
-            .filter(id=call_id, caller=self.user, status=Call.STATUS_RINGING)
+            .filter(id=call_id, caller=self.user, status=CallSession.STATUS_RINGING)
             .first()
         )
 
         if not call:
             return None
 
-        call.status = Call.STATUS_MISSED
+        call.status = CallSession.STATUS_MISSED
         call.ended_at = timezone.now()
         call.save(update_fields=["status", "ended_at"])
 
         caller_name = display_name_for(call.caller)
+        call_url = reverse("chat:call_room", args=[call.id])
 
         self.create_call_notification(
             recipient=call.receiver,
@@ -399,7 +411,7 @@ class ThreadConsumer(AsyncJsonWebsocketConsumer):
             title="Missed call",
             message=f"You missed a {call.call_type} call from {caller_name}.",
             notification_type=getattr(Notification, "TYPE_MISSED_CALL", "missed_call") if Notification else "missed_call",
-            url=reverse("chat:chat_room", args=[call.thread.id]),
+            url=call_url,
         )
 
         return {
@@ -409,6 +421,8 @@ class ThreadConsumer(AsyncJsonWebsocketConsumer):
             "caller_id": call.caller.id,
             "receiver_id": call.receiver.id,
             "caller_name": caller_name,
+            "url": call_url,
+            "accept_url": call_url,
         }
 
     def create_message_notification(self, message):
@@ -477,3 +491,26 @@ class ThreadConsumer(AsyncJsonWebsocketConsumer):
             Notification.objects.create(**notification_data)
         except Exception:
             return
+
+
+class GlobalCallConsumer(AsyncJsonWebsocketConsumer):
+    async def connect(self):
+        self.user = self.scope["user"]
+
+        if not self.user.is_authenticated:
+            await self.close()
+            return
+
+        self.group_name = f"heartly_user_{self.user.id}"
+        await self.channel_layer.group_add(self.group_name, self.channel_name)
+        await self.accept()
+
+    async def disconnect(self, close_code):
+        if hasattr(self, "group_name"):
+            await self.channel_layer.group_discard(self.group_name, self.channel_name)
+
+    async def notification_event(self, event):
+        await self.send_json(event.get("payload", {}))
+
+    async def chat_broadcast(self, event):
+        await self.send_json(event.get("payload", {}))

@@ -1,0 +1,30 @@
+{% load static %}
+
+{% if request.user.is_authenticated %}
+<div data-heartly-global-calls data-authenticated="1" data-user-id="{{ request.user.id }}">
+    <div class="heartly-global-call-toast" id="heartlyGlobalCallToast" hidden>
+        <div class="heartly-global-call-avatar" id="heartlyGlobalCallAvatar">☎</div>
+        <div class="heartly-global-call-copy">
+            <strong id="heartlyGlobalCallTitle">Incoming call</strong>
+            <span id="heartlyGlobalCallText">Someone is calling you.</span>
+        </div>
+        <a href="#" class="heartly-global-call-answer" id="heartlyGlobalCallAnswer">Answer</a>
+        <button type="button" class="heartly-global-call-decline" id="heartlyGlobalCallDecline">Decline</button>
+    </div>
+</div>
+
+<style>
+.heartly-global-call-toast{position:fixed;left:50%;top:18px;z-index:99999;width:min(92vw,430px);transform:translateX(-50%);display:grid;grid-template-columns:46px 1fr auto auto;align-items:center;gap:10px;padding:11px;border-radius:22px;background:var(--heartly-card,#fff);color:var(--heartly-text,#111827);border:1px solid var(--heartly-border,rgba(17,24,39,.12));box-shadow:0 24px 70px rgba(0,0,0,.24)}
+.heartly-global-call-toast[hidden]{display:none}
+.heartly-global-call-avatar{width:46px;height:46px;border-radius:999px;display:grid;place-items:center;background:linear-gradient(135deg,var(--heartly-primary,#ff4f7b),var(--heartly-accent,#8b5cf6));color:#fff;font-weight:950}
+.heartly-global-call-copy{min-width:0;display:grid;gap:2px}
+.heartly-global-call-copy strong{font-size:.96rem;font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.heartly-global-call-copy span{font-size:.78rem;color:var(--heartly-muted,#6b7280);font-weight:800}
+.heartly-global-call-answer,.heartly-global-call-decline{height:38px;border-radius:999px;padding:0 13px;display:inline-grid;place-items:center;font:inherit;font-size:.82rem;font-weight:950;text-decoration:none;cursor:pointer}
+.heartly-global-call-answer{border:0;background:linear-gradient(135deg,var(--heartly-primary,#ff4f7b),var(--heartly-accent,#8b5cf6));color:#fff}
+.heartly-global-call-decline{border:1px solid rgba(239,68,68,.24);background:rgba(239,68,68,.10);color:#ef4444}
+@media(max-width:460px){.heartly-global-call-toast{top:10px;grid-template-columns:42px 1fr;gap:8px}.heartly-global-call-answer,.heartly-global-call-decline{height:36px}.heartly-global-call-answer{grid-column:1 / 2}.heartly-global-call-decline{grid-column:2 / 3}}
+</style>
+
+<script src="{% static 'js/heartly-global-calls.js' %}"></script>
+{% endif %}

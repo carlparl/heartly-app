@@ -99,7 +99,15 @@
                                             </div>
                                             <span class="voice-duration" data-voice-duration>0:00</span>
                                         </div>
-                                        <audio src="{{ attachment.file.url }}" preload="metadata" class="voice-note-player"></audio>
+                                        {% if attachment.playable_url %}
+                                            <audio preload="metadata" class="voice-note-player">
+                                                <source src="{{ attachment.playable_url }}" type="{{ attachment.content_type|default:'audio/webm' }}">
+                                                <source src="{{ attachment.playable_url }}">
+                                                Your browser cannot play this voice note.
+                                            </audio>
+                                        {% else %}
+                                            <span class="voice-duration">Unavailable</span>
+                                        {% endif %}
                                     </div>
                                 {% elif attachment.attachment_type == "file" %}
                                     <a href="{{ attachment.file.url }}" target="_blank" rel="noopener" class="file-attachment">
@@ -507,18 +515,90 @@
     function clearReply(){if(replyToInput)replyToInput.value="";if(replyComposeBar)replyComposeBar.hidden=true;}
     function removeEmptyState(){const empty=document.getElementById("chatEmptyState");if(empty)empty.remove();}
     function formatVoiceTime(seconds){seconds=Number.isFinite(seconds)?Math.max(0,Math.floor(seconds)):0;const mins=Math.floor(seconds/60);const secs=String(seconds%60).padStart(2,"0");return mins+":"+secs;}
+    function guessAudioMimeType(url){const clean=(url||"").split("?")[0].split("#")[0].toLowerCase();if(clean.endsWith(".webm"))return "audio/webm";if(clean.endsWith(".ogg"))return "audio/ogg";if(clean.endsWith(".m4a")||clean.endsWith(".mp4"))return "audio/mp4";if(clean.endsWith(".aac"))return "audio/aac";if(clean.endsWith(".wav"))return "audio/wav";if(clean.endsWith(".mp3"))return "audio/mpeg";return "";}
     function voiceBarsHTML(){return '<span style="--h:7px"></span><span style="--h:13px"></span><span style="--h:20px"></span><span style="--h:11px"></span><span style="--h:17px"></span><span style="--h:24px"></span><span style="--h:14px"></span><span style="--h:9px"></span><span style="--h:21px"></span><span style="--h:15px"></span><span style="--h:25px"></span><span style="--h:12px"></span><span style="--h:18px"></span><span style="--h:10px"></span><span style="--h:22px"></span><span style="--h:16px"></span>';}
     function voicePlayIcon(){return '<svg class="voice-play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10-6.5-10-6.5z"></path></svg>';}
     function voicePauseIcon(){return '<svg class="voice-play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h4v14H7V5zm6 0h4v14h-4V5z"></path></svg>';}
     function setVoiceProgress(note,progress){const bars=note.querySelectorAll(".voice-wave span");const activeCount=Math.round(Math.max(0,Math.min(1,progress))*bars.length);bars.forEach((bar,index)=>bar.classList.toggle("is-active",index<activeCount));}
-    function prepareAudioPlayers(scope){(scope||document).querySelectorAll(".voice-note[data-voice-note]").forEach(note=>{if(note.dataset.ready==="1")return;note.dataset.ready="1";const audio=note.querySelector("audio.voice-note-player");const button=note.querySelector("[data-voice-play]");const durationEl=note.querySelector("[data-voice-duration]");if(!audio||!button)return;try{audio.load();}catch(error){}audio.addEventListener("loadedmetadata",()=>{if(durationEl&&Number.isFinite(audio.duration))durationEl.textContent=formatVoiceTime(audio.duration);});audio.addEventListener("timeupdate",()=>{if(audio.duration)setVoiceProgress(note,audio.currentTime/audio.duration);if(durationEl)durationEl.textContent=formatVoiceTime(audio.currentTime||audio.duration||0);});audio.addEventListener("ended",()=>{button.classList.remove("is-playing");button.innerHTML=voicePlayIcon();setVoiceProgress(note,0);if(durationEl&&Number.isFinite(audio.duration))durationEl.textContent=formatVoiceTime(audio.duration);});button.addEventListener("click",()=>{if(activeVoiceAudio&&activeVoiceAudio!==audio){activeVoiceAudio.pause();const oldNote=activeVoiceAudio.closest(".voice-note");if(oldNote){const oldBtn=oldNote.querySelector("[data-voice-play]");if(oldBtn){oldBtn.classList.remove("is-playing");oldBtn.innerHTML=voicePlayIcon();}}}if(audio.paused){audio.play().then(()=>{activeVoiceAudio=audio;button.classList.add("is-playing");button.innerHTML=voicePauseIcon();}).catch(()=>setStatus("This voice note could not play. Tap again or refresh the chat."));}else{audio.pause();button.classList.remove("is-playing");button.innerHTML=voicePlayIcon();}});});} 
+    function normalizeAudioSource(audio){
+        // Server- and JS-rendered voice notes sometimes set src directly on
+        // <audio> with no explicit type. Browsers (Safari especially) then
+        // rely on the Content-Type header alone, and if that header is
+        // wrong or missing for formats like .webm, playback silently fails
+        // for everyone, sender and recipient alike. Rebuilding the element
+        // with an explicit <source type="..."> plus an untyped fallback
+        // fixes that regardless of what the server sends.
+        const directSrc=audio.getAttribute("src");
+        const existingSources=Array.from(audio.querySelectorAll("source")).map(s=>({src:s.getAttribute("src")||"",type:s.getAttribute("type")||""}));
+        const urls=[];
+        if(directSrc)urls.push(directSrc);
+        existingSources.forEach(s=>{if(s.src&&!urls.includes(s.src))urls.push(s.src);});
+        if(!urls.length)return;
+        audio.removeAttribute("src");
+        audio.querySelectorAll("source").forEach(s=>s.remove());
+        urls.forEach(url=>{
+            const guessedType=guessAudioMimeType(url);
+            if(guessedType){const typed=document.createElement("source");typed.src=url;typed.type=guessedType;audio.appendChild(typed);}
+            const untyped=document.createElement("source");untyped.src=url;audio.appendChild(untyped);
+        });
+    }
+    function resetVoiceButton(audio){
+        if(!audio)return;
+        const note=audio.closest(".voice-note");
+        if(!note)return;
+        const button=note.querySelector("[data-voice-play]");
+        const durationEl=note.querySelector("[data-voice-duration]");
+        if(button){button.classList.remove("is-playing");button.innerHTML=voicePlayIcon();}
+        if(audio.ended){setVoiceProgress(note,0);if(durationEl&&Number.isFinite(audio.duration))durationEl.textContent=formatVoiceTime(audio.duration);}
+    }
+
+    function prepareAudioPlayers(scope){
+        (scope||document).querySelectorAll(".voice-note[data-voice-note]").forEach(function(note){
+            if(note.dataset.ready==="1")return;
+            note.dataset.ready="1";
+            const audio=note.querySelector("audio.voice-note-player");
+            const button=note.querySelector("[data-voice-play]");
+            const durationEl=note.querySelector("[data-voice-duration]");
+            if(!audio||!button)return;
+            normalizeAudioSource(audio);
+            try{audio.load();}catch(error){}
+            let playLock=false;
+            audio.addEventListener("loadedmetadata",function(){if(durationEl&&Number.isFinite(audio.duration))durationEl.textContent=formatVoiceTime(audio.duration);});
+            audio.addEventListener("timeupdate",function(){if(audio.duration)setVoiceProgress(note,audio.currentTime/audio.duration);if(durationEl)durationEl.textContent=formatVoiceTime(audio.currentTime||audio.duration||0);});
+            audio.addEventListener("pause",function(){if(!playLock)resetVoiceButton(audio);});
+            audio.addEventListener("ended",function(){resetVoiceButton(audio);});
+            button.addEventListener("click",async function(){
+                if(playLock)return;
+                if(!audio.paused&&!audio.ended){audio.pause();resetVoiceButton(audio);return;}
+                if(activeVoiceAudio&&activeVoiceAudio!==audio){try{activeVoiceAudio.pause();}catch(error){}resetVoiceButton(activeVoiceAudio);}
+                playLock=true;
+                try{
+                    if(audio.readyState===0)audio.load();
+                    await audio.play();
+                    activeVoiceAudio=audio;
+                    button.classList.add("is-playing");
+                    button.innerHTML=voicePauseIcon();
+                }catch(playError){
+                    const src=(audio.currentSrc||audio.querySelector("source")?.src||"no src found");
+                    const netState=["NETWORK_EMPTY","NETWORK_IDLE","NETWORK_LOADING","NETWORK_NO_SOURCE"][audio.networkState]||audio.networkState;
+                    const errState=audio.error?["","MEDIA_ERR_ABORTED","MEDIA_ERR_NETWORK","MEDIA_ERR_DECODE","MEDIA_ERR_SRC_NOT_SUPPORTED"][audio.error.code]:"none";
+                    console.error("Voice note playback failed:",{playErrorName:playError&&playError.name,playErrorMessage:playError&&playError.message,src:src,networkState:netState,mediaError:errState,readyState:audio.readyState});
+                    if(!playError||playError.name!=="AbortError")setStatus("Voice note could not play. New voice notes after this update should work. Old raw-upload VNs may need to be resent.");
+                }finally{playLock=false;}
+            });
+        });
+    }
 
     function attachmentHTML(attachment,localUrl){
         const url=localUrl||attachment.url||"";
         const name=escapeHTML(attachment.name||"Attachment");
         if(attachment.type==="image")return `<div class="message-attachment"><a href="${escapeHTML(url)}" target="_blank" rel="noopener" class="image-attachment-link"><img src="${escapeHTML(url)}" alt="${name}" class="image-attachment" loading="lazy"></a></div>`;
         if(attachment.type==="video")return `<div class="message-attachment"><video src="${escapeHTML(url)}" controls playsinline preload="metadata" class="video-attachment"></video></div>`;
-        if(attachment.type==="audio")return `<div class="message-attachment"><div class="voice-note" data-voice-note><button type="button" class="voice-play-btn" data-voice-play aria-label="Play voice note">${voicePlayIcon()}</button><div class="voice-wave-wrap"><div class="voice-wave" data-voice-wave>${voiceBarsHTML()}</div><span class="voice-duration" data-voice-duration>0:00</span></div><audio preload="metadata" class="voice-note-player"><source src="${escapeHTML(url)}">Your browser cannot play this voice note.</audio></div></div>`;
+        if(attachment.type==="audio"){
+            const guessedType=attachment.content_type||guessAudioMimeType(url);
+            const typeAttr=guessedType?` type="${escapeHTML(guessedType)}"`:"";
+            return `<div class="message-attachment"><div class="voice-note" data-voice-note><button type="button" class="voice-play-btn" data-voice-play aria-label="Play voice note">${voicePlayIcon()}</button><div class="voice-wave-wrap"><div class="voice-wave" data-voice-wave>${voiceBarsHTML()}</div><span class="voice-duration" data-voice-duration>0:00</span></div><audio preload="metadata" class="voice-note-player"><source src="${escapeHTML(url)}"${typeAttr}><source src="${escapeHTML(url)}">Your browser cannot play this voice note.</audio></div></div>`;
+        }
         if(attachment.type==="file")return `<div class="message-attachment"><a href="${escapeHTML(url)}" target="_blank" rel="noopener" class="file-attachment"><span class="file-icon">📎</span><span><strong>${name}</strong><small>Tap to open</small></span></a></div>`;
         return "";
     }

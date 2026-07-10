@@ -111,7 +111,22 @@ class ChatAttachment(models.Model):
         related_name="attachments",
     )
     attachment_type = models.CharField(max_length=10, choices=TYPE_CHOICES)
-    file = models.FileField(upload_to="chat_attachments/%Y/%m/")
+
+    # Normal uploads plus local-development voice notes.
+    file = models.FileField(
+        upload_to="chat_attachments/%Y/%m/",
+        blank=True,
+        null=True,
+    )
+
+    # Production voice notes can be uploaded directly to Cloudinary as
+    # resource_type="video". Audio/video delivery avoids /raw/upload URLs that
+    # browsers often reject for WebM playback.
+    external_url = models.URLField(max_length=1000, blank=True)
+    cloudinary_public_id = models.CharField(max_length=255, blank=True)
+    content_type = models.CharField(max_length=120, blank=True)
+    duration_seconds = models.PositiveIntegerField(default=0)
+
     original_filename = models.CharField(max_length=255, blank=True)
     file_size = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -125,6 +140,19 @@ class ChatAttachment(models.Model):
 
     def __str__(self):
         return f"{self.attachment_type} on message {self.message_id}"
+
+    @property
+    def resolved_url(self):
+        if self.external_url:
+            return self.external_url
+
+        if self.file:
+            try:
+                return self.file.url
+            except Exception:
+                return ""
+
+        return ""
 
 
 class ChatReport(models.Model):

@@ -1,3 +1,4 @@
+import mimetypes
 from pathlib import Path
 
 from asgiref.sync import async_to_sync
@@ -13,6 +14,13 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
+
+try:
+    import cloudinary
+    import cloudinary.uploader as cloudinary_uploader
+except Exception:
+    cloudinary = None
+    cloudinary_uploader = None
 
 try:
     from profiles.blocking import user_is_hidden_for, hidden_user_ids_for, block_exists_between
@@ -43,6 +51,20 @@ MAX_IMAGE_SIZE = 8 * 1024 * 1024
 MAX_VIDEO_SIZE = 75 * 1024 * 1024
 MAX_FILE_SIZE = 25 * 1024 * 1024
 MAX_AUDIO_SIZE = 15 * 1024 * 1024
+
+# Python's mimetypes module does not reliably map these extensions to an
+# audio/* type on every platform (it can return None, or "video/webm" for
+# .webm). That wrong/missing Content-Type header is what makes browsers
+# refuse to play a saved voice note, even though the file itself is fine.
+# Registering them explicitly fixes playback for both the sender and the
+# recipient, since it's the same served file and header for both.
+mimetypes.add_type("audio/webm", ".webm")
+mimetypes.add_type("audio/ogg", ".ogg")
+mimetypes.add_type("audio/mp4", ".m4a")
+mimetypes.add_type("audio/mp4", ".mp4")
+mimetypes.add_type("audio/aac", ".aac")
+mimetypes.add_type("audio/wav", ".wav")
+mimetypes.add_type("audio/mpeg", ".mp3")
 
 ALLOWED_IMAGE_TYPES = {
     "image/jpeg",
@@ -243,13 +265,178 @@ def attachment_label(attachment_type):
     return "Message"
 
 
+def cloudinary_voice_upload_is_available():
+    cloudinary_settings = getattr(settings, "CLOUDINARY_STORAGE", {}) or {}
+
+    return (
+        cloudinary_uploader is not None
+        and cloudinary is not None
+        and getattr(settings, "MEDIA_STORAGE_BACKEND", "").strip().lower() == "cloudinary"
+        and bool(cloudinary_settings.get("CLOUD_NAME"))
+        and bool(cloudinary_settings.get("API_KEY"))
+        and bool(cloudinary_settings.get("API_SECRET"))
+    )
+
+
+def ensure_cloudinary_configured():
+    if cloudinary is None:
+        return
+
+    cloudinary_settings = getattr(settings, "CLOUDINARY_STORAGE", {}) or {}
+
+    cloudinary.config(
+        cloud_name=cloudinary_settings.get("CLOUD_NAME", ""),
+        api_key=cloudinary_settings.get("API_KEY", ""),
+        api_secret=cloudinary_settings.get("API_SECRET", ""),
+        secure=True,
+    )
+
+
+def extension_for_audio(uploaded_file):
+    extension = Path(uploaded_file.name or "").suffix.lower()
+
+    if extension in ALLOWED_AUDIO_EXTENSIONS:
+        return extension
+
+    content_type = (uploaded_file.content_type or "").lower()
+
+    if "ogg" in content_type:
+        return ".ogg"
+
+    if "mpeg" in content_type or "mp3" in content_type:
+        return ".mp3"
+
+    if "mp4" in content_type or "m4a" in content_type:
+        return ".m4a"
+
+    if "wav" in content_type:
+        return ".wav"
+
+    if "aac" in content_type:
+        return ".aac"
+
+    return ".webm"
+
+
+def content_type_for_audio(uploaded_file):
+    content_type = (uploaded_file.content_type or "").lower().strip()
+
+    if content_type:
+        return content_type
+
+    extension = extension_for_audio(uploaded_file)
+
+    if extension == ".ogg":
+        return "audio/ogg"
+
+    if extension == ".mp3":
+        return "audio/mpeg"
+
+    if extension in [".m4a", ".mp4"]:
+        return "audio/mp4"
+
+    if extension == ".wav":
+        return "audio/wav"
+
+    if extension == ".aac":
+        return "audio/aac"
+
+    return "audio/webm"
+
+
+def force_url_extension(url, extension):
+    if not url or not extension:
+        return url
+
+    base, sep, query = url.partition("?")
+
+    if base.lower().endswith(extension.lower()):
+        return url
+
+    return base + extension + (sep + query if sep else "")
+
+
+def upload_voice_note_to_cloudinary(voice_file):
+    if not cloudinary_voice_upload_is_available():
+        return None
+
+    ensure_cloudinary_configured()
+
+    extension = extension_for_audio(voice_file)
+    content_type = content_type_for_audio(voice_file)
+    folder = timezone.now().strftime("media/chat_attachments/%Y/%m")
+
+    try:
+        if hasattr(voice_file, "seek"):
+            voice_file.seek(0)
+
+        upload_result = cloudinary_uploader.upload(
+            voice_file,
+            resource_type="video",
+            folder=folder,
+            use_filename=True,
+            unique_filename=True,
+            overwrite=False,
+        )
+
+        secure_url = upload_result.get("secure_url") or upload_result.get("url") or ""
+        secure_url = force_url_extension(secure_url, extension)
+
+        if not secure_url:
+            raise ValueError("Cloudinary did not return a URL for the voice note.")
+
+        return {
+            "url": secure_url,
+            "public_id": upload_result.get("public_id", ""),
+            "content_type": content_type,
+        }
+
+    finally:
+        if hasattr(voice_file, "seek"):
+            try:
+                voice_file.seek(0)
+            except Exception:
+                pass
+
+
+def guessed_mime_type(attachment):
+    stored_content_type = (getattr(attachment, "content_type", "") or "").strip()
+
+    if stored_content_type:
+        return stored_content_type
+
+    name = attachment.original_filename or (attachment.file.name if attachment.file else "")
+    guessed, _ = mimetypes.guess_type(name or "")
+    return guessed or ""
+
+
+def playable_file_url(attachment):
+    url = (getattr(attachment, "external_url", "") or "").strip()
+
+    if not url:
+        url = safe_file_url(attachment.file)
+
+    if not url:
+        return ""
+
+    name = attachment.original_filename or (attachment.file.name if attachment.file else "")
+    extension = Path(name).suffix.lower()
+
+    if attachment.attachment_type == ChatAttachment.TYPE_AUDIO and extension:
+        return force_url_extension(url, extension)
+
+    return url
+
+
 def serialize_attachment(attachment):
     return {
         "id": attachment.id,
         "type": attachment.attachment_type,
-        "url": safe_file_url(attachment.file),
+        "url": playable_file_url(attachment),
         "name": attachment.original_filename or attachment_label(attachment.attachment_type),
         "size": attachment.file_size,
+        "content_type": guessed_mime_type(attachment),
+        "duration_seconds": getattr(attachment, "duration_seconds", 0) or 0,
     }
 
 
@@ -458,12 +645,18 @@ def chat_room(request, thread_id):
 
     ChatMessage.objects.filter(thread=thread, is_read=False).exclude(sender=request.user).update(is_read=True)
 
-    chat_messages = (
+    chat_messages = list(
         thread.messages
         .select_related("sender", "reply_to", "reply_to__sender")
         .prefetch_related("attachments", "reply_to__attachments")
         .order_by("created_at")
     )
+    for message in chat_messages:
+        for attachment in message.attachments.all():
+            attachment.playable_url = playable_file_url(attachment)
+        if message.reply_to:
+            for attachment in message.reply_to.attachments.all():
+                attachment.playable_url = playable_file_url(attachment)
 
     return render(
         request,
@@ -495,6 +688,7 @@ def send_message(request, thread_id):
         return respond_chat_error(request, "You cannot message this user.", thread=thread, status=403)
 
     text = (request.POST.get("text") or "").strip()
+
     if len(text) > 1200:
         text = text[:1200]
 
@@ -515,7 +709,14 @@ def send_message(request, thread_id):
 
     for uploaded_file, allowed_types, allowed_extensions, max_size, min_size in upload_checks:
         if uploaded_file:
-            error = validate_upload(uploaded_file, allowed_types, allowed_extensions, max_size, min_size=min_size)
+            error = validate_upload(
+                uploaded_file,
+                allowed_types,
+                allowed_extensions,
+                max_size,
+                min_size=min_size,
+            )
+
             if error:
                 return respond_chat_error(request, error, thread=thread)
 
@@ -524,8 +725,22 @@ def send_message(request, thread_id):
 
     if reply_to_id:
         reply_to = ChatMessage.objects.filter(id=reply_to_id, thread=thread).first()
+
         if reply_to is None:
-            return respond_chat_error(request, "The message you are replying to is not available.", thread=thread)
+            return respond_chat_error(
+                request,
+                "The message you are replying to is not available.",
+                thread=thread,
+            )
+
+    voice_upload = None
+
+    if voice_file and cloudinary_voice_upload_is_available():
+        try:
+            voice_upload = upload_voice_note_to_cloudinary(voice_file)
+        except Exception as exc:
+            error = f"Voice note upload failed: {exc}" if settings.DEBUG else "Voice note upload failed. Please try again."
+            return respond_chat_error(request, error, thread=thread, status=500)
 
     message = ChatMessage.objects.create(
         thread=thread,
@@ -542,6 +757,7 @@ def send_message(request, thread_id):
                 file=image_file,
                 original_filename=image_file.name,
                 file_size=image_file.size,
+                content_type=image_file.content_type or "",
             )
 
         if video_file:
@@ -551,6 +767,7 @@ def send_message(request, thread_id):
                 file=video_file,
                 original_filename=video_file.name,
                 file_size=video_file.size,
+                content_type=video_file.content_type or "",
             )
 
         if regular_file:
@@ -560,16 +777,32 @@ def send_message(request, thread_id):
                 file=regular_file,
                 original_filename=regular_file.name,
                 file_size=regular_file.size,
+                content_type=regular_file.content_type or "",
             )
 
         if voice_file:
-            ChatAttachment.objects.create(
-                message=message,
-                attachment_type=ChatAttachment.TYPE_AUDIO,
-                file=voice_file,
-                original_filename=voice_file.name or "heartly-voice-note.webm",
-                file_size=voice_file.size,
-            )
+            voice_name = voice_file.name or "heartly-voice-note.webm"
+
+            if voice_upload:
+                ChatAttachment.objects.create(
+                    message=message,
+                    attachment_type=ChatAttachment.TYPE_AUDIO,
+                    file=None,
+                    external_url=voice_upload["url"],
+                    cloudinary_public_id=voice_upload.get("public_id", ""),
+                    original_filename=voice_name,
+                    file_size=voice_file.size,
+                    content_type=voice_upload.get("content_type", "") or content_type_for_audio(voice_file),
+                )
+            else:
+                ChatAttachment.objects.create(
+                    message=message,
+                    attachment_type=ChatAttachment.TYPE_AUDIO,
+                    file=voice_file,
+                    original_filename=voice_name,
+                    file_size=voice_file.size,
+                    content_type=content_type_for_audio(voice_file),
+                )
 
     except Exception as exc:
         message.delete()
@@ -685,9 +918,82 @@ def create_chat_report_staff_alert(report):
                 pass
 
 
+def build_call_payload(call):
+    call_url = reverse("chat:call_room", args=[call.id])
+
+    return {
+        "call_id": call.id,
+        "thread_id": call.thread_id,
+        "call_type": call.call_type,
+        "caller_id": call.caller_id,
+        "receiver_id": call.receiver_id,
+        "caller_name": get_display_name(call.caller),
+        "receiver_name": get_display_name(call.receiver),
+        "url": call_url,
+        "accept_url": call_url,
+        "decline_url": reverse("chat:decline_call", args=[call.id]),
+        "end_url": reverse("chat:end_call", args=[call.id]),
+    }
+
+
+def broadcast_call_event(call, event_type):
+    channel_layer = get_channel_layer()
+
+    if not channel_layer:
+        return
+
+    payload = build_call_payload(call)
+
+    # Open chat room receives the same call events.
+    try:
+        async_to_sync(channel_layer.group_send)(
+            f"chat_thread_{call.thread_id}",
+            {
+                "type": "chat.broadcast",
+                "payload": {
+                    "type": event_type,
+                    **payload,
+                },
+            },
+        )
+    except Exception:
+        pass
+
+    # Global listener receives calls even when the user is on Feed, Matches,
+    # Profile, AI, Settings, etc.
+    notification_type = {
+        "call.incoming": "incoming_call",
+        "call.accepted": "call_accepted",
+        "call.declined": "call_declined",
+        "call.ended": "call_ended",
+        "call.missed": "missed_call",
+    }.get(event_type, event_type.replace(".", "_"))
+
+    if event_type == "call.incoming":
+        target_ids = [call.receiver_id]
+    else:
+        target_ids = list({call.caller_id, call.receiver_id})
+
+    for user_id in target_ids:
+        try:
+            async_to_sync(channel_layer.group_send)(
+                f"heartly_user_{user_id}",
+                {
+                    "type": "notification.event",
+                    "payload": {
+                        "type": notification_type,
+                        **payload,
+                    },
+                },
+            )
+        except Exception:
+            pass
 @login_required
 def start_call(request, thread_id, call_type):
-    thread = get_object_or_404(ChatThread.objects.select_related("user_one", "user_two"), id=thread_id)
+    thread = get_object_or_404(
+        ChatThread.objects.select_related("user_one", "user_two"),
+        id=thread_id,
+    )
 
     if not thread.has_user(request.user):
         messages.error(request, "You do not have access to this chat.")
@@ -711,54 +1017,13 @@ def start_call(request, thread_id, call_type):
         status=CallSession.STATUS_RINGING,
     )
 
-    call_url = reverse("chat:call_room", args=[call.id])
-    channel_layer = get_channel_layer()
-
-    call_payload = {
-        "type": "incoming_call",
-        "call_id": call.id,
-        "thread_id": thread.id,
-        "call_type": call.call_type,
-        "caller_id": request.user.id,
-        "receiver_id": other_user.id,
-        "caller_name": get_display_name(request.user),
-        "url": call_url,
-        "accept_url": call_url,
-    }
-
-    if channel_layer:
-        # Send through the notification socket for users outside the room.
-        try:
-            async_to_sync(channel_layer.group_send)(
-                f"heartly_user_{other_user.id}",
-                {
-                    "type": "notification.event",
-                    "payload": call_payload,
-                },
-            )
-        except Exception:
-            pass
-
-        # Also send to the open chat room. This fixes calls when notification JS/socket is not active.
-        try:
-            async_to_sync(channel_layer.group_send)(
-                f"chat_thread_{thread.id}",
-                {
-                    "type": "chat.broadcast",
-                    "payload": {
-                        "type": "call.incoming",
-                        **call_payload,
-                    },
-                },
-            )
-        except Exception:
-            pass
+    broadcast_call_event(call, "call.incoming")
 
     if wants_json(request):
         return json_success(
             message="Call started.",
-            call=call_payload,
-            call_url=call_url,
+            call=build_call_payload(call),
+            call_url=reverse("chat:call_room", args=[call.id]),
         )
 
     return redirect("chat:call_room", call_id=call.id)
@@ -776,6 +1041,14 @@ def call_room(request, call_id):
     if not thread.has_user(request.user):
         messages.error(request, "You do not have access to this call.")
         return redirect("chat:chat_home")
+
+    # Receiver accepts by opening the call room from the global incoming-call
+    # banner. This notifies the caller wherever they currently are.
+    if request.user == call.receiver and call.status == CallSession.STATUS_RINGING:
+        call.status = CallSession.STATUS_ACCEPTED
+        call.accepted_at = timezone.now()
+        call.save(update_fields=["status", "accepted_at"])
+        broadcast_call_event(call, "call.accepted")
 
     other_user = call.receiver if request.user == call.caller else call.caller
 
@@ -796,9 +1069,15 @@ def call_room(request, call_id):
 @login_required
 @require_POST
 def accept_call(request, call_id):
-    call = get_object_or_404(CallSession.objects.select_related("thread", "caller", "receiver"), id=call_id)
+    call = get_object_or_404(
+        CallSession.objects.select_related("thread", "caller", "receiver"),
+        id=call_id,
+    )
 
     if request.user != call.receiver:
+        if wants_json(request):
+            return json_error("Only the receiver can accept this call.", status=403)
+
         messages.error(request, "Only the receiver can accept this call.")
         return redirect("chat:chat_room", thread_id=call.thread.id)
 
@@ -806,6 +1085,10 @@ def accept_call(request, call_id):
         call.status = CallSession.STATUS_ACCEPTED
         call.accepted_at = timezone.now()
         call.save(update_fields=["status", "accepted_at"])
+        broadcast_call_event(call, "call.accepted")
+
+    if wants_json(request):
+        return json_success(call=build_call_payload(call))
 
     return redirect("chat:call_room", call_id=call.id)
 
@@ -813,15 +1096,25 @@ def accept_call(request, call_id):
 @login_required
 @require_POST
 def decline_call(request, call_id):
-    call = get_object_or_404(CallSession.objects.select_related("thread", "caller", "receiver"), id=call_id)
+    call = get_object_or_404(
+        CallSession.objects.select_related("thread", "caller", "receiver"),
+        id=call_id,
+    )
 
     if request.user not in [call.caller, call.receiver]:
+        if wants_json(request):
+            return json_error("You do not have access to this call.", status=403)
+
         messages.error(request, "You do not have access to this call.")
         return redirect("chat:chat_home")
 
     call.status = CallSession.STATUS_DECLINED
     call.ended_at = timezone.now()
     call.save(update_fields=["status", "ended_at"])
+    broadcast_call_event(call, "call.declined")
+
+    if wants_json(request):
+        return json_success(call=build_call_payload(call))
 
     return redirect("chat:chat_room", thread_id=call.thread.id)
 
@@ -829,15 +1122,25 @@ def decline_call(request, call_id):
 @login_required
 @require_POST
 def end_call(request, call_id):
-    call = get_object_or_404(CallSession.objects.select_related("thread", "caller", "receiver"), id=call_id)
+    call = get_object_or_404(
+        CallSession.objects.select_related("thread", "caller", "receiver"),
+        id=call_id,
+    )
 
     if request.user not in [call.caller, call.receiver]:
+        if wants_json(request):
+            return json_error("You do not have access to this call.", status=403)
+
         messages.error(request, "You do not have access to this call.")
         return redirect("chat:chat_home")
 
     call.status = CallSession.STATUS_ENDED
     call.ended_at = timezone.now()
     call.save(update_fields=["status", "ended_at"])
+    broadcast_call_event(call, "call.ended")
+
+    if wants_json(request):
+        return json_success(call=build_call_payload(call))
 
     return redirect("chat:chat_room", thread_id=call.thread.id)
 
