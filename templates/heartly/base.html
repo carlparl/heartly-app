@@ -4,7 +4,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-
+    {% include "heartly/pwa_head.html" %}
     <meta
         name="viewport"
         content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no"
@@ -1045,7 +1045,8 @@
 
 <script src="{% static 'js/heartly-theme.js' %}" defer></script>
 {% block extra_js %}{% endblock %}
-{% include "heartly/pwa_head.html" %}
+
+{% include "heartly/pwa_scripts.html" %}
 {% include "heartly/global_call_listener.html" %}
 
 </body>
