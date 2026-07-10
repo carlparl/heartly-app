@@ -227,6 +227,42 @@
     background: #000;
 }
 
+.composer-preview-inner {
+    position: relative;
+}
+
+.composer-preview-meta {
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 9px 12px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, .58);
+    color: #fff;
+    font-size: .82rem;
+    font-weight: 900;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+}
+
+.composer-preview-meta span,
+.composer-preview-meta small {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.composer-preview-meta small {
+    flex: 0 0 auto;
+    opacity: .82;
+}
+
 .composer-media-row,
 .edit-media-row,
 .edit-actions {
@@ -953,4 +989,185 @@ body.comments-sheet-open {
 
 {% block extra_js %}
 <script src="{% static 'js/heartly-feed-ajax.js' %}"></script>
+<script>
+(function () {
+    "use strict";
+
+    document.addEventListener("DOMContentLoaded", function () {
+        const form = document.getElementById("feedComposerForm");
+
+        if (!form) {
+            return;
+        }
+
+        const imageInput = document.getElementById("composerImageInput");
+        const videoInput = document.getElementById("composerVideoInput");
+        const preview = document.getElementById("composerPreview");
+        const clearButton = document.getElementById("clearComposerMedia");
+        const errorBox = form.querySelector("[data-feed-error]");
+
+        let currentPreviewUrl = "";
+
+        function clearPreview() {
+            if (currentPreviewUrl) {
+                URL.revokeObjectURL(currentPreviewUrl);
+                currentPreviewUrl = "";
+            }
+
+            if (preview) {
+                preview.innerHTML = "";
+                preview.hidden = true;
+            }
+
+            if (clearButton) {
+                clearButton.hidden = true;
+            }
+
+            if (errorBox) {
+                errorBox.textContent = "";
+                errorBox.hidden = true;
+            }
+        }
+
+        function clearFileInput(input) {
+            if (input) {
+                input.value = "";
+            }
+        }
+
+        function showInlineError(message) {
+            if (!errorBox) {
+                return;
+            }
+
+            errorBox.textContent = message;
+            errorBox.hidden = false;
+        }
+
+        function renderPreview(file, type) {
+            clearPreview();
+
+            if (!file || !preview) {
+                return;
+            }
+
+            currentPreviewUrl = URL.createObjectURL(file);
+
+            const wrap = document.createElement("div");
+            wrap.className = "composer-preview-inner";
+
+            if (type === "video") {
+                const video = document.createElement("video");
+                video.src = currentPreviewUrl;
+                video.controls = true;
+                video.playsInline = true;
+                video.preload = "metadata";
+                wrap.appendChild(video);
+            } else {
+                const image = document.createElement("img");
+                image.src = currentPreviewUrl;
+                image.alt = "Selected photo preview";
+                wrap.appendChild(image);
+            }
+
+            const meta = document.createElement("div");
+            meta.className = "composer-preview-meta";
+
+            const name = document.createElement("span");
+            name.textContent = file.name || (type === "video" ? "Selected video" : "Selected photo");
+
+            const size = document.createElement("small");
+            size.textContent = formatFileSize(file.size);
+
+            meta.appendChild(name);
+            meta.appendChild(size);
+            wrap.appendChild(meta);
+
+            preview.appendChild(wrap);
+            preview.hidden = false;
+
+            if (clearButton) {
+                clearButton.hidden = false;
+            }
+        }
+
+        function formatFileSize(bytes) {
+            if (!bytes) {
+                return "";
+            }
+
+            const mb = bytes / (1024 * 1024);
+
+            if (mb >= 1) {
+                return mb.toFixed(1) + " MB";
+            }
+
+            return Math.max(1, Math.round(bytes / 1024)) + " KB";
+        }
+
+        if (imageInput) {
+            imageInput.addEventListener("change", function () {
+                const file = imageInput.files && imageInput.files[0];
+
+                if (!file) {
+                    clearPreview();
+                    return;
+                }
+
+                clearFileInput(videoInput);
+
+                if (!file.type.startsWith("image/")) {
+                    clearFileInput(imageInput);
+                    clearPreview();
+                    showInlineError("Select a valid photo.");
+                    return;
+                }
+
+                renderPreview(file, "image");
+            });
+        }
+
+        if (videoInput) {
+            videoInput.addEventListener("change", function () {
+                const file = videoInput.files && videoInput.files[0];
+
+                if (!file) {
+                    clearPreview();
+                    return;
+                }
+
+                clearFileInput(imageInput);
+
+                if (!file.type.startsWith("video/")) {
+                    clearFileInput(videoInput);
+                    clearPreview();
+                    showInlineError("Select a valid video.");
+                    return;
+                }
+
+                renderPreview(file, "video");
+            });
+        }
+
+        if (clearButton) {
+            clearButton.addEventListener("click", function () {
+                clearFileInput(imageInput);
+                clearFileInput(videoInput);
+                clearPreview();
+            });
+        }
+
+        form.addEventListener("reset", function () {
+            window.setTimeout(clearPreview, 0);
+        });
+
+        form.addEventListener("submit", function () {
+            if (errorBox) {
+                errorBox.textContent = "";
+                errorBox.hidden = true;
+            }
+        });
+    });
+})();
+</script>
 {% endblock %}
