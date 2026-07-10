@@ -73,7 +73,12 @@
 
         <div class="heartly-field">
             <label for="{{ form.password1.id_for_label }}">Password</label>
-            {{ form.password1 }}
+            <div class="heartly-password-wrap">
+                {{ form.password1 }}
+                <button type="button" class="heartly-password-toggle" data-password-toggle aria-label="Show password" aria-pressed="false">
+                    Show
+                </button>
+            </div>
             {% if form.password1.errors %}
                 <div class="heartly-field-error">{{ form.password1.errors }}</div>
             {% endif %}
@@ -81,7 +86,12 @@
 
         <div class="heartly-field">
             <label for="{{ form.password2.id_for_label }}">Confirm password</label>
-            {{ form.password2 }}
+            <div class="heartly-password-wrap">
+                {{ form.password2 }}
+                <button type="button" class="heartly-password-toggle" data-password-toggle aria-label="Show confirm password" aria-pressed="false">
+                    Show
+                </button>
+            </div>
             {% if form.password2.errors %}
                 <div class="heartly-field-error">{{ form.password2.errors }}</div>
             {% endif %}
@@ -200,6 +210,44 @@
         box-shadow: 0 0 0 4px rgba(255, 79, 123, 0.14);
     }
 
+    .heartly-password-wrap {
+        position: relative;
+        width: 100%;
+    }
+
+    .heartly-password-wrap input {
+        padding-right: 82px;
+    }
+
+    .heartly-password-toggle {
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        min-width: 62px;
+        min-height: 36px;
+        border: none;
+        border-radius: 999px;
+        background: rgba(255, 79, 123, 0.12);
+        color: var(--heartly-primary, #ff4f7b);
+        font-size: 0.78rem;
+        font-weight: 850;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .heartly-password-toggle:hover,
+    .heartly-password-toggle:focus-visible {
+        background: rgba(255, 79, 123, 0.18);
+        outline: none;
+    }
+
+    :root[data-heartly-theme="dark"] .heartly-password-toggle {
+        background: rgba(255, 255, 255, 0.10);
+        color: #ffffff;
+    }
+
+
     .heartly-field input::placeholder {
         color: #888888;
         font-weight: 400;
@@ -277,4 +325,26 @@
         }
     }
 </style>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        document.querySelectorAll("[data-password-toggle]").forEach(function (button) {
+            const wrapper = button.closest(".heartly-password-wrap");
+            const input = wrapper ? wrapper.querySelector("input") : null;
+
+            if (!input) {
+                return;
+            }
+
+            button.addEventListener("click", function () {
+                const shouldShow = input.type === "password";
+                input.type = shouldShow ? "text" : "password";
+                button.textContent = shouldShow ? "Hide" : "Show";
+                button.setAttribute("aria-label", shouldShow ? "Hide password" : "Show password");
+                button.setAttribute("aria-pressed", shouldShow ? "true" : "false");
+                input.focus({ preventScroll: true });
+            });
+        });
+    });
+</script>
 {% endblock %}
