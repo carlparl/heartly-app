@@ -3,8 +3,39 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 
+from django.http import FileResponse, Http404
+from pathlib import Path
+
 from accounts import views as accounts_views
 from heartly import pwa_views
+
+def serve_static_file_from_project(request, relative_path, content_type):
+    file_path = Path(settings.BASE_DIR) / "static" / relative_path
+
+    if not file_path.exists():
+        raise Http404(f"{relative_path} not found")
+
+    return FileResponse(open(file_path, "rb"), content_type=content_type)
+
+
+def pwa_icon_192(request):
+    return serve_static_file_from_project(request, "icons/icon-192.png", "image/png")
+
+
+def pwa_icon_512(request):
+    return serve_static_file_from_project(request, "icons/icon-512.png", "image/png")
+
+
+def pwa_maskable_192(request):
+    return serve_static_file_from_project(request, "icons/maskable-192.png", "image/png")
+
+
+def pwa_maskable_512(request):
+    return serve_static_file_from_project(request, "icons/maskable-512.png", "image/png")
+
+
+def pwa_registration_js(request):
+    return serve_static_file_from_project(request, "js/heartly-pwa.js", "application/javascript")
 
 urlpatterns = [
     path("admin/", admin.site.urls),
