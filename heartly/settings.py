@@ -87,14 +87,11 @@ if not DEBUG:
 # ============================================================
 
 INSTALLED_APPS = [
-    # Daphne must stay before django.contrib.staticfiles
+    # Keep Daphne first so its ASGI-aware runserver command is used.
     "daphne",
 
-    # Cloudinary media storage
-    "cloudinary_storage",
-    "cloudinary",
-
-    # Django apps
+    # Django apps must appear before cloudinary_storage so Django's
+    # normal collectstatic command remains active.
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -102,6 +99,10 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django.contrib.sites",
+
+    # Cloudinary is used for uploaded media, not static files.
+    "cloudinary_storage",
+    "cloudinary",
 
     # Third-party apps
     "allauth",
@@ -286,7 +287,7 @@ STORAGES = {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
     },
     "staticfiles": {
-        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
 }
 
@@ -312,9 +313,6 @@ elif MEDIA_STORAGE_BACKEND == "s3":
 
 elif MEDIA_STORAGE_BACKEND != "local":
     raise RuntimeError("Invalid MEDIA_STORAGE_BACKEND. Use one of: local, cloudinary, s3.")
-
-STATICFILES_STORAGE = STORAGES["staticfiles"]["BACKEND"]
-DEFAULT_FILE_STORAGE = STORAGES["default"]["BACKEND"]
 
 DATA_UPLOAD_MAX_MEMORY_SIZE = int(os.environ.get("DJANGO_DATA_UPLOAD_MAX_MEMORY_SIZE", 70 * 1024 * 1024))
 FILE_UPLOAD_MAX_MEMORY_SIZE = int(os.environ.get("DJANGO_FILE_UPLOAD_MAX_MEMORY_SIZE", 70 * 1024 * 1024))
