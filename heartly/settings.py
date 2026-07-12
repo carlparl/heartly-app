@@ -194,40 +194,23 @@ TEMPLATES = [
 # DATABASE
 # ============================================================
 
-DATABASE_URL = os.environ.get("DATABASE_URL", "")
+DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
 
 if DATABASE_URL:
     DATABASES = {
         "default": dj_database_url.parse(
             DATABASE_URL,
             conn_max_age=600,
-            ssl_require=not DEBUG,
+            conn_health_checks=True,
         )
     }
 else:
     DATABASES = {
         "default": {
-            "ENGINE": os.environ.get(
-                "DJANGO_DB_ENGINE",
-                "django.db.backends.sqlite3",
-            ),
-            "NAME": os.environ.get(
-                "DJANGO_DB_NAME",
-                BASE_DIR / "db.sqlite3",
-            ),
-            "USER": os.environ.get("DJANGO_DB_USER", ""),
-            "PASSWORD": os.environ.get("DJANGO_DB_PASSWORD", ""),
-            "HOST": os.environ.get("DJANGO_DB_HOST", ""),
-            "PORT": os.environ.get("DJANGO_DB_PORT", ""),
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
         }
     }
-
-    if DATABASES["default"]["ENGINE"] == "django.db.backends.sqlite3":
-        DATABASES["default"].pop("USER", None)
-        DATABASES["default"].pop("PASSWORD", None)
-        DATABASES["default"].pop("HOST", None)
-        DATABASES["default"].pop("PORT", None)
-
 
 # ============================================================
 # CUSTOM USER MODEL

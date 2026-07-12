@@ -6,6 +6,15 @@ from profiles.models import Profile
 
 
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
-def create_user_profile(sender, instance, created, **kwargs):
-    if created:
-        Profile.objects.get_or_create(user=instance)
+def ensure_user_profile(
+    sender,
+    instance,
+    created,
+    raw=False,
+    **kwargs,
+):
+    # Prevent duplicate profiles during fixture imports.
+    if raw:
+        return
+
+    Profile.objects.get_or_create(user=instance)
