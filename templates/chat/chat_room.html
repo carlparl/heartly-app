@@ -32,6 +32,7 @@
             <summary aria-label="Chat options">•••</summary>
             <div class="chat-options-menu">
                 <button type="button" id="openProfilePreviewBtn">Profile preview</button>
+                <button type="button" id="openWallpaperModalBtn">Chat wallpaper</button>
                 <button type="button" id="toggleSelectModeBtn">Select messages</button>
                 <a href="{% url 'chat:start_call' thread.id 'audio' %}" class="chat-menu-item">Audio call</a>
                 <a href="{% url 'chat:start_call' thread.id 'video' %}" class="chat-menu-item">Video call</a>
@@ -197,7 +198,7 @@
                 <label class="attachment-option"><span>📎</span><strong>File</strong><input type="file" name="file" id="fileInput" accept=".pdf,.txt,.zip,.doc,.docx,.xls,.xlsx,.ppt,.pptx" hidden></label>
             </div>
 
-            <textarea name="text" rows="1" maxlength="1200" class="composer-textarea" id="messageInput" placeholder="Message..." autocomplete="off"></textarea>
+            <textarea name="text" rows="1" maxlength="1200" class="composer-textarea" id="messageInput" placeholder="Message..." autocomplete="off" enterkeyhint="send" aria-description="Press Enter to send. Press Shift and Enter for a new line."></textarea>
             <input type="file" name="voice" id="voiceInput" accept="audio/webm,audio/ogg,audio/mp4,audio/mpeg,audio/wav,audio/*" hidden>
             <button type="button" class="composer-mic" id="voiceRecordBtn" aria-label="Record voice note">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14c1.66 0 3-1.34 3-3V6c0-1.66-1.34-3-3-3S9 4.34 9 6v5c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.49 6-3.31 6-6.72h-1.7z"></path></svg>
@@ -205,6 +206,85 @@
             <button type="submit" class="composer-send" id="sendMessageBtn" aria-label="Send message">➤</button>
         </div>
     </form>
+
+    <div class="chat-modal" id="wallpaperModal" hidden>
+        <div class="chat-modal-card wallpaper-modal-card">
+            <button type="button" class="modal-close-btn" data-close-modal="wallpaperModal">×</button>
+
+            <div class="wallpaper-modal-copy">
+                <span class="wallpaper-kicker">Appearance</span>
+                <h2>Chat wallpaper</h2>
+                <p>Choose a background for this conversation.</p>
+            </div>
+
+            <div class="wallpaper-grid" id="wallpaperGrid">
+                <button type="button" class="wallpaper-option" data-wallpaper-choice="clean">
+                    <span class="wallpaper-preview wallpaper-preview-clean"></span>
+                    <strong>Clean</strong>
+                </button>
+
+                <button type="button" class="wallpaper-option" data-wallpaper-choice="hearts">
+                    <span class="wallpaper-preview wallpaper-preview-hearts"></span>
+                    <strong>Hearts</strong>
+                </button>
+
+                <button type="button" class="wallpaper-option" data-wallpaper-choice="dots">
+                    <span class="wallpaper-preview wallpaper-preview-dots"></span>
+                    <strong>Dots</strong>
+                </button>
+
+                <button type="button" class="wallpaper-option" data-wallpaper-choice="glow">
+                    <span class="wallpaper-preview wallpaper-preview-glow"></span>
+                    <strong>Glow</strong>
+                </button>
+
+                <button type="button" class="wallpaper-option" data-wallpaper-choice="blush">
+                    <span class="wallpaper-preview wallpaper-preview-blush"></span>
+                    <strong>Blush</strong>
+                </button>
+
+                <button type="button" class="wallpaper-option" data-wallpaper-choice="cloud">
+                    <span class="wallpaper-preview wallpaper-preview-cloud"></span>
+                    <strong>Cloud</strong>
+                </button>
+
+                <button type="button" class="wallpaper-option" data-wallpaper-choice="sunrise">
+                    <span class="wallpaper-preview wallpaper-preview-sunrise"></span>
+                    <strong>Sunrise</strong>
+                </button>
+
+                <button type="button" class="wallpaper-option" data-wallpaper-choice="lavender">
+                    <span class="wallpaper-preview wallpaper-preview-lavender"></span>
+                    <strong>Lavender</strong>
+                </button>
+
+                <button type="button" class="wallpaper-option" data-wallpaper-choice="midnight">
+                    <span class="wallpaper-preview wallpaper-preview-midnight"></span>
+                    <strong>Midnight</strong>
+                </button>
+
+                <button type="button" class="wallpaper-option" data-wallpaper-choice="aurora-night">
+                    <span class="wallpaper-preview wallpaper-preview-aurora-night"></span>
+                    <strong>Aurora Night</strong>
+                </button>
+
+                <button type="button" class="wallpaper-option" data-wallpaper-choice="plum-night">
+                    <span class="wallpaper-preview wallpaper-preview-plum-night"></span>
+                    <strong>Plum Night</strong>
+                </button>
+
+                <button type="button" class="wallpaper-option" data-wallpaper-choice="cobalt-night">
+                    <span class="wallpaper-preview wallpaper-preview-cobalt-night"></span>
+                    <strong>Cobalt Night</strong>
+                </button>
+
+                <button type="button" class="wallpaper-option" data-wallpaper-choice="emerald-night">
+                    <span class="wallpaper-preview wallpaper-preview-emerald-night"></span>
+                    <strong>Emerald Night</strong>
+                </button>
+            </div>
+        </div>
+    </div>
 
     <div class="chat-modal" id="profilePreviewModal" hidden>
         <div class="chat-modal-card">
@@ -371,6 +451,811 @@
     .voice-wave span:nth-child(n+13){display:none}
 }
 
+/* ============================================================
+   HEARTLY CHAT — PROFESSIONAL LAYOUT V2
+   Fixes header visibility, composer overlap, reply clutter,
+   double voice-note bubbles, and excessive message spacing.
+   ============================================================ */
+
+.chat-room-page {
+    width: min(100%, 760px);
+    max-width: 760px;
+    height: calc(100dvh - var(--heartly-bottomnav-height, 74px));
+    min-height: 520px;
+    margin: 0 auto;
+    padding: 0;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    overflow: hidden;
+    color: var(--heartly-text, #111827);
+    background:
+        radial-gradient(
+            circle at 50% -80px,
+            color-mix(in srgb, var(--heartly-primary, #ff4f7b) 7%, transparent),
+            transparent 330px
+        ),
+        var(--heartly-bg, #ffffff);
+}
+
+.chat-room-header {
+    position: relative;
+    top: auto;
+    z-index: 80;
+    width: calc(100% - 16px);
+    min-height: 70px;
+    margin: 6px auto 0;
+    padding: 10px 12px;
+    border: 1px solid var(--heartly-border, rgba(17, 24, 39, 0.09));
+    border-radius: 22px;
+    background: color-mix(
+        in srgb,
+        var(--heartly-card, #ffffff) 95%,
+        transparent
+    );
+    box-shadow: 0 13px 32px rgba(15, 23, 42, 0.09);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+}
+
+.chat-back-btn,
+.chat-options summary {
+    width: 40px;
+    height: 40px;
+    background: var(--heartly-card-soft, #f3f4f6);
+}
+
+.chat-user-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 16px;
+    box-shadow: 0 9px 22px rgba(15, 23, 42, 0.12);
+}
+
+.chat-user-copy strong {
+    color: var(--heartly-text, #111827);
+    font-size: 0.97rem;
+    line-height: 1.15;
+    font-weight: 950;
+    letter-spacing: -0.025em;
+}
+
+.chat-user-copy small {
+    color: var(--heartly-muted, #6b7280);
+    font-size: 0.7rem;
+    font-weight: 760;
+}
+
+.chat-options-menu {
+    top: 46px;
+    border-radius: 17px;
+    box-shadow: 0 20px 52px rgba(15, 23, 42, 0.2);
+}
+
+.chat-messages {
+    min-height: 0;
+    height: auto;
+    padding: 18px 14px 128px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    scroll-behavior: smooth;
+    scrollbar-width: thin;
+    scrollbar-color:
+        color-mix(in srgb, var(--heartly-primary, #ff4f7b) 25%, transparent)
+        transparent;
+}
+
+.chat-message-row {
+    gap: 8px;
+    align-items: end;
+}
+
+.message-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 11px;
+    box-shadow: 0 7px 17px rgba(15, 23, 42, 0.1);
+}
+
+.message-stack {
+    max-width: min(83%, 560px);
+    gap: 2px;
+}
+
+.message-bubble {
+    width: fit-content;
+    max-width: 100%;
+    padding: 10px 12px;
+    border: 1px solid transparent;
+    border-radius: 19px;
+    box-shadow: 0 7px 20px rgba(15, 23, 42, 0.055);
+}
+
+.chat-message-row.mine .message-bubble {
+    border-bottom-right-radius: 6px;
+    background: linear-gradient(
+        145deg,
+        var(--heartly-primary, #ff4f7b),
+        var(--heartly-accent, #8b5cf6)
+    );
+    box-shadow: 0 10px 24px
+        color-mix(in srgb, var(--heartly-primary, #ff4f7b) 22%, transparent);
+}
+
+.chat-message-row.theirs .message-bubble {
+    border-color: var(--heartly-border, rgba(17, 24, 39, 0.09));
+    border-bottom-left-radius: 6px;
+    background: var(--heartly-card, #ffffff);
+}
+
+.message-bubble p {
+    margin: 0;
+    color: inherit;
+    font-size: 0.88rem;
+    line-height: 1.54;
+    font-weight: 560;
+    letter-spacing: -0.003em;
+}
+
+.message-meta {
+    margin-top: 5px;
+    color: inherit;
+    font-size: 0.63rem;
+    font-weight: 720;
+    opacity: 0.66;
+}
+
+.reply-preview {
+    padding: 7px 9px;
+    border-radius: 10px;
+    background: color-mix(in srgb, currentColor 8%, transparent);
+}
+
+.message-reply-btn {
+    width: 28px;
+    height: 26px;
+    min-height: 26px;
+    padding: 0;
+    border-radius: 9px;
+    display: grid;
+    place-items: center;
+    color: var(--heartly-muted, #6b7280);
+    background: transparent;
+    font-size: 0;
+    opacity: 0;
+    transition:
+        opacity 150ms ease,
+        color 150ms ease,
+        background 150ms ease;
+}
+
+.message-reply-btn::before {
+    content: "↩";
+    font-size: 0.86rem;
+    font-weight: 950;
+}
+
+.chat-message-row:hover .message-reply-btn,
+.message-reply-btn:focus-visible {
+    opacity: 1;
+}
+
+.message-reply-btn:hover {
+    color: var(--heartly-primary, #ff4f7b);
+    background: var(--heartly-primary-soft, rgba(255, 79, 123, 0.1));
+}
+
+.image-attachment,
+.video-attachment {
+    border-radius: 15px;
+}
+
+.file-attachment {
+    padding: 8px;
+    border: 1px solid color-mix(in srgb, currentColor 10%, transparent);
+    border-radius: 14px;
+}
+
+/* Remove the large outer bubble when the message contains only a voice note. */
+.message-bubble:has(> .message-attachment:only-child)
+    :is(.voice-note) {
+    margin: 0;
+}
+
+.message-bubble:has(> .message-attachment:only-child):has(.voice-note) {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+/* Keep voice notes compact and consistent on both sides. */
+.message-bubble .voice-note {
+    min-width: 210px;
+    width: min(72vw, 292px);
+    max-width: 292px;
+    padding: 7px 9px;
+    border-radius: 999px;
+    grid-template-columns: 40px minmax(126px, 1fr);
+    gap: 8px;
+}
+
+.chat-message-row.mine .message-bubble .voice-note {
+    color: #ffffff;
+    background: linear-gradient(
+        145deg,
+        color-mix(in srgb, var(--heartly-primary, #ff4f7b) 88%, #ffffff 12%),
+        color-mix(in srgb, var(--heartly-accent, #8b5cf6) 84%, #ffffff 16%)
+    );
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.chat-message-row.theirs .message-bubble .voice-note {
+    color: var(--heartly-text, #111827);
+    background: var(--heartly-card, #ffffff);
+    border: 1px solid var(--heartly-border, rgba(17, 24, 39, 0.1));
+    box-shadow: 0 9px 23px rgba(15, 23, 42, 0.07);
+}
+
+.voice-play-btn,
+.voice-preview-play {
+    width: 40px;
+    height: 40px;
+}
+
+.voice-duration::before {
+    content: "";
+}
+
+.chat-empty-state {
+    min-height: 100%;
+    display: grid;
+    place-content: center;
+    padding: 28px;
+}
+
+.chat-empty-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto;
+    border-radius: 22px;
+    display: grid;
+    place-items: center;
+    background: linear-gradient(
+        145deg,
+        var(--heartly-primary-soft, rgba(255, 79, 123, 0.12)),
+        color-mix(in srgb, var(--heartly-accent, #8b5cf6) 12%, transparent)
+    );
+}
+
+.chat-composer {
+    position: fixed;
+    left: 50%;
+    bottom: calc(var(--heartly-bottomnav-height, 74px) + 8px);
+    z-index: 130;
+    width: min(calc(100% - 16px), 744px);
+    padding: 7px;
+    border: 1px solid var(--heartly-border, rgba(17, 24, 39, 0.09));
+    border-radius: 21px;
+    background: color-mix(
+        in srgb,
+        var(--heartly-card, #ffffff) 96%,
+        transparent
+    );
+    box-shadow: 0 17px 43px rgba(15, 23, 42, 0.17);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+}
+
+.composer-shell {
+    grid-template-columns: 43px minmax(0, 1fr) 43px 43px;
+    gap: 6px;
+    align-items: end;
+}
+
+.composer-plus,
+.composer-mic,
+.composer-send {
+    width: 43px;
+    height: 43px;
+    border-radius: 14px;
+}
+
+.composer-plus,
+.composer-mic {
+    color: var(--heartly-text, #111827);
+    background: var(--heartly-card-soft, #f3f4f6);
+}
+
+.composer-send {
+    background: linear-gradient(
+        145deg,
+        var(--heartly-primary, #ff4f7b),
+        var(--heartly-accent, #8b5cf6)
+    );
+    box-shadow: 0 9px 22px
+        color-mix(in srgb, var(--heartly-primary, #ff4f7b) 27%, transparent);
+    transition: transform 150ms ease, opacity 150ms ease;
+}
+
+.composer-send:hover {
+    transform: translateY(-1px);
+}
+
+.composer-send:active {
+    transform: scale(0.96);
+}
+
+.composer-textarea {
+    min-height: 43px;
+    max-height: 118px;
+    padding: 11px 13px;
+    border: 1px solid transparent;
+    border-radius: 15px;
+    color: var(--heartly-text, #111827);
+    background: var(--heartly-card-soft, #f3f4f6);
+    font-size: 0.88rem;
+    line-height: 1.45;
+    font-weight: 580;
+    transition:
+        border-color 150ms ease,
+        background 150ms ease,
+        box-shadow 150ms ease;
+}
+
+.composer-textarea:focus {
+    border-color: color-mix(
+        in srgb,
+        var(--heartly-primary, #ff4f7b) 43%,
+        transparent
+    );
+    background: var(--heartly-card, #ffffff);
+    box-shadow: 0 0 0 4px
+        var(--heartly-primary-soft, rgba(255, 79, 123, 0.1));
+}
+
+.reply-compose-bar,
+.voice-recording-panel,
+.composer-status {
+    margin: 0 2px 7px;
+}
+
+.attachment-drawer {
+    bottom: 53px;
+    border-radius: 19px;
+}
+
+.selected-media-bar {
+    bottom: calc(var(--heartly-bottomnav-height, 74px) + 88px);
+    width: min(calc(100% - 16px), 744px);
+    border-radius: 16px;
+}
+
+@media (hover: none) {
+    .message-reply-btn {
+        opacity: 0.45;
+    }
+}
+
+@media (max-width: 560px) {
+    .chat-room-page {
+        width: 100%;
+        height: calc(100dvh - var(--heartly-bottomnav-height, 74px));
+        min-height: 480px;
+    }
+
+    .chat-room-header {
+        width: calc(100% - 10px);
+        min-height: 66px;
+        margin-top: 3px;
+        border-radius: 19px;
+    }
+
+    .chat-messages {
+        padding: 15px 9px 120px;
+    }
+
+    .message-stack {
+        max-width: 87%;
+    }
+
+    .message-bubble {
+        padding: 9px 11px;
+    }
+
+    .message-bubble p {
+        font-size: 0.86rem;
+    }
+
+    .chat-composer {
+        bottom: calc(var(--heartly-bottomnav-height, 74px) + 5px);
+        width: calc(100% - 10px);
+        border-radius: 18px;
+    }
+
+    .composer-shell {
+        grid-template-columns: 41px minmax(0, 1fr) 41px 41px;
+        gap: 5px;
+    }
+
+    .composer-plus,
+    .composer-mic,
+    .composer-send {
+        width: 41px;
+        height: 41px;
+        border-radius: 13px;
+    }
+
+    .composer-textarea {
+        min-height: 41px;
+        padding: 10px 11px;
+        border-radius: 14px;
+    }
+
+    .message-bubble .voice-note {
+        min-width: 194px;
+        width: min(74vw, 268px);
+        grid-template-columns: 37px minmax(112px, 1fr);
+    }
+
+    .voice-play-btn,
+    .voice-preview-play {
+        width: 37px;
+        height: 37px;
+    }
+}
+
+
+/* ============================================================
+   CHAT WALLPAPERS
+   ============================================================ */
+
+.chat-messages {
+    background-color: var(--heartly-bg, #ffffff);
+    background-attachment: local;
+    transition: background 180ms ease;
+}
+
+.chat-room-page[data-wallpaper="clean"] .chat-messages {
+    background:
+        linear-gradient(
+            var(--heartly-bg, #ffffff),
+            var(--heartly-bg, #ffffff)
+        );
+}
+
+.chat-room-page[data-wallpaper="hearts"] .chat-messages {
+    background-color: var(--heartly-bg, #ffffff);
+    background-image:
+        radial-gradient(
+            circle at 18px 15px,
+            color-mix(in srgb, var(--heartly-primary, #ff4f7b) 12%, transparent) 0 4px,
+            transparent 4.5px
+        ),
+        radial-gradient(
+            circle at 26px 15px,
+            color-mix(in srgb, var(--heartly-primary, #ff4f7b) 12%, transparent) 0 4px,
+            transparent 4.5px
+        ),
+        linear-gradient(
+            45deg,
+            transparent 18px,
+            color-mix(in srgb, var(--heartly-primary, #ff4f7b) 10%, transparent) 18px 22px,
+            transparent 22px
+        );
+    background-size: 46px 46px;
+}
+
+.chat-room-page[data-wallpaper="dots"] .chat-messages {
+    background-color: var(--heartly-bg, #ffffff);
+    background-image:
+        radial-gradient(
+            circle,
+            color-mix(in srgb, var(--heartly-primary, #ff4f7b) 14%, transparent) 1.4px,
+            transparent 1.5px
+        );
+    background-size: 22px 22px;
+}
+
+.chat-room-page[data-wallpaper="glow"] .chat-messages {
+    background:
+        radial-gradient(
+            circle at 12% 18%,
+            color-mix(in srgb, var(--heartly-primary, #ff4f7b) 15%, transparent),
+            transparent 34%
+        ),
+        radial-gradient(
+            circle at 88% 72%,
+            color-mix(in srgb, var(--heartly-accent, #8b5cf6) 14%, transparent),
+            transparent 36%
+        ),
+        linear-gradient(
+            180deg,
+            color-mix(in srgb, var(--heartly-bg, #ffffff) 96%, transparent),
+            var(--heartly-bg, #ffffff)
+        );
+}
+
+.chat-room-page[data-wallpaper="midnight"] .chat-messages {
+    background:
+        radial-gradient(
+            circle at 14% 15%,
+            rgba(45, 212, 191, 0.13),
+            transparent 34%
+        ),
+        radial-gradient(
+            circle at 86% 78%,
+            rgba(244, 63, 94, 0.15),
+            transparent 36%
+        ),
+        linear-gradient(180deg, #111827, #0f172a);
+}
+
+.chat-room-page[data-wallpaper="midnight"] .chat-message-row.theirs .message-bubble {
+    color: #f8fafc;
+    background: rgba(30, 41, 59, 0.92);
+    border-color: rgba(148, 163, 184, 0.16);
+}
+
+.chat-room-page[data-wallpaper="midnight"] .message-reply-btn {
+    color: rgba(226, 232, 240, 0.72);
+}
+
+.chat-room-page[data-wallpaper="aurora-night"] .chat-messages {
+    background:
+        radial-gradient(circle at 20% 18%, rgba(45, 212, 191, 0.18), transparent 30%),
+        radial-gradient(circle at 78% 28%, rgba(96, 165, 250, 0.16), transparent 34%),
+        radial-gradient(circle at 64% 82%, rgba(192, 132, 252, 0.14), transparent 30%),
+        linear-gradient(180deg, #08121f, #0b1324 56%, #101827);
+}
+
+.chat-room-page[data-wallpaper="plum-night"] .chat-messages {
+    background:
+        radial-gradient(circle at 18% 20%, rgba(244, 114, 182, 0.16), transparent 28%),
+        radial-gradient(circle at 84% 72%, rgba(168, 85, 247, 0.16), transparent 34%),
+        linear-gradient(180deg, #170d1f, #21102c 56%, #130917);
+}
+
+.chat-room-page[data-wallpaper="cobalt-night"] .chat-messages {
+    background:
+        radial-gradient(circle at 22% 14%, rgba(59, 130, 246, 0.18), transparent 30%),
+        radial-gradient(circle at 82% 78%, rgba(14, 165, 233, 0.14), transparent 34%),
+        linear-gradient(180deg, #08111f, #0a1b33 58%, #07101c);
+}
+
+.chat-room-page[data-wallpaper="emerald-night"] .chat-messages {
+    background:
+        radial-gradient(circle at 16% 18%, rgba(16, 185, 129, 0.18), transparent 30%),
+        radial-gradient(circle at 86% 74%, rgba(45, 212, 191, 0.14), transparent 34%),
+        linear-gradient(180deg, #061915, #0a241d 56%, #06120f);
+}
+
+.chat-room-page[data-wallpaper="aurora-night"] .chat-message-row.theirs .message-bubble,
+.chat-room-page[data-wallpaper="plum-night"] .chat-message-row.theirs .message-bubble,
+.chat-room-page[data-wallpaper="cobalt-night"] .chat-message-row.theirs .message-bubble,
+.chat-room-page[data-wallpaper="emerald-night"] .chat-message-row.theirs .message-bubble {
+    color: #f8fafc;
+    background: rgba(30, 41, 59, 0.9);
+    border-color: rgba(148, 163, 184, 0.16);
+}
+
+.chat-room-page[data-wallpaper="aurora-night"] .message-reply-btn,
+.chat-room-page[data-wallpaper="plum-night"] .message-reply-btn,
+.chat-room-page[data-wallpaper="cobalt-night"] .message-reply-btn,
+.chat-room-page[data-wallpaper="emerald-night"] .message-reply-btn {
+    color: rgba(226, 232, 240, 0.72);
+}
+
+.chat-room-page[data-wallpaper="blush"] .chat-messages {
+    background:
+        radial-gradient(circle at 20% 18%, rgba(255, 182, 193, 0.24), transparent 28%),
+        radial-gradient(circle at 84% 76%, rgba(251, 207, 232, 0.3), transparent 32%),
+        linear-gradient(180deg, #fff8fb, #fffdfd);
+}
+
+.chat-room-page[data-wallpaper="cloud"] .chat-messages {
+    background:
+        radial-gradient(circle at 22% 24%, rgba(191, 219, 254, 0.3), transparent 28%),
+        radial-gradient(circle at 82% 74%, rgba(226, 232, 240, 0.55), transparent 34%),
+        linear-gradient(180deg, #f8fbff, #ffffff);
+}
+
+.chat-room-page[data-wallpaper="sunrise"] .chat-messages {
+    background:
+        radial-gradient(circle at 18% 22%, rgba(253, 186, 116, 0.28), transparent 28%),
+        radial-gradient(circle at 84% 74%, rgba(251, 191, 36, 0.18), transparent 34%),
+        linear-gradient(180deg, #fffaf0, #fffdf8);
+}
+
+.chat-room-page[data-wallpaper="lavender"] .chat-messages {
+    background:
+        radial-gradient(circle at 18% 18%, rgba(196, 181, 253, 0.3), transparent 28%),
+        radial-gradient(circle at 82% 76%, rgba(233, 213, 255, 0.28), transparent 34%),
+        linear-gradient(180deg, #faf7ff, #ffffff);
+}
+
+.wallpaper-modal-card {
+    width: min(94vw, 520px);
+    gap: 16px;
+}
+
+.wallpaper-modal-copy {
+    padding-right: 36px;
+}
+
+.wallpaper-kicker {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--heartly-primary, #ff4f7b);
+    font-size: 0.68rem;
+    font-weight: 950;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.wallpaper-modal-copy h2,
+.wallpaper-modal-copy p {
+    text-align: left;
+}
+
+.wallpaper-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    max-height: min(62vh, 540px);
+    padding-right: 2px;
+    overflow-y: auto;
+}
+
+.wallpaper-option {
+    min-width: 0;
+    padding: 8px;
+    border: 1px solid var(--heartly-border, rgba(17, 24, 39, 0.1));
+    border-radius: 17px;
+    display: grid;
+    gap: 7px;
+    color: var(--heartly-text, #111827);
+    background: var(--heartly-card-soft, #f3f4f6);
+    text-align: left;
+    cursor: pointer;
+    transition:
+        transform 150ms ease,
+        border-color 150ms ease,
+        box-shadow 150ms ease;
+}
+
+.wallpaper-option:hover {
+    transform: translateY(-2px);
+}
+
+.wallpaper-option.is-selected {
+    border-color: var(--heartly-primary, #ff4f7b);
+    box-shadow: 0 0 0 3px var(--heartly-primary-soft, rgba(255, 79, 123, 0.1));
+}
+
+.wallpaper-option strong {
+    padding: 0 3px 2px;
+    font-size: 0.78rem;
+    font-weight: 900;
+}
+
+.wallpaper-preview {
+    height: 84px;
+    border-radius: 13px;
+    display: block;
+    border: 1px solid color-mix(in srgb, var(--heartly-border, rgba(17, 24, 39, 0.1)) 78%, transparent);
+}
+
+.wallpaper-preview-clean {
+    background: var(--heartly-bg, #ffffff);
+}
+
+.wallpaper-preview-hearts {
+    background-color: #fff8fb;
+    background-image:
+        radial-gradient(circle at 18px 15px, rgba(255, 79, 123, 0.18) 0 4px, transparent 4.5px),
+        radial-gradient(circle at 26px 15px, rgba(255, 79, 123, 0.18) 0 4px, transparent 4.5px),
+        linear-gradient(45deg, transparent 18px, rgba(255, 79, 123, 0.14) 18px 22px, transparent 22px);
+    background-size: 46px 46px;
+}
+
+.wallpaper-preview-dots {
+    background-color: #ffffff;
+    background-image: radial-gradient(circle, rgba(139, 92, 246, 0.18) 1.4px, transparent 1.5px);
+    background-size: 18px 18px;
+}
+
+.wallpaper-preview-glow {
+    background:
+        radial-gradient(circle at 15% 20%, rgba(255, 79, 123, 0.28), transparent 36%),
+        radial-gradient(circle at 86% 76%, rgba(139, 92, 246, 0.25), transparent 38%),
+        #ffffff;
+}
+
+.wallpaper-preview-midnight {
+    background:
+        radial-gradient(circle at 16% 16%, rgba(45, 212, 191, 0.25), transparent 34%),
+        radial-gradient(circle at 84% 78%, rgba(244, 63, 94, 0.28), transparent 36%),
+        linear-gradient(180deg, #111827, #0f172a);
+}
+
+.wallpaper-preview-blush {
+    background:
+        radial-gradient(circle at 20% 18%, rgba(255, 182, 193, 0.35), transparent 30%),
+        radial-gradient(circle at 82% 76%, rgba(251, 207, 232, 0.36), transparent 34%),
+        linear-gradient(180deg, #fff8fb, #fffdfd);
+}
+
+.wallpaper-preview-cloud {
+    background:
+        radial-gradient(circle at 22% 24%, rgba(191, 219, 254, 0.42), transparent 30%),
+        radial-gradient(circle at 82% 74%, rgba(226, 232, 240, 0.68), transparent 34%),
+        linear-gradient(180deg, #f8fbff, #ffffff);
+}
+
+.wallpaper-preview-sunrise {
+    background:
+        radial-gradient(circle at 18% 22%, rgba(253, 186, 116, 0.38), transparent 30%),
+        radial-gradient(circle at 84% 74%, rgba(251, 191, 36, 0.24), transparent 34%),
+        linear-gradient(180deg, #fffaf0, #fffdf8);
+}
+
+.wallpaper-preview-lavender {
+    background:
+        radial-gradient(circle at 18% 18%, rgba(196, 181, 253, 0.4), transparent 30%),
+        radial-gradient(circle at 82% 76%, rgba(233, 213, 255, 0.38), transparent 34%),
+        linear-gradient(180deg, #faf7ff, #ffffff);
+}
+
+.wallpaper-preview-aurora-night {
+    background:
+        radial-gradient(circle at 20% 18%, rgba(45, 212, 191, 0.3), transparent 30%),
+        radial-gradient(circle at 78% 28%, rgba(96, 165, 250, 0.28), transparent 34%),
+        radial-gradient(circle at 64% 82%, rgba(192, 132, 252, 0.22), transparent 30%),
+        linear-gradient(180deg, #08121f, #101827);
+}
+
+.wallpaper-preview-plum-night {
+    background:
+        radial-gradient(circle at 18% 20%, rgba(244, 114, 182, 0.28), transparent 30%),
+        radial-gradient(circle at 84% 72%, rgba(168, 85, 247, 0.28), transparent 34%),
+        linear-gradient(180deg, #170d1f, #130917);
+}
+
+.wallpaper-preview-cobalt-night {
+    background:
+        radial-gradient(circle at 22% 14%, rgba(59, 130, 246, 0.3), transparent 30%),
+        radial-gradient(circle at 82% 78%, rgba(14, 165, 233, 0.24), transparent 34%),
+        linear-gradient(180deg, #08111f, #07101c);
+}
+
+.wallpaper-preview-emerald-night {
+    background:
+        radial-gradient(circle at 16% 18%, rgba(16, 185, 129, 0.3), transparent 30%),
+        radial-gradient(circle at 86% 74%, rgba(45, 212, 191, 0.22), transparent 34%),
+        linear-gradient(180deg, #061915, #06120f);
+}
+
+@media (max-width: 520px) {
+    .wallpaper-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .wallpaper-preview {
+        height: 76px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .composer-send,
+    .message-reply-btn {
+        transition: none;
+    }
+}
+
 {% endblock %}
 
 {% block extra_js %}
@@ -382,6 +1267,9 @@
     const messagesBox=document.getElementById("chatMessages");
     const profilePreviewBtn=document.getElementById("profilePreviewBtn");
     const openProfilePreviewBtn=document.getElementById("openProfilePreviewBtn");
+    const openWallpaperModalBtn=document.getElementById("openWallpaperModalBtn");
+    const wallpaperModal=document.getElementById("wallpaperModal");
+    const wallpaperOptions=Array.from(document.querySelectorAll("[data-wallpaper-choice]"));
     const profilePreviewModal=document.getElementById("profilePreviewModal");
     const openReportModalBtn=document.getElementById("openReportModalBtn");
     const reportModal=document.getElementById("reportModal");
@@ -502,6 +1390,36 @@
     function scrollToBottom(){if(!messagesBox)return;messagesBox.scrollTop=messagesBox.scrollHeight;window.requestAnimationFrame(()=>window.scrollTo(0,document.body.scrollHeight));}
     function openModal(modal){if(modal)modal.hidden=false;}
     function closeModal(modal){if(modal)modal.hidden=true;}
+
+    const WALLPAPER_STORAGE_KEY="heartly-chat-wallpaper";
+
+    function applyWallpaper(name){
+        const allowed=["clean","hearts","dots","glow","blush","cloud","sunrise","lavender","midnight","aurora-night","plum-night","cobalt-night","emerald-night"];
+        const wallpaper=allowed.includes(name)?name:"clean";
+
+        if(page)page.dataset.wallpaper=wallpaper;
+
+        wallpaperOptions.forEach(function(option){
+            const selected=option.dataset.wallpaperChoice===wallpaper;
+            option.classList.toggle("is-selected",selected);
+            option.setAttribute("aria-pressed",selected?"true":"false");
+        });
+
+        try{
+            window.localStorage.setItem(WALLPAPER_STORAGE_KEY,wallpaper);
+        }catch(error){}
+    }
+
+    function loadWallpaper(){
+        let saved="clean";
+
+        try{
+            saved=window.localStorage.getItem(WALLPAPER_STORAGE_KEY)||"clean";
+        }catch(error){}
+
+        applyWallpaper(saved);
+    }
+
     function closeAttachmentDrawer(){if(attachmentDrawer)attachmentDrawer.hidden=true;}
     function openAttachmentDrawer(){if(attachmentDrawer)attachmentDrawer.hidden=false;}
 
@@ -750,6 +1668,13 @@
     if(messageInput)messageInput.addEventListener("input",function(){this.style.height="auto";this.style.height=Math.min(this.scrollHeight,130)+"px";});
     if(profilePreviewBtn)profilePreviewBtn.addEventListener("click",()=>openModal(profilePreviewModal));
     if(openProfilePreviewBtn)openProfilePreviewBtn.addEventListener("click",()=>openModal(profilePreviewModal));
+    if(openWallpaperModalBtn)openWallpaperModalBtn.addEventListener("click",()=>openModal(wallpaperModal));
+    wallpaperOptions.forEach(function(option){
+        option.addEventListener("click",function(){
+            applyWallpaper(option.dataset.wallpaperChoice||"clean");
+            closeModal(wallpaperModal);
+        });
+    });
     if(openReportModalBtn)openReportModalBtn.addEventListener("click",()=>openModal(reportModal));
     if(toggleSelectModeBtn)toggleSelectModeBtn.addEventListener("click",()=>{if(page&&deleteSelectedForm){page.classList.add("select-mode");deleteSelectedForm.hidden=false;updateSelectedCount();}});
     if(cancelSelectBtn)cancelSelectBtn.addEventListener("click",exitSelectMode);
@@ -757,6 +1682,36 @@
     if(voiceRecordBtn&&voiceInput)voiceRecordBtn.addEventListener("click",()=>{isRecordingVoice?stopVoiceRecording():startVoiceRecording();});
     if(voiceStopBtn)voiceStopBtn.addEventListener("click",stopVoiceRecording);
     if(voiceCancelBtn)voiceCancelBtn.addEventListener("click",cancelVoiceRecording);
+
+    /* Enter sends the message; Shift+Enter creates a new line. */
+    if(messageInput){
+        messageInput.addEventListener("keydown",function(event){
+            if(
+                event.key!=="Enter" ||
+                event.shiftKey ||
+                event.isComposing ||
+                event.repeat
+            ){
+                return;
+            }
+
+            event.preventDefault();
+
+            if(
+                !chatComposerForm ||
+                chatComposerForm.dataset.sending==="1" ||
+                (sendMessageBtn && sendMessageBtn.disabled)
+            ){
+                return;
+            }
+
+            if(typeof chatComposerForm.requestSubmit==="function"){
+                chatComposerForm.requestSubmit(sendMessageBtn || undefined);
+            }else if(sendMessageBtn){
+                sendMessageBtn.click();
+            }
+        });
+    }
     if(chatComposerForm)chatComposerForm.addEventListener("submit",sendComposer);
     if(clearReplyBtn)clearReplyBtn.addEventListener("click",clearReply);
     document.querySelectorAll('a[href*="/call/start/"]').forEach(link=>{link.addEventListener("click",()=>{ensureRingtoneContext();beepOnce(0.18,700);setTimeout(()=>beepOnce(0.18,620),240);});});
@@ -776,6 +1731,7 @@
         if(!event.target.closest(".attachment-drawer")&&!event.target.closest("#attachmentToggleBtn"))closeAttachmentDrawer();
     });
 
+    loadWallpaper();
     prepareAudioPlayers(document);
     scrollToBottom();
     connectSocket();
