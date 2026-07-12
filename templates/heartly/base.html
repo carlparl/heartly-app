@@ -652,6 +652,131 @@
                 font-size: 0.63rem;
             }
         }
+
+        /* Heartly mobile swipe navigation */
+        .heartly-swipe-indicator,
+        .heartly-swipe-toast {
+            display: none;
+        }
+
+        @media (max-width: 768px) and (pointer: coarse) {
+            body.heartly-swipe-ready {
+                --heartly-swipe-offset: 0px;
+                --heartly-swipe-opacity: 1;
+            }
+
+            body.heartly-swipe-ready .heartly-app-main {
+                transform: translate3d(var(--heartly-swipe-offset), 0, 0);
+                opacity: var(--heartly-swipe-opacity);
+                transition:
+                    transform 180ms var(--heartly-ease),
+                    opacity 180ms var(--heartly-ease-fast);
+                will-change: transform, opacity;
+            }
+
+            body.heartly-swipe-dragging .heartly-app-main {
+                transition: none;
+            }
+
+            body.heartly-swipe-navigating .heartly-app-main {
+                pointer-events: none;
+            }
+
+            .heartly-swipe-indicator {
+                position: fixed;
+                top: 50%;
+                z-index: 760;
+                min-width: 92px;
+                max-width: min(48vw, 190px);
+                min-height: 44px;
+                padding: 9px 12px;
+                border: 1px solid var(--heartly-border);
+                border-radius: 999px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 7px;
+                color: var(--heartly-text);
+                background: var(--heartly-glass);
+                box-shadow: var(--heartly-shadow);
+                backdrop-filter: blur(18px) saturate(160%);
+                -webkit-backdrop-filter: blur(18px) saturate(160%);
+                font-size: 0.75rem;
+                font-weight: 900;
+                white-space: nowrap;
+                opacity: 0;
+                pointer-events: none;
+                transition:
+                    opacity 120ms ease,
+                    transform 120ms ease;
+            }
+
+            .heartly-swipe-indicator[data-direction="previous"] {
+                left: 9px;
+                transform: translate3d(-14px, -50%, 0);
+            }
+
+            .heartly-swipe-indicator[data-direction="next"] {
+                right: 9px;
+                transform: translate3d(14px, -50%, 0);
+            }
+
+            .heartly-swipe-indicator.is-visible {
+                opacity: 1;
+            }
+
+            .heartly-swipe-indicator[data-direction="previous"].is-visible,
+            .heartly-swipe-indicator[data-direction="next"].is-visible {
+                transform: translate3d(0, -50%, 0);
+            }
+
+            .heartly-swipe-indicator-arrow {
+                color: var(--heartly-primary);
+                font-size: 1rem;
+                line-height: 1;
+            }
+
+            .heartly-swipe-toast {
+                position: fixed;
+                left: 50%;
+                bottom: calc(var(--heartly-bottomnav-height) + 16px);
+                z-index: 770;
+                width: min(calc(100% - 28px), 440px);
+                min-height: 42px;
+                padding: 10px 13px;
+                border: 1px solid var(--heartly-border);
+                border-radius: 15px;
+                display: block;
+                color: var(--heartly-text);
+                background: var(--heartly-glass);
+                box-shadow: var(--heartly-shadow);
+                backdrop-filter: blur(18px) saturate(160%);
+                -webkit-backdrop-filter: blur(18px) saturate(160%);
+                text-align: center;
+                font-size: 0.76rem;
+                font-weight: 850;
+                opacity: 0;
+                pointer-events: none;
+                transform: translate3d(-50%, 10px, 0);
+                transition:
+                    opacity 160ms ease,
+                    transform 160ms ease;
+            }
+
+            .heartly-swipe-toast.is-visible {
+                opacity: 1;
+                transform: translate3d(-50%, 0, 0);
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            body.heartly-swipe-ready .heartly-app-main,
+            .heartly-swipe-indicator,
+            .heartly-swipe-toast {
+                transition: none !important;
+            }
+        }
+
     </style>
 
     <style>
@@ -668,6 +793,7 @@
             no-feed-topbar
         {% endif %}
     "
+    data-heartly-swipe-section="{% if user.is_authenticated %}{% if request.resolver_match.namespace == 'feed' and request.resolver_match.url_name == 'feed_home' %}feed{% elif request.resolver_match.namespace == 'ai_features' and request.resolver_match.url_name == 'ai_coach' %}ai{% elif request.resolver_match.namespace == 'chat' and request.resolver_match.url_name == 'chat_home' %}chat{% elif request.resolver_match.namespace == 'profiles' and request.resolver_match.url_name == 'profile_home' %}profile{% endif %}{% endif %}"
 >
 <script>
     (function () {
@@ -1044,6 +1170,37 @@
 {% endif %}
 
 <script src="{% static 'js/heartly-theme.js' %}" defer></script>
+
+{% if user.is_authenticated %}
+<script id="heartlySwipeNavigationConfig" type="application/json">
+{
+    "routes": [
+        {
+            "key": "feed",
+            "label": "Feed",
+            "url": "{% url 'feed:feed_home' %}"
+        },
+        {
+            "key": "ai",
+            "label": "Heartly AI",
+            "url": "{% url 'ai_features:ai_coach' %}"
+        },
+        {
+            "key": "chat",
+            "label": "Chats",
+            "url": "{% url 'chat:chat_home' %}"
+        },
+        {
+            "key": "profile",
+            "label": "Profile",
+            "url": "{% url 'profiles:profile_home' %}"
+        }
+    ]
+}
+</script>
+<script src="{% static 'js/heartly-swipe-navigation.js' %}" defer></script>
+{% endif %}
+
 {% block extra_js %}{% endblock %}
 
 {% include "heartly/pwa_scripts.html" %}
