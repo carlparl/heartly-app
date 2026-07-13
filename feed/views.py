@@ -1,4 +1,6 @@
 from django.conf import settings
+from notifications.models import Notification
+from notifications.services import notify, notify_once
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
