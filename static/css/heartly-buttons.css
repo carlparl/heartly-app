@@ -1,0 +1,397 @@
+/* =========================================================
+   HEARTLY CONCEPT 02 — GLOBAL BUTTON SYSTEM
+   Deep navy primary, coral CTA, clean secondary, neutral UI.
+   ========================================================= */
+
+:root {
+    --heartly-btn-navy: #0d1b2a;
+    --heartly-btn-navy-pressed: #08131f;
+    --heartly-btn-coral: #ff5a47;
+    --heartly-btn-coral-pressed: #e84736;
+    --heartly-btn-teal: #18ada0;
+    --heartly-btn-white: #ffffff;
+    --heartly-btn-text: #0d1117;
+    --heartly-btn-muted: #6b7280;
+    --heartly-btn-border: rgba(13, 27, 42, 0.16);
+    --heartly-btn-focus: rgba(24, 173, 160, 0.28);
+    --heartly-btn-danger: #dc2626;
+    --heartly-btn-danger-pressed: #b91c1c;
+    --heartly-btn-shadow: 0 10px 24px rgba(13, 27, 42, 0.16);
+    --heartly-btn-shadow-coral: 0 10px 24px rgba(255, 90, 71, 0.24);
+    --heartly-btn-radius: 14px;
+    --heartly-btn-radius-pill: 999px;
+}
+
+html.heartly-dark-root,
+:root[data-heartly-theme="dark"] {
+    --heartly-btn-navy: #172437;
+    --heartly-btn-navy-pressed: #0e1928;
+    --heartly-btn-white: #17202b;
+    --heartly-btn-text: #f8fafc;
+    --heartly-btn-muted: #a8b3c7;
+    --heartly-btn-border: rgba(255, 255, 255, 0.14);
+}
+
+/* Core reusable classes */
+.heartly-btn,
+.heartly-icon-btn,
+.heartly-chip,
+.primary-action,
+.secondary-action,
+.empty-action,
+.like-action,
+.pass-action,
+.heartly-submit,
+.settings-primary-btn,
+.settings-soft-btn,
+.settings-danger-btn,
+.settings-logout-btn,
+.ep-save-link,
+.ep-main-save,
+.post-submit-btn,
+.clear-media-btn,
+.modal-primary-btn,
+.composer-send,
+.coach-clear-btn,
+.coach-prompts button,
+.coach-composer button,
+.notifications-actions button,
+.top-icon-btn {
+    -webkit-tap-highlight-color: transparent;
+    appearance: none;
+    box-sizing: border-box;
+    font-family: inherit;
+    font-weight: 850;
+    letter-spacing: -0.01em;
+    cursor: pointer;
+    transition:
+        transform 150ms ease,
+        box-shadow 180ms ease,
+        background-color 180ms ease,
+        border-color 180ms ease,
+        color 180ms ease,
+        opacity 180ms ease;
+}
+
+.heartly-btn,
+.primary-action,
+.secondary-action,
+.empty-action,
+.like-action,
+.pass-action,
+.heartly-submit,
+.settings-primary-btn,
+.settings-soft-btn,
+.settings-danger-btn,
+.settings-logout-btn,
+.ep-main-save,
+.post-submit-btn,
+.modal-primary-btn,
+.coach-composer button,
+.notifications-actions button {
+    min-height: 46px;
+    padding: 0 17px;
+    border-radius: var(--heartly-btn-radius);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    text-decoration: none;
+    border: 1px solid transparent;
+    line-height: 1;
+}
+
+/* Primary: deep navy */
+.heartly-btn-primary,
+.primary-action,
+.heartly-submit,
+.settings-primary-btn,
+.ep-main-save {
+    color: #ffffff !important;
+    background: var(--heartly-btn-navy) !important;
+    border-color: var(--heartly-btn-navy) !important;
+    box-shadow: var(--heartly-btn-shadow);
+}
+
+/* Accent/CTA: coral */
+.heartly-btn-accent,
+.like-action,
+.post-submit-btn,
+.modal-primary-btn,
+.coach-composer button,
+.composer-send {
+    color: #ffffff !important;
+    background: var(--heartly-btn-coral) !important;
+    border-color: var(--heartly-btn-coral) !important;
+    box-shadow: var(--heartly-btn-shadow-coral);
+}
+
+/* Secondary */
+.heartly-btn-secondary,
+.secondary-action,
+.settings-soft-btn {
+    color: var(--heartly-btn-text) !important;
+    background: var(--heartly-btn-white) !important;
+    border-color: var(--heartly-btn-border) !important;
+    box-shadow: 0 7px 18px rgba(13, 27, 42, 0.08);
+}
+
+/* Outline */
+.heartly-btn-outline,
+.empty-action,
+.pass-action {
+    color: var(--heartly-btn-navy) !important;
+    background: transparent !important;
+    border-color: var(--heartly-btn-navy) !important;
+    box-shadow: none;
+}
+
+html.heartly-dark-root .heartly-btn-outline,
+html.heartly-dark-root .empty-action,
+html.heartly-dark-root .pass-action,
+:root[data-heartly-theme="dark"] .heartly-btn-outline,
+:root[data-heartly-theme="dark"] .empty-action,
+:root[data-heartly-theme="dark"] .pass-action {
+    color: #f8fafc !important;
+    border-color: rgba(248, 250, 252, 0.72) !important;
+}
+
+/* Ghost */
+.heartly-btn-ghost,
+.ep-save-link,
+.coach-clear-btn {
+    color: var(--heartly-btn-navy) !important;
+    background: transparent !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+}
+
+/* Danger only */
+.heartly-btn-danger,
+.settings-danger-btn,
+.settings-logout-btn {
+    color: #ffffff !important;
+    background: var(--heartly-btn-danger) !important;
+    border-color: var(--heartly-btn-danger) !important;
+    box-shadow: 0 9px 22px rgba(220, 38, 38, 0.2);
+}
+
+/* Icon buttons */
+.heartly-icon-btn,
+.top-icon-btn,
+.notification-clear-form button {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    padding: 0;
+    border-radius: 14px !important;
+    display: inline-grid;
+    place-items: center;
+    color: var(--heartly-btn-text) !important;
+    background: var(--heartly-btn-white) !important;
+    border: 1px solid var(--heartly-btn-border) !important;
+    box-shadow: 0 8px 20px rgba(13, 27, 42, 0.09);
+}
+
+/* Chips */
+.heartly-chip,
+.matches-pill,
+.match-meta span,
+.match-interest-list span,
+.discover-interest-list span,
+.notifications-pill,
+.ep-interest-chip {
+    min-height: 34px;
+    padding: 0 12px;
+    border-radius: var(--heartly-btn-radius-pill);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--heartly-btn-text);
+    background: var(--heartly-btn-white);
+    border: 1px solid var(--heartly-btn-border);
+    font-size: 0.78rem;
+    font-weight: 800;
+}
+
+/* Sizes */
+.heartly-btn-sm {
+    min-height: 38px;
+    padding-inline: 13px;
+    border-radius: 12px;
+    font-size: 0.78rem;
+}
+
+.heartly-btn-lg {
+    min-height: 52px;
+    padding-inline: 22px;
+    border-radius: 16px;
+    font-size: 0.96rem;
+}
+
+/* States */
+.heartly-btn:hover,
+.primary-action:hover,
+.secondary-action:hover,
+.empty-action:hover,
+.like-action:hover,
+.pass-action:hover,
+.heartly-submit:hover,
+.settings-primary-btn:hover,
+.settings-soft-btn:hover,
+.settings-danger-btn:hover,
+.settings-logout-btn:hover,
+.ep-main-save:hover,
+.post-submit-btn:hover,
+.modal-primary-btn:hover,
+.coach-composer button:hover,
+.notifications-actions button:hover,
+.top-icon-btn:hover {
+    transform: translateY(-1px);
+}
+
+.heartly-btn:active,
+.primary-action:active,
+.secondary-action:active,
+.empty-action:active,
+.like-action:active,
+.pass-action:active,
+.heartly-submit:active,
+.settings-primary-btn:active,
+.settings-soft-btn:active,
+.settings-danger-btn:active,
+.settings-logout-btn:active,
+.ep-main-save:active,
+.post-submit-btn:active,
+.modal-primary-btn:active,
+.coach-composer button:active,
+.notifications-actions button:active,
+.top-icon-btn:active {
+    transform: scale(0.97);
+}
+
+.heartly-btn:focus-visible,
+.primary-action:focus-visible,
+.secondary-action:focus-visible,
+.empty-action:focus-visible,
+.like-action:focus-visible,
+.pass-action:focus-visible,
+.heartly-submit:focus-visible,
+.settings-primary-btn:focus-visible,
+.settings-soft-btn:focus-visible,
+.settings-danger-btn:focus-visible,
+.settings-logout-btn:focus-visible,
+.ep-save-link:focus-visible,
+.ep-main-save:focus-visible,
+.post-submit-btn:focus-visible,
+.modal-primary-btn:focus-visible,
+.coach-composer button:focus-visible,
+.notifications-actions button:focus-visible,
+.top-icon-btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 4px var(--heartly-btn-focus) !important;
+}
+
+button:disabled,
+.heartly-btn[aria-disabled="true"],
+.heartly-btn.is-disabled {
+    opacity: 0.44 !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* Password toggles and small utility controls */
+.heartly-password-toggle,
+.discover-search-clear,
+.clear-selected-media,
+.modal-close-btn {
+    min-height: 36px;
+    min-width: 36px;
+    border: 1px solid var(--heartly-btn-border) !important;
+    border-radius: 12px !important;
+    color: var(--heartly-btn-navy) !important;
+    background: var(--heartly-btn-white) !important;
+    font-weight: 850 !important;
+}
+
+/* Layout consistency */
+.matches-actions,
+.match-actions,
+.notifications-actions,
+.settings-email-actions,
+.edit-actions {
+    gap: 10px !important;
+}
+
+.matches-actions > *,
+.match-actions > *,
+.notifications-actions > * {
+    min-width: 0;
+}
+
+.matches-actions .primary-action,
+.matches-actions .secondary-action,
+.match-actions .primary-action,
+.match-actions .secondary-action,
+.notifications-actions form,
+.notifications-actions button {
+    flex: 1;
+    width: 100%;
+}
+
+/* Remove duplicate visual emphasis from the edit-profile top save.
+   The bottom Save changes remains the primary submit action. */
+.ep-save-link {
+    min-height: 38px;
+    padding: 0 8px !important;
+    border-radius: 10px !important;
+    font-size: 0.78rem !important;
+}
+
+/* Mobile tap target enforcement */
+@media (max-width: 768px) {
+    .heartly-btn,
+    .primary-action,
+    .secondary-action,
+    .empty-action,
+    .like-action,
+    .pass-action,
+    .heartly-submit,
+    .settings-primary-btn,
+    .settings-soft-btn,
+    .settings-danger-btn,
+    .settings-logout-btn,
+    .ep-main-save,
+    .post-submit-btn,
+    .modal-primary-btn,
+    .coach-composer button,
+    .notifications-actions button {
+        min-height: 48px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .heartly-btn,
+    .heartly-icon-btn,
+    .heartly-chip,
+    .primary-action,
+    .secondary-action,
+    .empty-action,
+    .like-action,
+    .pass-action,
+    .heartly-submit,
+    .settings-primary-btn,
+    .settings-soft-btn,
+    .settings-danger-btn,
+    .settings-logout-btn,
+    .ep-save-link,
+    .ep-main-save,
+    .post-submit-btn,
+    .modal-primary-btn,
+    .coach-composer button,
+    .notifications-actions button,
+    .top-icon-btn {
+        transition: none;
+    }
+}

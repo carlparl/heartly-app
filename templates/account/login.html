@@ -4,6 +4,7 @@
 {% block title %}Login - Heartly{% endblock %}
 
 {% block content %}
+<link rel="stylesheet" href="{% static 'css/heartly-buttons.css' %}">
 <div class="heartly-login-card">
     <div class="heartly-login-header">
         <p class="heartly-kicker">Welcome back</p>
@@ -36,7 +37,7 @@
 
             <div class="heartly-password-wrap">
                 {{ form.password }}
-                <button type="button" class="heartly-password-toggle" data-password-toggle aria-label="Show password" aria-pressed="false">
+                <button type="button" class="heartly-password-toggle heartly-btn-ghost" data-password-toggle aria-label="Show password" aria-pressed="false">
                     Show
                 </button>
             </div>
@@ -59,7 +60,7 @@
             <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">
         {% endif %}
 
-        <button type="submit" class="heartly-submit">
+        <button type="submit" class="heartly-submit heartly-btn-primary">
             Log in
         </button>
     </form>

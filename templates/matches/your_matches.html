@@ -12,7 +12,7 @@
             <p class="matches-subtitle">People who liked you back.</p>
         </div>
 
-        <a href="{% url 'matches:discover' %}" class="top-icon-btn" title="Discover" aria-label="Discover">
+        <a href="{% url 'matches:discover' %}" class="top-icon-btn heartly-icon-btn" title="Discover" aria-label="Discover">
             💗
         </a>
     </div>
@@ -37,11 +37,11 @@
             </div>
 
             <div class="matches-actions">
-                <a href="{% url 'matches:discover' %}" class="primary-action">
+                <a href="{% url 'matches:discover' %}" class="primary-action heartly-btn-primary">
                     Discover
                 </a>
 
-                <a href="{% url 'chat:chat_home' %}" class="secondary-action">
+                <a href="{% url 'chat:chat_home' %}" class="secondary-action heartly-btn-secondary">
                     Messages
                 </a>
             </div>
@@ -105,11 +105,11 @@
                     </div>
 
                     <div class="match-actions">
-                        <a href="{% url 'profiles:public_profile' card.other_user.id %}" class="secondary-action">
+                        <a href="{% url 'profiles:public_profile' card.other_user.id %}" class="secondary-action heartly-btn-secondary">
                             Profile
                         </a>
 
-                        <a href="{% url 'chat:start_chat' card.other_user.id %}" class="primary-action">
+                        <a href="{% url 'chat:start_chat' card.other_user.id %}" class="primary-action heartly-btn-primary">
                             Message
                         </a>
                     </div>
@@ -124,7 +124,7 @@
                             Like profiles in Discover. When someone likes you back, they will appear here.
                         </p>
 
-                        <a href="{% url 'matches:discover' %}" class="empty-action">
+                        <a href="{% url 'matches:discover' %}" class="empty-action heartly-btn-outline">
                             Go to Discover
                         </a>
                     </div>

@@ -12,7 +12,7 @@
             <p class="matches-subtitle">Find visible profiles and connect respectfully.</p>
         </div>
 
-        <a href="{% url 'matches:your_matches' %}" class="top-icon-btn" title="Your matches" aria-label="Your matches">
+        <a href="{% url 'matches:your_matches' %}" class="top-icon-btn heartly-icon-btn" title="Your matches" aria-label="Your matches">
             💞
         </a>
     </div>
@@ -51,11 +51,11 @@
             </div>
 
             <div class="matches-actions">
-                <a href="{% url 'matches:your_matches' %}" class="primary-action">
+                <a href="{% url 'matches:your_matches' %}" class="primary-action heartly-btn-primary">
                     Your matches
                 </a>
 
-                <a href="{% url 'profiles:edit_profile' %}" class="secondary-action">
+                <a href="{% url 'profiles:edit_profile' %}" class="secondary-action heartly-btn-secondary">
                     Improve profile
                 </a>
             </div>
@@ -132,14 +132,14 @@
                     <div class="discover-controls">
                         <form method="post" action="{% url 'matches:swipe' profile.user.id 'pass' %}" class="swipe-form" data-swipe="pass">
                             {% csrf_token %}
-                            <button type="submit" class="pass-action">
+                            <button type="submit" class="pass-action heartly-btn-outline">
                                 Pass
                             </button>
                         </form>
 
                         <form method="post" action="{% url 'matches:swipe' profile.user.id 'like' %}" class="swipe-form" data-swipe="like">
                             {% csrf_token %}
-                            <button type="submit" class="like-action">
+                            <button type="submit" class="like-action heartly-btn-accent">
                                 Like
                             </button>
                         </form>
@@ -156,7 +156,7 @@
                                 Try a different name or username, or clear your search to see all profiles.
                             </p>
 
-                            <a href="{% url 'matches:discover' %}" class="empty-action">
+                            <a href="{% url 'matches:discover' %}" class="empty-action heartly-btn-outline">
                                 Clear search
                             </a>
                         {% else %}
@@ -165,7 +165,7 @@
                                 New visible profiles will appear here. Update your profile to improve your Discover experience.
                             </p>
 
-                            <a href="{% url 'profiles:edit_profile' %}" class="empty-action">
+                            <a href="{% url 'profiles:edit_profile' %}" class="empty-action heartly-btn-outline">
                                 Improve profile
                             </a>
                         {% endif %}
