@@ -1257,124 +1257,115 @@
 }
 
 
+
 /* ============================================================
-   HEARTLY CHAT — MOBILE SAFE-AREA LAYOUT
-   Keeps the header, message list, composer and bottom navigation
-   inside the visible iPhone/Android viewport.
+   FINAL IPHONE / PWA VIEWPORT OVERRIDES
+   Keep this block last so earlier layout rules cannot override it.
    ============================================================ */
-
-body.heartly-chat-room-open {
-    overflow: hidden;
-    overscroll-behavior: none;
+html,
+body {
+    min-height: 100%;
 }
 
-body.heartly-chat-room-open .heartly-app-shell {
-    width: min(100%, 760px);
-    max-width: 760px;
-    height: 100vh;
-    height: 100dvh;
-    min-height: 0;
-    overflow: hidden;
+.chat-room-page {
+    position: relative !important;
+    width: min(100%, 760px) !important;
+    max-width: 760px !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    min-height: 100vh !important;
+    min-height: 100dvh !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    display: block !important;
+    overflow: hidden !important;
 }
 
-body.heartly-chat-room-open .heartly-app-main {
-    width: 100%;
-    height: calc(100vh - var(--heartly-bottomnav-height));
-    height: calc(100dvh - var(--heartly-bottomnav-height));
-    min-height: 0;
-    padding: var(--heartly-safe-top) 0 0;
-    overflow: hidden;
+.chat-room-header {
+    position: fixed !important;
+    top: 0 !important;
+    left: 50% !important;
+    right: auto !important;
+    transform: translateX(-50%) !important;
+    z-index: 1000 !important;
+    width: min(100%, 760px) !important;
+    min-height: 70px !important;
+    margin: 0 !important;
+    padding:
+        calc(10px + env(safe-area-inset-top, 0px))
+        12px
+        10px !important;
+    border: 0 !important;
+    border-bottom: 1px solid var(--heartly-border, rgba(17, 24, 39, 0.09)) !important;
+    border-radius: 0 !important;
+    background: color-mix(in srgb, var(--heartly-card, #ffffff) 96%, transparent) !important;
+    box-shadow: 0 8px 28px rgba(15, 23, 42, 0.10) !important;
+    backdrop-filter: blur(20px) saturate(160%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
 }
 
-body.heartly-chat-room-open .chat-room-page {
-    width: 100%;
-    max-width: 760px;
-    height: calc(100vh - var(--heartly-bottomnav-height) - var(--heartly-safe-top));
-    height: calc(100dvh - var(--heartly-bottomnav-height) - var(--heartly-safe-top));
-    min-height: 0;
-    margin: 0 auto;
-    padding: 0;
-    display: grid;
-    grid-template-rows: auto minmax(0, 1fr);
-    overflow: hidden;
+.chat-messages {
+    position: absolute !important;
+    inset:
+        calc(70px + env(safe-area-inset-top, 0px))
+        0
+        0
+        0 !important;
+    min-height: 0 !important;
+    height: auto !important;
+    padding:
+        14px
+        12px
+        calc(var(--heartly-bottomnav-height, 76px) + 112px + env(safe-area-inset-bottom, 0px)) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior-y: contain !important;
 }
 
-body.heartly-chat-room-open .chat-room-header {
-    position: sticky;
-    top: 0;
-    z-index: 180;
-    flex: 0 0 auto;
-    width: calc(100% - 16px);
-    min-height: 66px;
-    margin: 6px auto 0;
+.chat-composer {
+    position: fixed !important;
+    left: 50% !important;
+    right: auto !important;
+    bottom: calc(var(--heartly-bottomnav-height, 76px) + env(safe-area-inset-bottom, 0px) + 6px) !important;
+    transform: translateX(-50%) !important;
+    z-index: 1001 !important;
+    width: min(calc(100% - 12px), 748px) !important;
 }
 
-body.heartly-chat-room-open .chat-messages {
-    min-height: 0;
-    height: 100%;
-    padding-bottom: 104px;
-    overflow-y: auto;
-    overflow-x: hidden;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior-y: contain;
-    scroll-padding-top: 12px;
-    scroll-padding-bottom: 112px;
+.selected-media-bar {
+    bottom: calc(var(--heartly-bottomnav-height, 76px) + env(safe-area-inset-bottom, 0px) + 88px) !important;
 }
 
-body.heartly-chat-room-open .chat-composer {
-    position: fixed;
-    left: 50%;
-    bottom: calc(var(--heartly-bottomnav-height) + 6px);
-    width: min(calc(100% - 16px), 744px);
-    transform: translateX(-50%);
-    z-index: 300;
+.selected-toolbar {
+    bottom: calc(var(--heartly-bottomnav-height, 76px) + env(safe-area-inset-bottom, 0px) + 96px) !important;
 }
 
-body.heartly-chat-room-open .selected-media-bar {
-    bottom: calc(var(--heartly-bottomnav-height) + 86px);
-}
-
-body.heartly-chat-room-open .selected-toolbar {
-    bottom: calc(var(--heartly-bottomnav-height) + 94px);
-}
-
-body.heartly-chat-room-open .chat-call-toast {
-    top: calc(var(--heartly-safe-top) + 8px);
-}
-
-@supports (height: 100svh) {
-    body.heartly-chat-room-open .heartly-app-shell {
-        height: 100svh;
-    }
-
-    body.heartly-chat-room-open .heartly-app-main {
-        height: calc(100svh - var(--heartly-bottomnav-height));
-    }
-
-    body.heartly-chat-room-open .chat-room-page {
-        height: calc(100svh - var(--heartly-bottomnav-height) - var(--heartly-safe-top));
-    }
+.chat-call-toast {
+    top: calc(76px + env(safe-area-inset-top, 0px)) !important;
 }
 
 @media (max-width: 560px) {
-    body.heartly-chat-room-open .chat-room-header {
-        width: calc(100% - 10px);
-        margin-top: 4px;
+    .chat-room-header {
+        width: 100% !important;
+        min-height: 66px !important;
     }
 
-    body.heartly-chat-room-open .chat-messages {
-        padding: 12px 9px 100px;
+    .chat-messages {
+        top: calc(66px + env(safe-area-inset-top, 0px)) !important;
+        padding-left: 9px !important;
+        padding-right: 9px !important;
     }
 
-    body.heartly-chat-room-open .chat-composer {
-        bottom: calc(var(--heartly-bottomnav-height) + 4px);
-        width: calc(100% - 10px);
+    .chat-composer {
+        width: calc(100% - 10px) !important;
     }
 }
 
-@media (display-mode: standalone) {
-    body.heartly-chat-room-open .chat-room-header {
-        margin-top: 4px;
+@supports not (height: 100dvh) {
+    .chat-room-page {
+        height: -webkit-fill-available !important;
+        min-height: -webkit-fill-available !important;
     }
 }
 
@@ -1384,11 +1375,6 @@ body.heartly-chat-room-open .chat-call-toast {
 <script>
 (function(){
     "use strict";
-
-    document.body.classList.add("heartly-chat-room-open");
-    window.addEventListener("pagehide", function(){
-        document.body.classList.remove("heartly-chat-room-open");
-    }, {once:true});
 
     const page=document.getElementById("chatRoomPage");
     const messagesBox=document.getElementById("chatMessages");
