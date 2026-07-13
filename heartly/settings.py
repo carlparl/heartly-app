@@ -122,7 +122,7 @@ INSTALLED_APPS = [
     "chat",
     "ai_features",
     "feed",
-    "notifications",
+   
     "notifications.apps.NotificationsConfig",
 ]
 
