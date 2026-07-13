@@ -1,0 +1,69 @@
+{% extends 'heartly/base.html' %}
+{% block title %}Safety Tips - Heartly{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 pb-24 max-w-md mx-auto">
+
+    <!-- Header -->
+    <div class="bg-white px-5 py-4 flex items-center border-b sticky top-0 z-10">
+        <a href="{% url 'profile' %}" class="text-gray-500 mr-4">
+            <i class="fas fa-arrow-left text-xl"></i>
+        </a>
+        <h1 class="text-xl font-semibold">Safety Tips</h1>
+    </div>
+
+    <div class="px-5 pt-6 space-y-4">
+
+        <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
+            <div class="flex items-start gap-4">
+                <i class="fas fa-shield-alt text-[#14b8a6] text-2xl mt-1"></i>
+                <div>
+                    <h3 class="font-semibold mb-1">Meet in Public</h3>
+                    <p class="text-sm text-gray-600">Always meet in a public place for your first few dates. Choose well-lit, populated areas.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
+            <div class="flex items-start gap-4">
+                <i class="fas fa-user-shield text-[#14b8a6] text-2xl mt-1"></i>
+                <div>
+                    <h3 class="font-semibold mb-1">Tell Someone</h3>
+                    <p class="text-sm text-gray-600">Let a friend or family member know where you're going and who you're meeting.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
+            <div class="flex items-start gap-4">
+                <i class="fas fa-car text-[#14b8a6] text-2xl mt-1"></i>
+                <div>
+                    <h3 class="font-semibold mb-1">Arrange Your Own Transport</h3>
+                    <p class="text-sm text-gray-600">Don't rely on your date for transportation, especially on early dates.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
+            <div class="flex items-start gap-4">
+                <i class="fas fa-mobile-alt text-[#14b8a6] text-2xl mt-1"></i>
+                <div>
+                    <h3 class="font-semibold mb-1">Trust Your Instincts</h3>
+                    <p class="text-sm text-gray-600">If something feels off, it probably is. It's okay to end the date early.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
+            <div class="flex items-start gap-4">
+                <i class="fas fa-exclamation-triangle text-[#14b8a6] text-2xl mt-1"></i>
+                <div>
+                    <h3 class="font-semibold mb-1">Report Suspicious Behavior</h3>
+                    <p class="text-sm text-gray-600">Use the report feature if someone makes you feel unsafe or uncomfortable.</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

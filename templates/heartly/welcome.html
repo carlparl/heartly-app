@@ -1,0 +1,61 @@
+{% extends 'heartly/base.html' %}
+{% block title %}Heartly - Find Meaningful Connections{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex flex-col items-center justify-center px-6 text-center 
+            bg-gradient-to-br from-[#ff4d94] via-[#ff6b9d] to-[#14b8a6] text-white relative overflow-hidden">
+    
+    <!-- Subtle Background Glow -->
+    <div class="absolute inset-0 bg-[radial-gradient(#ffffff10_1px,transparent_1px)] bg-[length:4px_4px]"></div>
+
+    <!-- Main Content -->
+    <div class="relative z-10 w-full max-w-sm">
+        
+        <!-- Heart Icon -->
+        <div class="mb-8 flex justify-center">
+            <div class="relative">
+                <!-- Main Heart -->
+                <svg width="92" height="92" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" 
+                          fill="white"/>
+                </svg>
+                <!-- Subtle Glow Layer -->
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <div class="w-20 h-20 bg-white/20 rounded-full blur-xl"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Logo -->
+        <h1 class="text-[56px] font-bold tracking-[-2.5px] leading-none mb-3">Heartly</h1>
+
+        <!-- Tagline -->
+        <h2 class="text-2xl font-semibold tracking-tight mb-4">Find meaningful connections</h2>
+
+        <!-- Subtitle -->
+        <p class="max-w-[260px] mx-auto text-[15px] leading-relaxed opacity-90 mb-12">
+            AI Matchmaker that understands you and connects hearts.
+        </p>
+
+        <!-- Buttons -->
+        <div class="space-y-4">
+            
+            <!-- Primary Button (Sign Up) -->
+            <a href="{% url 'account_signup' %}" 
+               class="block w-full bg-white text-[#ff4d94] font-semibold py-[17px] rounded-2xl text-[17px] shadow-xl active:scale-[0.985] transition-all duration-150">
+                Sign Up
+            </a>
+
+            <!-- Secondary Button (Log In) -->
+            <a href="{% url 'account_login' %}" 
+               class="block w-full border-2 border-white/80 font-semibold py-[17px] rounded-2xl text-[17px] active:bg-white/10 transition-all duration-150">
+                Log In
+            </a>
+        </div>
+
+        <!-- Footer Text -->
+        <p class="mt-10 text-sm opacity-75 tracking-wide">Join thousands of happy singles</p>
+
+    </div>
+</div>
+{% endblock %}

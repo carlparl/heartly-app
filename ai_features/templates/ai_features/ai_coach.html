@@ -4,339 +4,806 @@
 {% block title %}Heartly AI{% endblock %}
 
 {% block content %}
+<section class="heartly-ai-shell" aria-label="Heartly AI chat">
 
-<section class="ai-polished-screen">
+  <header class="heartly-ai-header">
+    <div class="heartly-ai-identity">
+      <div class="heartly-ai-logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 21s-7.2-4.35-9.35-8.46C.8 9 2.16 5 6.18 4.35A5.33 5.33 0 0 1 12 7.14a5.33 5.33 0 0 1 5.82-2.79C21.84 5 23.2 9 21.35 12.54 19.2 16.65 12 21 12 21Z"/>
+        </svg>
+      </div>
 
-  <!-- Header -->
-  <section class="ai-polished-header heartly-card heartly-glow-card">
+      <div class="heartly-ai-identity-copy">
+        <div class="heartly-ai-title-row">
+          <h1>Heartly AI</h1>
+          <span class="heartly-ai-label">AI</span>
+        </div>
 
-    <div class="ai-polished-bot">
-      <div class="ai-polished-face">
-        <span></span>
-        <span></span>
+        <p class="heartly-ai-online">
+          <span aria-hidden="true"></span>
+          Online and ready to help
+        </p>
       </div>
     </div>
 
-    <div class="ai-polished-title">
-      <div class="ai-polished-status">
-        <span></span>
-        Online
-      </div>
-
-      <h1>Heartly AI</h1>
-      <p>Friendly help for anything: ideas, coding, feelings, jokes, and daily questions.</p>
-    </div>
-
-    <button type="button" class="ai-polished-new-btn" id="endAiChatBtn">
-      New
+    <button
+      type="button"
+      class="heartly-ai-new-chat"
+      id="endAiChatBtn"
+      aria-label="Start a new chat"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 5v14M5 12h14"/>
+      </svg>
+      <span>New chat</span>
     </button>
+  </header>
 
-  </section>
+  <section class="heartly-ai-welcome" id="aiWelcomeCard">
+    <span class="heartly-ai-eyebrow">Your private AI companion</span>
+    <h2>How can Heartly help?</h2>
+    <p>
+      Ask about relationships, conversations, confidence, profiles, coding,
+      ideas, or everyday questions.
+    </p>
 
-  <!-- Chat Thread -->
-  <section class="ai-polished-thread heartly-card" id="aiChatThread">
-
-    <div class="ai-polished-message ai">
-      <div class="ai-polished-avatar">♥</div>
-
-      <div class="ai-polished-bubble">
-        Hi. I’m Heartly. Ask me anything.
-      </div>
+    <div class="heartly-ai-prompts" aria-label="Suggested prompts">
+      <button type="button" data-ai-prompt="Help me improve my profile bio">
+        Improve my profile
+      </button>
+      <button type="button" data-ai-prompt="Give me a respectful conversation starter">
+        Start a conversation
+      </button>
+      <button type="button" data-ai-prompt="Help me reply to a message thoughtfully">
+        Help me reply
+      </button>
     </div>
-
   </section>
 
-  <!-- Input -->
-  <form method="post" class="ai-polished-form heartly-card" id="aiCoachForm">
+  <main
+    class="heartly-ai-thread"
+    id="aiChatThread"
+    aria-live="polite"
+    aria-relevant="additions"
+  >
+    <article class="heartly-ai-message heartly-ai-message--assistant">
+      <div class="heartly-ai-message-avatar" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 21s-7.2-4.35-9.35-8.46C.8 9 2.16 5 6.18 4.35A5.33 5.33 0 0 1 12 7.14a5.33 5.33 0 0 1 5.82-2.79C21.84 5 23.2 9 21.35 12.54 19.2 16.65 12 21 12 21Z"/>
+        </svg>
+      </div>
+
+      <div class="heartly-ai-message-content">
+        <div class="heartly-ai-message-meta">
+          <strong>Heartly</strong>
+          <span>Now</span>
+        </div>
+
+        <div class="heartly-ai-bubble">
+          <p>Hi. Tell me what you need help with, and I’ll help you work through it clearly.</p>
+        </div>
+      </div>
+    </article>
+  </main>
+
+  <div class="heartly-ai-notice" id="aiCoachNotice" role="status" hidden></div>
+
+  <form method="post" class="heartly-ai-composer" id="aiCoachForm">
     {% csrf_token %}
 
-    <input
-      type="text"
-      name="message"
-      id="aiCoachInput"
-      placeholder="Message Heartly..."
-      autocomplete="off"
-      required
-    >
+    <div class="heartly-ai-composer-row">
+      <textarea
+        name="message"
+        id="aiCoachInput"
+        rows="1"
+        maxlength="2000"
+        placeholder="Message Heartly..."
+        autocomplete="off"
+        required
+        aria-label="Message Heartly"
+      ></textarea>
 
-    <button type="submit" aria-label="Send message">
-      ➜
-    </button>
+      <button
+        type="submit"
+        class="heartly-ai-send"
+        id="aiCoachSendBtn"
+        aria-label="Send message"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="m5 12 14-7-4 14-3.2-5.8L5 12Z"/>
+          <path d="m11.8 13.2 3.4-3.4"/>
+        </svg>
+      </button>
+    </div>
+
+    <p class="heartly-ai-disclaimer">
+      Heartly can make mistakes. Check important information.
+    </p>
   </form>
 
 </section>
+{% endblock %}
 
-<style>
-  .ai-polished-screen {
-    min-height: calc(100vh - 160px);
-    display: grid;
-    grid-template-rows: auto 1fr auto;
-    gap: 14px;
+{% block extra_css %}
+.heartly-ai-shell {
+  --ai-bottom-nav: var(--heartly-bottomnav-height, 74px);
+  width: min(100%, 760px);
+  height: calc(100dvh - var(--ai-bottom-nav) - 18px);
+  min-height: 620px;
+  margin: 0 auto;
+  padding: 8px 10px 10px;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  gap: 10px;
+  overflow: hidden;
+  color: var(--heartly-text, #111827);
+}
+
+.heartly-ai-header {
+  min-height: 74px;
+  padding: 11px 14px;
+  border: 1px solid var(--heartly-border, rgba(15, 23, 42, 0.10));
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--heartly-card, #ffffff);
+  box-shadow: var(--heartly-shadow-soft, 0 12px 30px rgba(15, 23, 42, 0.08));
+}
+
+.heartly-ai-identity {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.heartly-ai-logo,
+.heartly-ai-message-avatar {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  color: #ffffff;
+  background:
+    radial-gradient(circle at 28% 20%, rgba(255, 255, 255, 0.36), transparent 27%),
+    linear-gradient(145deg, var(--heartly-primary, #ec4899), var(--heartly-accent, #8b5cf6));
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--heartly-primary, #ec4899) 25%, transparent);
+}
+
+.heartly-ai-logo {
+  width: 48px;
+  height: 48px;
+  border-radius: 17px;
+}
+
+.heartly-ai-logo svg {
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
+}
+
+.heartly-ai-identity-copy {
+  min-width: 0;
+}
+
+.heartly-ai-title-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.heartly-ai-title-row h1 {
+  margin: 0;
+  color: var(--heartly-text, #111827);
+  font-size: 1.04rem;
+  line-height: 1.1;
+  font-weight: 950;
+  letter-spacing: -0.035em;
+}
+
+.heartly-ai-label {
+  min-height: 20px;
+  padding: 0 7px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--heartly-primary, #ec4899);
+  background: var(--heartly-primary-soft, rgba(236, 72, 153, 0.11));
+  font-size: 0.62rem;
+  font-weight: 950;
+}
+
+.heartly-ai-online {
+  margin: 5px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--heartly-muted, #6b7280);
+  font-size: 0.73rem;
+  font-weight: 750;
+}
+
+.heartly-ai-online > span {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #22c55e;
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.12);
+}
+
+.heartly-ai-new-chat {
+  flex: 0 0 auto;
+  min-height: 40px;
+  padding: 0 13px;
+  border: 1px solid var(--heartly-border, rgba(15, 23, 42, 0.10));
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  color: var(--heartly-text, #111827);
+  background: var(--heartly-card-soft, rgba(15, 23, 42, 0.04));
+  font-size: 0.76rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.heartly-ai-new-chat:hover {
+  color: var(--heartly-primary, #ec4899);
+  background: var(--heartly-primary-soft, rgba(236, 72, 153, 0.10));
+}
+
+.heartly-ai-new-chat:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.heartly-ai-new-chat svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.heartly-ai-welcome {
+  padding: 16px;
+  border: 1px solid var(--heartly-border, rgba(15, 23, 42, 0.10));
+  border-radius: 22px;
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--heartly-primary, #ec4899) 9%, var(--heartly-card, #ffffff)),
+      color-mix(in srgb, var(--heartly-accent, #8b5cf6) 7%, var(--heartly-card, #ffffff))
+    );
+}
+
+.heartly-ai-eyebrow {
+  display: block;
+  color: var(--heartly-primary, #ec4899);
+  font-size: 0.66rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.heartly-ai-welcome h2 {
+  margin: 6px 0 0;
+  color: var(--heartly-text, #111827);
+  font-size: 1.25rem;
+  font-weight: 950;
+  letter-spacing: -0.04em;
+}
+
+.heartly-ai-welcome p {
+  margin: 7px 0 0;
+  color: var(--heartly-muted, #6b7280);
+  font-size: 0.84rem;
+  line-height: 1.5;
+  font-weight: 650;
+}
+
+.heartly-ai-prompts {
+  margin-top: 13px;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.heartly-ai-prompts::-webkit-scrollbar {
+  display: none;
+}
+
+.heartly-ai-prompts button {
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid color-mix(in srgb, var(--heartly-primary, #ec4899) 18%, transparent);
+  border-radius: 999px;
+  color: var(--heartly-primary, #ec4899);
+  background: color-mix(in srgb, var(--heartly-card, #ffffff) 80%, transparent);
+  font-size: 0.73rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.heartly-ai-thread {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 8px 3px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--heartly-primary, #ec4899) 28%, transparent) transparent;
+}
+
+.heartly-ai-message {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  animation: heartlyAiMessageIn 180ms ease both;
+}
+
+.heartly-ai-message--user {
+  justify-content: flex-end;
+}
+
+.heartly-ai-message-avatar {
+  width: 32px;
+  height: 32px;
+  margin-top: 19px;
+  border-radius: 12px;
+}
+
+.heartly-ai-message-avatar svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+.heartly-ai-message-content {
+  width: fit-content;
+  max-width: min(86%, 620px);
+}
+
+.heartly-ai-message--user .heartly-ai-message-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.heartly-ai-message-meta {
+  margin: 0 5px 5px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--heartly-muted, #6b7280);
+  font-size: 0.66rem;
+  font-weight: 700;
+}
+
+.heartly-ai-message-meta strong {
+  color: var(--heartly-text, #111827);
+  font-size: 0.71rem;
+  font-weight: 900;
+}
+
+.heartly-ai-message--user .heartly-ai-message-meta {
+  justify-content: flex-end;
+}
+
+.heartly-ai-bubble {
+  padding: 13px 14px;
+  border: 1px solid var(--heartly-border, rgba(15, 23, 42, 0.10));
+  border-radius: 19px 19px 19px 6px;
+  color: var(--heartly-text, #111827);
+  background: var(--heartly-card, #ffffff);
+  box-shadow: 0 7px 20px rgba(15, 23, 42, 0.055);
+}
+
+.heartly-ai-message--user .heartly-ai-bubble {
+  border-color: transparent;
+  border-radius: 19px 19px 6px 19px;
+  color: #ffffff;
+  background: linear-gradient(145deg, var(--heartly-primary, #ec4899), var(--heartly-accent, #8b5cf6));
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--heartly-primary, #ec4899) 22%, transparent);
+}
+
+.heartly-ai-bubble p {
+  margin: 0;
+  color: inherit;
+  font-size: 0.88rem;
+  line-height: 1.62;
+  font-weight: 560;
+  overflow-wrap: anywhere;
+}
+
+.heartly-ai-bubble p + p {
+  margin-top: 10px;
+}
+
+.heartly-ai-bubble h3,
+.heartly-ai-bubble h4 {
+  margin: 12px 0 6px;
+  color: inherit;
+  font-size: 0.92rem;
+  line-height: 1.35;
+  font-weight: 900;
+}
+
+.heartly-ai-bubble h3:first-child,
+.heartly-ai-bubble h4:first-child {
+  margin-top: 0;
+}
+
+.heartly-ai-bubble ul,
+.heartly-ai-bubble ol {
+  margin: 8px 0 0;
+  padding-left: 20px;
+}
+
+.heartly-ai-bubble li {
+  margin-top: 5px;
+  color: inherit;
+  font-size: 0.87rem;
+  line-height: 1.55;
+  font-weight: 560;
+}
+
+.heartly-ai-bubble strong {
+  font-weight: 850;
+}
+
+.heartly-ai-bubble code {
+  padding: 2px 5px;
+  border-radius: 6px;
+  color: inherit;
+  background: color-mix(in srgb, currentColor 9%, transparent);
+  font-family: Consolas, Monaco, monospace;
+  font-size: 0.82em;
+}
+
+.heartly-ai-table-wrap {
+  width: 100%;
+  margin-top: 10px;
+  overflow-x: auto;
+  border: 1px solid var(--heartly-border, rgba(15, 23, 42, 0.10));
+  border-radius: 14px;
+  background: var(--heartly-card-soft, rgba(15, 23, 42, 0.03));
+}
+
+.heartly-ai-table {
+  width: 100%;
+  min-width: 520px;
+  border-collapse: collapse;
+  color: var(--heartly-text, #111827);
+  background: var(--heartly-card, #ffffff);
+}
+
+.heartly-ai-table th,
+.heartly-ai-table td {
+  padding: 10px 11px;
+  border-bottom: 1px solid var(--heartly-border, rgba(15, 23, 42, 0.10));
+  border-right: 1px solid var(--heartly-border, rgba(15, 23, 42, 0.10));
+  text-align: left;
+  vertical-align: top;
+  font-size: 0.8rem;
+  line-height: 1.48;
+  font-weight: 550;
+}
+
+.heartly-ai-table th {
+  color: var(--heartly-text, #111827);
+  background: var(--heartly-primary-soft, rgba(236, 72, 153, 0.09));
+  font-weight: 900;
+}
+
+.heartly-ai-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.heartly-ai-table th:last-child,
+.heartly-ai-table td:last-child {
+  border-right: 0;
+}
+
+.heartly-ai-message-actions {
+  margin-top: 6px;
+  display: flex;
+  gap: 6px;
+}
+
+.heartly-ai-copy {
+  min-height: 27px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 9px;
+  color: var(--heartly-muted, #6b7280);
+  background: transparent;
+  font-size: 0.66rem;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.heartly-ai-copy:hover {
+  color: var(--heartly-primary, #ec4899);
+  background: var(--heartly-primary-soft, rgba(236, 72, 153, 0.10));
+}
+
+.heartly-ai-typing {
+  min-width: 70px;
+  min-height: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.heartly-ai-typing span {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--heartly-primary, #ec4899);
+  opacity: 0.28;
+  animation: heartlyAiTyping 900ms infinite ease-in-out;
+}
+
+.heartly-ai-typing span:nth-child(2) {
+  animation-delay: 130ms;
+}
+
+.heartly-ai-typing span:nth-child(3) {
+  animation-delay: 260ms;
+}
+
+.heartly-ai-composer {
+  padding: 8px;
+  border: 1px solid var(--heartly-border, rgba(15, 23, 42, 0.10));
+  border-radius: 21px;
+  background: var(--heartly-card, #ffffff);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.12);
+}
+
+.heartly-ai-composer-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 46px;
+  align-items: end;
+  gap: 8px;
+}
+
+.heartly-ai-composer textarea {
+  width: 100%;
+  min-height: 46px;
+  max-height: 118px;
+  resize: none;
+  overflow-y: auto;
+  padding: 12px 14px;
+  border: 1px solid transparent;
+  border-radius: 15px;
+  outline: none;
+  color: var(--heartly-text, #111827);
+  background: var(--heartly-card-soft, rgba(15, 23, 42, 0.04));
+  font: inherit;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  font-weight: 600;
+}
+
+.heartly-ai-composer textarea:focus {
+  border-color: color-mix(in srgb, var(--heartly-primary, #ec4899) 45%, transparent);
+  box-shadow: 0 0 0 4px var(--heartly-primary-soft, rgba(236, 72, 153, 0.10));
+}
+
+.heartly-ai-send {
+  width: 46px;
+  height: 46px;
+  border: 0;
+  border-radius: 15px;
+  display: grid;
+  place-items: center;
+  color: #ffffff;
+  background: linear-gradient(145deg, var(--heartly-primary, #ec4899), var(--heartly-accent, #8b5cf6));
+  box-shadow: 0 9px 22px color-mix(in srgb, var(--heartly-primary, #ec4899) 26%, transparent);
+  cursor: pointer;
+}
+
+.heartly-ai-send:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.heartly-ai-send svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.heartly-ai-disclaimer {
+  margin: 5px 6px 0;
+  color: var(--heartly-muted, #6b7280);
+  text-align: center;
+  font-size: 0.61rem;
+  line-height: 1.25;
+  font-weight: 700;
+}
+
+.heartly-ai-notice {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--heartly-bottomnav-height, 74px) + 88px);
+  z-index: 80;
+  width: min(calc(100% - 28px), 500px);
+  transform: translateX(-50%);
+  padding: 10px 12px;
+  border: 1px solid var(--heartly-border, rgba(15, 23, 42, 0.10));
+  border-radius: 13px;
+  color: var(--heartly-text, #111827);
+  background: var(--heartly-card, #ffffff);
+  box-shadow: var(--heartly-shadow-soft, 0 14px 32px rgba(15, 23, 42, 0.12));
+  text-align: center;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+@keyframes heartlyAiMessageIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
   }
 
-  .ai-polished-header {
-    padding: 16px;
-    display: grid;
-    grid-template-columns: 58px 1fr auto;
-    gap: 12px;
-    align-items: center;
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes heartlyAiTyping {
+  0%, 100% {
+    opacity: 0.24;
+    transform: translateY(0);
   }
 
-  .ai-polished-bot {
-    width: 54px;
-    height: 54px;
-    border-radius: 20px;
-    background: var(--heartly-gradient);
-    display: grid;
-    place-items: center;
-    box-shadow: var(--heartly-shadow-soft);
+  50% {
+    opacity: 1;
+    transform: translateY(-3px);
   }
+}
 
-  .ai-polished-face {
-    width: 36px;
-    height: 28px;
-    border-radius: 13px;
-    background: rgba(255, 255, 255, 0.92);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 7px;
-  }
-
-  .ai-polished-face span {
-    width: 7px;
-    height: 7px;
-    border-radius: 999px;
-    background: var(--heartly-primary);
-  }
-
-  .ai-polished-title {
-    min-width: 0;
-  }
-
-  .ai-polished-status {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    color: var(--heartly-success, #22c55e);
-    font-size: 11px;
-    font-weight: 950;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-  }
-
-  .ai-polished-status span {
-    width: 8px;
-    height: 8px;
-    border-radius: 999px;
-    background: var(--heartly-success, #22c55e);
-    box-shadow: 0 0 12px var(--heartly-success, #22c55e);
-  }
-
-  .ai-polished-title h1 {
-    margin: 4px 0 0;
-    color: var(--heartly-text-strong, var(--heartly-text));
-    font-size: 21px;
-    font-weight: 950;
-    letter-spacing: -0.045em;
-  }
-
-  .ai-polished-title p {
-    margin: 4px 0 0;
-    color: var(--heartly-muted);
-    font-size: 12px;
-    line-height: 1.35;
-  }
-
-  .ai-polished-new-btn {
-    min-height: 42px;
-    padding: 0 14px;
-    border: 1px solid var(--heartly-border);
-    border-radius: 16px;
-    background: var(--heartly-card-soft);
-    color: var(--heartly-text);
-    font-size: 13px;
-    font-weight: 950;
-    cursor: pointer;
-  }
-
-  .ai-polished-new-btn:hover {
-    background: var(--heartly-primary-soft);
-    color: var(--heartly-primary);
-  }
-
-  .ai-polished-thread {
-    min-height: 360px;
-    max-height: calc(100vh - 270px);
-    padding: 16px;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-  }
-
-  .ai-polished-message {
-    display: flex;
-    align-items: flex-end;
-    gap: 9px;
-  }
-
-  .ai-polished-message.user {
-    justify-content: flex-end;
-  }
-
-  .ai-polished-message.ai {
-    justify-content: flex-start;
-  }
-
-  .ai-polished-avatar {
-    width: 34px;
-    height: 34px;
-    border-radius: 14px;
-    background: var(--heartly-gradient);
-    color: #ffffff;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 950;
-    box-shadow: var(--heartly-shadow-soft);
-    flex: 0 0 auto;
-  }
-
-  .ai-polished-bubble {
-    max-width: 82%;
-    padding: 12px 14px;
-    border-radius: 20px;
-    color: var(--heartly-text);
-    background: var(--heartly-card-soft);
-    border: 1px solid var(--heartly-border);
-    font-size: 14px;
-    line-height: 1.5;
-    font-weight: 800;
-    word-break: break-word;
-  }
-
-  .ai-polished-message.user .ai-polished-bubble {
-    color: #ffffff;
-    background: var(--heartly-gradient);
-    border-color: transparent;
-    border-bottom-right-radius: 7px;
-    box-shadow: 0 16px 36px rgba(139, 92, 246, 0.24);
-  }
-
-  .ai-polished-message.ai .ai-polished-bubble {
-    border-bottom-left-radius: 7px;
-  }
-
-  .ai-polished-form {
-    padding: 10px;
-    display: grid;
-    grid-template-columns: 1fr 50px;
+@media (max-width: 560px) {
+  .heartly-ai-shell {
+    height: calc(100dvh - var(--heartly-bottomnav-height, 74px) - 8px);
+    min-height: 540px;
+    padding: 4px 6px 7px;
     gap: 8px;
-    align-items: center;
   }
 
-  .ai-polished-form input {
-    min-height: 50px;
-    border: 1px solid var(--heartly-input-border, var(--heartly-border));
-    border-radius: 999px;
-    background: var(--heartly-input-bg, var(--heartly-card-soft));
-    color: var(--heartly-input-text, var(--heartly-text));
-    padding: 0 16px;
-    outline: none;
-    font-size: 14px;
-    font-weight: 800;
+  .heartly-ai-header {
+    min-height: 70px;
+    border-radius: 21px;
   }
 
-  .ai-polished-form input:focus {
-    border-color: var(--heartly-primary);
-    box-shadow: 0 0 0 4px var(--heartly-primary-soft);
+  .heartly-ai-logo {
+    width: 44px;
+    height: 44px;
+    border-radius: 15px;
   }
 
-  .ai-polished-form button {
-    width: 50px;
-    height: 50px;
+  .heartly-ai-new-chat {
+    width: 40px;
+    padding: 0;
+  }
+
+  .heartly-ai-new-chat span {
+    display: none;
+  }
+
+  .heartly-ai-welcome {
+    padding: 14px;
+    border-radius: 20px;
+  }
+
+  .heartly-ai-message-content {
+    max-width: 88%;
+  }
+
+  .heartly-ai-message-avatar {
+    width: 30px;
+    height: 30px;
+  }
+
+  .heartly-ai-bubble {
+    padding: 12px 13px;
+  }
+
+  .heartly-ai-bubble p {
+    font-size: 0.86rem;
+  }
+
+  .heartly-ai-table-wrap {
+    overflow: visible;
     border: 0;
-    border-radius: 999px;
-    background: var(--heartly-gradient);
-    color: #ffffff;
-    font-size: 22px;
+    background: transparent;
+  }
+
+  .heartly-ai-table {
+    min-width: 0;
+    display: block;
+    background: transparent;
+  }
+
+  .heartly-ai-table thead {
+    display: none;
+  }
+
+  .heartly-ai-table tbody,
+  .heartly-ai-table tr,
+  .heartly-ai-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .heartly-ai-table tr {
+    margin-top: 10px;
+    overflow: hidden;
+    border: 1px solid var(--heartly-border, rgba(15, 23, 42, 0.10));
+    border-radius: 13px;
+    background: var(--heartly-card-soft, rgba(15, 23, 42, 0.03));
+  }
+
+  .heartly-ai-table tr:first-child {
+    margin-top: 0;
+  }
+
+  .heartly-ai-table td {
+    padding: 9px 10px;
+    border-right: 0;
+    border-bottom: 1px solid var(--heartly-border, rgba(15, 23, 42, 0.10));
+    font-size: 0.8rem;
+  }
+
+  .heartly-ai-table td:last-child {
+    border-bottom: 0;
+  }
+
+  .heartly-ai-table td::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 3px;
+    color: var(--heartly-primary, #ec4899);
+    font-size: 0.67rem;
     font-weight: 950;
-    cursor: pointer;
-    box-shadow: var(--heartly-shadow-soft);
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
   }
 
-  .ai-polished-typing {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
+  .heartly-ai-composer {
+    border-radius: 19px;
   }
+}
 
-  .ai-polished-typing span {
-    margin-right: 3px;
+@media (max-height: 720px) {
+  .heartly-ai-welcome {
+    display: none;
   }
+}
 
-  .ai-polished-typing b {
-    width: 6px;
-    height: 6px;
-    border-radius: 999px;
-    background: var(--heartly-primary);
-    opacity: 0.35;
-    animation: heartlyTyping 900ms infinite ease-in-out;
+@media (prefers-reduced-motion: reduce) {
+  .heartly-ai-message,
+  .heartly-ai-typing span {
+    animation: none;
   }
-
-  .ai-polished-typing b:nth-child(2) {
-    animation-delay: 120ms;
-  }
-
-  .ai-polished-typing b:nth-child(3) {
-    animation-delay: 240ms;
-  }
-
-  @keyframes heartlyTyping {
-    0%, 100% {
-      opacity: 0.25;
-      transform: translateY(0);
-    }
-
-    50% {
-      opacity: 1;
-      transform: translateY(-3px);
-    }
-  }
-
-  @media (max-width: 380px) {
-    .ai-polished-header {
-      grid-template-columns: 50px 1fr auto;
-      padding: 14px;
-    }
-
-    .ai-polished-bot {
-      width: 48px;
-      height: 48px;
-      border-radius: 18px;
-    }
-
-    .ai-polished-title h1 {
-      font-size: 19px;
-    }
-
-    .ai-polished-title p {
-      font-size: 11px;
-    }
-
-    .ai-polished-thread {
-      min-height: 330px;
-      padding: 14px;
-    }
-
-    .ai-polished-bubble {
-      max-width: 86%;
-      font-size: 13px;
-    }
-  }
-</style>
-
+}
 {% endblock %}
 
 {% block extra_js %}
@@ -346,142 +813,532 @@ document.addEventListener("DOMContentLoaded", function () {
   const input = document.getElementById("aiCoachInput");
   const thread = document.getElementById("aiChatThread");
   const newButton = document.getElementById("endAiChatBtn");
+  const sendButton = document.getElementById("aiCoachSendBtn");
+  const notice = document.getElementById("aiCoachNotice");
+  const welcomeCard = document.getElementById("aiWelcomeCard");
+  const promptButtons = document.querySelectorAll("[data-ai-prompt]");
 
-  if (!form || !input || !thread || !newButton) return;
+  if (!form || !input || !thread || !newButton || !sendButton) {
+    return;
+  }
+
+  let sending = false;
+  let noticeTimer = null;
 
   function getCsrfToken() {
     const token = form.querySelector("input[name='csrfmiddlewaretoken']");
     return token ? token.value : "";
   }
 
-  function scrollChat() {
-    thread.scrollTop = thread.scrollHeight;
+  function currentTime() {
+    return new Intl.DateTimeFormat([], {
+      hour: "numeric",
+      minute: "2-digit"
+    }).format(new Date());
+  }
+
+  function scrollThread() {
+    window.requestAnimationFrame(function () {
+      thread.scrollTop = thread.scrollHeight;
+    });
+  }
+
+  function resizeInput() {
+    input.style.height = "auto";
+    input.style.height = Math.min(input.scrollHeight, 118) + "px";
+  }
+
+  function showNotice(message) {
+    if (!notice) return;
+
+    notice.textContent = message;
+    notice.hidden = false;
+
+    window.clearTimeout(noticeTimer);
+    noticeTimer = window.setTimeout(function () {
+      notice.hidden = true;
+    }, 3000);
+  }
+
+  function setSendingState(active) {
+    sending = active;
+    input.disabled = active;
+    sendButton.disabled = active;
+    sendButton.setAttribute("aria-busy", active ? "true" : "false");
+  }
+
+  function createMeta(type) {
+    const meta = document.createElement("div");
+    meta.className = "heartly-ai-message-meta";
+
+    const sender = document.createElement("strong");
+    sender.textContent = type === "user" ? "You" : "Heartly";
+
+    const time = document.createElement("span");
+    time.textContent = currentTime();
+
+    meta.appendChild(sender);
+    meta.appendChild(time);
+
+    return meta;
+  }
+
+  function appendInline(parent, text) {
+    const value = String(text || "");
+    const tokenPattern = /(\*\*[^*]+\*\*|`[^`]+`|\*[^*]+\*)/g;
+    let lastIndex = 0;
+    let match;
+
+    while ((match = tokenPattern.exec(value)) !== null) {
+      if (match.index > lastIndex) {
+        parent.appendChild(
+          document.createTextNode(value.slice(lastIndex, match.index))
+        );
+      }
+
+      const token = match[0];
+      let element;
+
+      if (token.startsWith("**")) {
+        element = document.createElement("strong");
+        element.textContent = token.slice(2, -2);
+      } else if (token.startsWith("`")) {
+        element = document.createElement("code");
+        element.textContent = token.slice(1, -1);
+      } else {
+        element = document.createElement("em");
+        element.textContent = token.slice(1, -1);
+      }
+
+      parent.appendChild(element);
+      lastIndex = tokenPattern.lastIndex;
+    }
+
+    if (lastIndex < value.length) {
+      parent.appendChild(document.createTextNode(value.slice(lastIndex)));
+    }
+  }
+
+  function splitTableRow(line) {
+    return line
+      .trim()
+      .replace(/^\|/, "")
+      .replace(/\|$/, "")
+      .split("|")
+      .map(function (cell) {
+        return cell.trim();
+      });
+  }
+
+  function isTableDivider(line) {
+    const cells = splitTableRow(line);
+
+    return (
+      cells.length > 0 &&
+      cells.every(function (cell) {
+        return /^:?-{3,}:?$/.test(cell);
+      })
+    );
+  }
+
+  function appendTable(container, headerLine, bodyLines) {
+    const headers = splitTableRow(headerLine);
+    const wrapper = document.createElement("div");
+    wrapper.className = "heartly-ai-table-wrap";
+
+    const table = document.createElement("table");
+    table.className = "heartly-ai-table";
+
+    const thead = document.createElement("thead");
+    const headRow = document.createElement("tr");
+
+    headers.forEach(function (header) {
+      const th = document.createElement("th");
+      appendInline(th, header);
+      headRow.appendChild(th);
+    });
+
+    thead.appendChild(headRow);
+    table.appendChild(thead);
+
+    const tbody = document.createElement("tbody");
+
+    bodyLines.forEach(function (line) {
+      const values = splitTableRow(line);
+      const row = document.createElement("tr");
+
+      headers.forEach(function (header, index) {
+        const td = document.createElement("td");
+        td.dataset.label = header.replace(/\*\*/g, "");
+        appendInline(td, values[index] || "");
+        row.appendChild(td);
+      });
+
+      tbody.appendChild(row);
+    });
+
+    table.appendChild(tbody);
+    wrapper.appendChild(table);
+    container.appendChild(wrapper);
+  }
+
+  function appendMarkdown(container, text) {
+    const normalized = String(text || "")
+      .replace(/\r\n/g, "\n")
+      .trim();
+
+    const lines = normalized.split("\n");
+    let index = 0;
+
+    while (index < lines.length) {
+      const rawLine = lines[index];
+      const line = rawLine.trim();
+
+      if (!line) {
+        index += 1;
+        continue;
+      }
+
+      if (
+        line.includes("|") &&
+        index + 1 < lines.length &&
+        isTableDivider(lines[index + 1])
+      ) {
+        const bodyRows = [];
+        index += 2;
+
+        while (
+          index < lines.length &&
+          lines[index].trim() &&
+          lines[index].includes("|")
+        ) {
+          bodyRows.push(lines[index]);
+          index += 1;
+        }
+
+        appendTable(container, rawLine, bodyRows);
+        continue;
+      }
+
+      const headingMatch = line.match(/^(#{2,4})\s+(.+)/);
+
+      if (headingMatch) {
+        const heading = document.createElement(
+          headingMatch[1].length <= 2 ? "h3" : "h4"
+        );
+        appendInline(heading, headingMatch[2]);
+        container.appendChild(heading);
+        index += 1;
+        continue;
+      }
+
+      const bulletMatch = line.match(/^[-*]\s+(.+)/);
+
+      if (bulletMatch) {
+        const list = document.createElement("ul");
+
+        while (index < lines.length) {
+          const current = lines[index].trim().match(/^[-*]\s+(.+)/);
+
+          if (!current) break;
+
+          const item = document.createElement("li");
+          appendInline(item, current[1]);
+          list.appendChild(item);
+          index += 1;
+        }
+
+        container.appendChild(list);
+        continue;
+      }
+
+      const numberedMatch = line.match(/^\d+[.)]\s+(.+)/);
+
+      if (numberedMatch) {
+        const list = document.createElement("ol");
+
+        while (index < lines.length) {
+          const current = lines[index].trim().match(/^\d+[.)]\s+(.+)/);
+
+          if (!current) break;
+
+          const item = document.createElement("li");
+          appendInline(item, current[1]);
+          list.appendChild(item);
+          index += 1;
+        }
+
+        container.appendChild(list);
+        continue;
+      }
+
+      const paragraphLines = [line];
+      index += 1;
+
+      while (index < lines.length) {
+        const next = lines[index].trim();
+
+        if (
+          !next ||
+          next.match(/^(#{2,4})\s+/) ||
+          next.match(/^[-*]\s+/) ||
+          next.match(/^\d+[.)]\s+/) ||
+          (
+            next.includes("|") &&
+            index + 1 < lines.length &&
+            isTableDivider(lines[index + 1])
+          )
+        ) {
+          break;
+        }
+
+        paragraphLines.push(next);
+        index += 1;
+      }
+
+      const paragraph = document.createElement("p");
+      appendInline(paragraph, paragraphLines.join(" "));
+      container.appendChild(paragraph);
+    }
+
+    if (!container.children.length) {
+      const paragraph = document.createElement("p");
+      paragraph.textContent = normalized || "I could not generate a reply.";
+      container.appendChild(paragraph);
+    }
+  }
+
+  function addCopyButton(content, text) {
+    if (!navigator.clipboard || !text) return;
+
+    const actions = document.createElement("div");
+    actions.className = "heartly-ai-message-actions";
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "heartly-ai-copy";
+    button.textContent = "Copy";
+
+    button.addEventListener("click", async function () {
+      try {
+        await navigator.clipboard.writeText(text);
+        button.textContent = "Copied";
+
+        window.setTimeout(function () {
+          button.textContent = "Copy";
+        }, 1400);
+      } catch (error) {
+        showNotice("Could not copy this response.");
+      }
+    });
+
+    actions.appendChild(button);
+    content.appendChild(actions);
+  }
+
+  function createAssistantAvatar() {
+    const avatar = document.createElement("div");
+    avatar.className = "heartly-ai-message-avatar";
+    avatar.setAttribute("aria-hidden", "true");
+    avatar.innerHTML = `
+      <svg viewBox="0 0 24 24">
+        <path d="M12 21s-7.2-4.35-9.35-8.46C.8 9 2.16 5 6.18 4.35A5.33 5.33 0 0 1 12 7.14a5.33 5.33 0 0 1 5.82-2.79C21.84 5 23.2 9 21.35 12.54 19.2 16.65 12 21 12 21Z"/>
+      </svg>
+    `;
+    return avatar;
   }
 
   function addMessage(type, text) {
-    const message = document.createElement("div");
-    message.className = "ai-polished-message " + type;
+    const message = document.createElement("article");
+    message.className =
+      "heartly-ai-message " +
+      (
+        type === "user"
+          ? "heartly-ai-message--user"
+          : "heartly-ai-message--assistant"
+      );
 
-    if (type === "ai") {
-      const avatar = document.createElement("div");
-      avatar.className = "ai-polished-avatar";
-      avatar.textContent = "♥";
-      message.appendChild(avatar);
+    if (type === "assistant") {
+      message.appendChild(createAssistantAvatar());
     }
 
-    const bubble = document.createElement("div");
-    bubble.className = "ai-polished-bubble";
-    bubble.textContent = text;
-    bubble.style.whiteSpace = "pre-line";
+    const content = document.createElement("div");
+    content.className = "heartly-ai-message-content";
+    content.appendChild(createMeta(type));
 
-    message.appendChild(bubble);
+    const bubble = document.createElement("div");
+    bubble.className = "heartly-ai-bubble";
+
+    if (type === "assistant") {
+      appendMarkdown(bubble, text);
+    } else {
+      const paragraph = document.createElement("p");
+      paragraph.textContent = text;
+      bubble.appendChild(paragraph);
+    }
+
+    content.appendChild(bubble);
+
+    if (type === "assistant") {
+      addCopyButton(content, text);
+    }
+
+    message.appendChild(content);
     thread.appendChild(message);
 
-    scrollChat();
+    if (welcomeCard && type === "user") {
+      welcomeCard.hidden = true;
+    }
 
+    scrollThread();
     return message;
   }
 
   function addTypingMessage() {
-    const message = document.createElement("div");
-    message.className = "ai-polished-message ai ai-polished-typing-message";
+    const message = document.createElement("article");
+    message.className =
+      "heartly-ai-message heartly-ai-message--assistant heartly-ai-typing-message";
 
-    const avatar = document.createElement("div");
-    avatar.className = "ai-polished-avatar";
-    avatar.textContent = "♥";
+    message.appendChild(createAssistantAvatar());
+
+    const content = document.createElement("div");
+    content.className = "heartly-ai-message-content";
+    content.appendChild(createMeta("assistant"));
 
     const bubble = document.createElement("div");
-    bubble.className = "ai-polished-bubble ai-polished-typing";
-    bubble.innerHTML = `
-      <span>Heartly is typing</span>
-      <b></b><b></b><b></b>
-    `;
+    bubble.className = "heartly-ai-bubble";
 
-    message.appendChild(avatar);
-    message.appendChild(bubble);
+    const typing = document.createElement("div");
+    typing.className = "heartly-ai-typing";
+    typing.setAttribute("aria-label", "Heartly is thinking");
+    typing.innerHTML = "<span></span><span></span><span></span>";
+
+    bubble.appendChild(typing);
+    content.appendChild(bubble);
+    message.appendChild(content);
     thread.appendChild(message);
 
-    scrollChat();
-
+    scrollThread();
     return message;
   }
 
-  function sendMessage(message) {
-    const cleanMessage = message.trim();
+  async function sendMessage(message) {
+    const cleanMessage = String(message || "").trim();
 
-    if (!cleanMessage) return;
+    if (!cleanMessage || sending) return;
 
     addMessage("user", cleanMessage);
 
     input.value = "";
-    input.focus();
+    resizeInput();
+    setSendingState(true);
 
     const typingMessage = addTypingMessage();
-
     const formData = new FormData();
     formData.append("message", cleanMessage);
 
-    const startedAt = Date.now();
-
-    fetch("{% url 'ai_features:ai_coach_send' %}", {
-      method: "POST",
-      headers: {
-        "X-CSRFToken": getCsrfToken(),
-        "X-Requested-With": "XMLHttpRequest"
-      },
-      body: formData
-    })
-      .then(function (response) {
-        if (!response.ok) {
-          throw new Error("Request failed");
-        }
-
-        return response.json();
-      })
-      .then(function (data) {
-        const elapsed = Date.now() - startedAt;
-        const delay = Math.max(650 - elapsed, 0);
-
-        setTimeout(function () {
-          typingMessage.remove();
-
-          if (data.ok) {
-            addMessage("ai", data.reply);
-          } else {
-            addMessage("ai", data.reply || "Try asking that another way.");
-          }
-        }, delay);
-      })
-      .catch(function () {
-        typingMessage.remove();
-        addMessage("ai", "Connection issue. Try again.");
+    try {
+      const response = await fetch("{% url 'ai_features:ai_coach_send' %}", {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": getCsrfToken(),
+          "X-Requested-With": "XMLHttpRequest"
+        },
+        body: formData
       });
+
+      let data = {};
+
+      try {
+        data = await response.json();
+      } catch (error) {
+        data = {};
+      }
+
+      if (!response.ok) {
+        throw new Error(data.reply || data.error || "Request failed");
+      }
+
+      typingMessage.remove();
+
+      addMessage(
+        "assistant",
+        data.reply || data.response || "I could not generate a reply right now."
+      );
+    } catch (error) {
+      typingMessage.remove();
+      addMessage(
+        "assistant",
+        "I could not connect right now. Check your connection and try again."
+      );
+    } finally {
+      setSendingState(false);
+      input.focus();
+    }
   }
 
   form.addEventListener("submit", function (event) {
     event.preventDefault();
-
-    const message = input.value;
-    sendMessage(message);
+    sendMessage(input.value);
   });
 
-  newButton.addEventListener("click", function () {
-    thread.innerHTML = "";
+  input.addEventListener("input", resizeInput);
 
-    addMessage("ai", "New chat started. What do you want to talk about?");
+  input.addEventListener("keydown", function (event) {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      form.requestSubmit();
+    }
+  });
 
-    fetch("{% url 'ai_features:ai_coach_end_chat' %}", {
-      method: "POST",
-      headers: {
-        "X-CSRFToken": getCsrfToken(),
-        "X-Requested-With": "XMLHttpRequest"
-      }
-    }).catch(function () {
-      // Do not disturb the visible chat if backend cleanup fails.
+  promptButtons.forEach(function (button) {
+    button.addEventListener("click", function () {
+      input.value = button.dataset.aiPrompt || "";
+      resizeInput();
+      input.focus();
     });
   });
 
-  scrollChat();
+  newButton.addEventListener("click", async function () {
+    if (sending) return;
+
+    newButton.disabled = true;
+
+    try {
+      const response = await fetch("{% url 'ai_features:ai_coach_end_chat' %}", {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": getCsrfToken(),
+          "X-Requested-With": "XMLHttpRequest"
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error("Could not start a new chat");
+      }
+
+      thread.innerHTML = "";
+
+      if (welcomeCard) {
+        welcomeCard.hidden = false;
+      }
+
+      addMessage(
+        "assistant",
+        "New chat started. What would you like help with?"
+      );
+
+      showNotice("New chat started.");
+    } catch (error) {
+      showNotice("Could not start a new chat. Try again.");
+    } finally {
+      newButton.disabled = false;
+      input.focus();
+    }
+  });
+
+  resizeInput();
+  scrollThread();
 });
 </script>
 {% endblock %}

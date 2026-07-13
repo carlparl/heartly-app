@@ -14,7 +14,7 @@
             </p>
         </div>
 
-        <a href="{% url 'settings' %}" class="top-icon-btn" title="Settings" aria-label="Open settings">
+        <a href="{% url 'settings' %}" class="top-icon-btn heartly-icon-btn" title="Settings" aria-label="Open settings">
             ⚙️
         </a>
     </div>
@@ -52,14 +52,14 @@
             <div class="notifications-actions">
                 <form method="post" action="{% url 'notifications:mark_notifications_read' %}">
                     {% csrf_token %}
-                    <button type="submit" class="primary-action">
+                    <button type="submit" class="primary-action heartly-btn-primary">
                         Mark all read
                     </button>
                 </form>
 
                 <form method="post" action="{% url 'notifications:clear_all_notifications' %}">
                     {% csrf_token %}
-                    <button type="submit" class="secondary-action" onclick="return confirm('Clear all notifications?')">
+                    <button type="submit" class="secondary-action heartly-btn-secondary" onclick="return confirm('Clear all notifications?')">
                         Clear all
                     </button>
                 </form>

@@ -1,0 +1,36 @@
+{% extends 'heartly/base.html' %}
+{% block title %}Blocked Users - Heartly{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 pb-24 max-w-md mx-auto">
+
+    <div class="bg-white px-5 py-4 flex items-center border-b sticky top-0 z-10">
+        <a href="{% url 'profile' %}" class="text-gray-500 mr-4"><i class="fas fa-arrow-left text-xl"></i></a>
+        <h1 class="text-xl font-semibold">Blocked Users</h1>
+    </div>
+
+    <div class="px-5 pt-6">
+        {% if blocked_users %}
+            <div class="space-y-3">
+                {% for user in blocked_users %}
+                <div class="bg-white rounded-2xl p-4 flex items-center justify-between shadow-sm">
+                    <div class="flex items-center gap-3">
+                        <img src="https://picsum.photos/id/1005/50/50" class="w-12 h-12 rounded-full object-cover">
+                        <div>
+                            <p class="font-medium">{{ user.first_name|default:user.email }}</p>
+                            <p class="text-sm text-gray-500">Blocked</p>
+                        </div>
+                    </div>
+                    <button class="text-red-500 text-sm font-medium">Unblock</button>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center py-12">
+                <i class="fas fa-user-slash text-4xl text-gray-300 mb-4"></i>
+                <p class="text-gray-500">You haven't blocked anyone yet.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

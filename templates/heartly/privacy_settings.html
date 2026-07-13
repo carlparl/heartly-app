@@ -1,0 +1,70 @@
+{% extends 'heartly/base.html' %}
+{% block title %}Privacy Settings - Heartly{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 pb-24 max-w-md mx-auto">
+
+    <!-- Header -->
+    <div class="bg-white px-5 py-4 flex items-center border-b sticky top-0 z-10">
+        <a href="{% url 'profile' %}" class="text-gray-500 mr-4">
+            <i class="fas fa-arrow-left text-xl"></i>
+        </a>
+        <h1 class="text-xl font-semibold">Privacy Settings</h1>
+    </div>
+
+    <div class="px-5 pt-6 space-y-6">
+
+        <!-- Profile Visibility -->
+        <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
+            <h3 class="font-semibold mb-4">Profile Visibility</h3>
+            
+            <div class="space-y-4">
+                <label class="flex items-center justify-between cursor-pointer">
+                    <div>
+                        <p class="font-medium">Who can see my profile?</p>
+                        <p class="text-sm text-gray-500">Control who views your profile</p>
+                    </div>
+                    <select class="border border-gray-300 rounded-xl px-3 py-2 text-sm">
+                        <option>Everyone</option>
+                        <option>Matches Only</option>
+                        <option>Private</option>
+                    </select>
+                </label>
+
+                <label class="flex items-center justify-between cursor-pointer">
+                    <div>
+                        <p class="font-medium">Show my age</p>
+                    </div>
+                    <input type="checkbox" checked class="accent-[#14b8a6] w-5 h-5">
+                </label>
+
+                <label class="flex items-center justify-between cursor-pointer">
+                    <div>
+                        <p class="font-medium">Show distance</p>
+                    </div>
+                    <input type="checkbox" checked class="accent-[#14b8a6] w-5 h-5">
+                </label>
+            </div>
+        </div>
+
+        <!-- Messaging -->
+        <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
+            <h3 class="font-semibold mb-4">Messaging</h3>
+            
+            <label class="flex items-center justify-between cursor-pointer">
+                <div>
+                    <p class="font-medium">Who can message me?</p>
+                </div>
+                <select class="border border-gray-300 rounded-xl px-3 py-2 text-sm">
+                    <option>Matches Only</option>
+                    <option>Everyone</option>
+                </select>
+            </label>
+        </div>
+
+        <button class="w-full bg-[#14b8a6] text-white font-semibold py-4 rounded-2xl mt-4">
+            Save Changes
+        </button>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,57 @@
+{% extends 'heartly/base.html' %}
+{% block title %}Account Settings - Heartly{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 pb-24 max-w-md mx-auto">
+
+    <div class="bg-white px-5 py-4 flex items-center border-b sticky top-0 z-10">
+        <a href="{% url 'profile' %}" class="text-gray-500 mr-4"><i class="fas fa-arrow-left text-xl"></i></a>
+        <h1 class="text-xl font-semibold">Account Settings</h1>
+    </div>
+
+    <div class="px-5 pt-6 space-y-6">
+
+        <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
+            <h3 class="font-semibold mb-4">Account Information</h3>
+            
+            <div class="space-y-4 text-sm">
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Email</span>
+                    <span class="font-medium">{{ request.user.email }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Phone</span>
+                    <span class="font-medium">{{ request.user.phone_number|default:"Not added" }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Account Created</span>
+                    <span class="font-medium">{{ request.user.date_joined|date:"M Y" }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
+            <h3 class="font-semibold mb-4">Security</h3>
+            
+            <a href="#" class="flex items-center justify-between py-3 border-b">
+                <span>Change Password</span>
+                <i class="fas fa-chevron-right text-gray-400"></i>
+            </a>
+            <a href="#" class="flex items-center justify-between py-3">
+                <span>Two-Factor Authentication</span>
+                <span class="text-xs bg-gray-200 px-2 py-1 rounded-full">Coming Soon</span>
+            </a>
+        </div>
+
+        <div class="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
+            <h3 class="font-semibold mb-4 text-red-600">Danger Zone</h3>
+            
+            <a href="#" class="flex items-center justify-between py-3 text-red-600">
+                <span>Deactivate Account</span>
+                <i class="fas fa-chevron-right"></i>
+            </a>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
