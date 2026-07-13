@@ -89,8 +89,13 @@
             --heartly-content-padding: 14px;
             --heartly-section-gap: 14px;
 
+            --heartly-safe-top: env(safe-area-inset-top, 0px);
+            --heartly-safe-bottom: env(safe-area-inset-bottom, 0px);
             --heartly-topbar-height: 0px;
-            --heartly-bottomnav-height: 82px;
+            --heartly-bottomnav-bar-height: 82px;
+            --heartly-bottomnav-height: calc(
+                var(--heartly-bottomnav-bar-height) + var(--heartly-safe-bottom)
+            );
 
             --heartly-radius-sm: 14px;
             --heartly-radius-md: 18px;
@@ -229,20 +234,27 @@
 
         .heartly-app-main {
             min-height: 100vh;
+            min-height: 100dvh;
             padding:
-                calc(var(--heartly-topbar-height) + var(--heartly-content-padding))
+                calc(
+                    var(--heartly-safe-top) +
+                    var(--heartly-topbar-height) +
+                    var(--heartly-content-padding)
+                )
                 var(--heartly-content-padding)
                 calc(var(--heartly-bottomnav-height) + 14px);
             background: var(--heartly-bg);
         }
 
         body:not(.heartly-authenticated) .heartly-app-main {
-            padding-bottom: var(--heartly-content-padding);
+            padding-bottom: calc(
+                var(--heartly-safe-bottom) + var(--heartly-content-padding)
+            );
         }
 
         .heartly-topbar {
             position: fixed;
-            top: 0;
+            top: var(--heartly-safe-top);
             left: 50%;
             z-index: 300;
             width: min(100%, var(--heartly-page-max));
@@ -366,7 +378,7 @@
             z-index: 260;
             width: min(100%, var(--heartly-page-max));
             height: var(--heartly-bottomnav-height);
-            padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+            padding: 10px 14px calc(10px + var(--heartly-safe-bottom));
             transform: translateX(-50%);
             background: transparent;
         }
@@ -753,7 +765,7 @@
 
         @media (max-width: 430px) {
             :root {
-                --heartly-bottomnav-height: 76px;
+                --heartly-bottomnav-bar-height: 76px;
                 --heartly-content-padding: 10px;
             }
 
