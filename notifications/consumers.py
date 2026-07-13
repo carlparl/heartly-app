@@ -4,28 +4,49 @@ from django.utils import timezone
 
 from chat.models import CallSession
 
+from .models import Notification
+from .utils import notification_snapshot
+
 
 class NotificationConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self):
         self.user = self.scope["user"]
 
         if not self.user.is_authenticated:
-            await self.close()
+            await self.close(code=4401)
             return
 
         self.group_name = f"heartly_user_{self.user.id}"
-
-        await self.channel_layer.group_add(self.group_name, self.channel_name)
+        await self.channel_layer.group_add(
+            self.group_name,
+            self.channel_name,
+        )
         await self.accept()
+        await self.send_json(await self.get_snapshot())
 
     async def disconnect(self, close_code):
         if hasattr(self, "group_name"):
-            await self.channel_layer.group_discard(self.group_name, self.channel_name)
+            await self.channel_layer.group_discard(
+                self.group_name,
+                self.channel_name,
+            )
 
     async def receive_json(self, content, **kwargs):
         event_type = content.get("type")
 
-        if event_type == "call.decline":
+        if event_type == "ping":
+            await self.send_json({"type": "pong"})
+        elif event_type == "notifications.refresh":
+            await self.send_json(await self.get_snapshot())
+        elif event_type == "notification.read":
+            await self.mark_read(content.get("notification_id"))
+        elif event_type == "notifications.read_all":
+            await self.mark_all_read()
+        elif event_type == "notification.clear":
+            await self.clear_one(content.get("notification_id"))
+        elif event_type == "notifications.clear_all":
+            await self.clear_all()
+        elif event_type == "call.decline":
             await self.decline_call(content)
 
     async def notification_event(self, event):
@@ -38,7 +59,9 @@ class NotificationConsumer(AsyncJsonWebsocketConsumer):
         if not call_id or not thread_id:
             return
 
-        await self.mark_call_declined(call_id)
+        updated = await self.mark_call_declined(call_id)
+        if not updated:
+            return
 
         await self.channel_layer.group_send(
             f"chat_thread_{thread_id}",
@@ -53,8 +76,52 @@ class NotificationConsumer(AsyncJsonWebsocketConsumer):
         )
 
     @database_sync_to_async
+    def get_snapshot(self):
+        return notification_snapshot(self.user)
+
+    @database_sync_to_async
+    def mark_read(self, notification_id):
+        if not notification_id:
+            return 0
+        return Notification.objects.filter(
+            id=notification_id,
+            recipient=self.user,
+            is_resolved=False,
+        ).update(is_read=True)
+
+    @database_sync_to_async
+    def mark_all_read(self):
+        return Notification.objects.filter(
+            recipient=self.user,
+            is_resolved=False,
+            is_read=False,
+        ).update(is_read=True)
+
+    @database_sync_to_async
+    def clear_one(self, notification_id):
+        if not notification_id:
+            return 0
+        return Notification.objects.filter(
+            id=notification_id,
+            recipient=self.user,
+        ).update(
+            is_read=True,
+            is_resolved=True,
+        )
+
+    @database_sync_to_async
+    def clear_all(self):
+        return Notification.objects.filter(
+            recipient=self.user,
+            is_resolved=False,
+        ).update(
+            is_read=True,
+            is_resolved=True,
+        )
+
+    @database_sync_to_async
     def mark_call_declined(self, call_id):
-        CallSession.objects.filter(
+        return CallSession.objects.filter(
             id=call_id,
             receiver=self.user,
         ).update(

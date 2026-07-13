@@ -1,0 +1,10 @@
+{% load static %}
+<script>
+window.HEARTLY_NOTIFICATIONS = {
+    snapshotUrl: "{% url 'notifications:snapshot' %}",
+    unreadUrl: "{% url 'notifications:unread_count' %}",
+    markAllUrl: "{% url 'notifications:mark_notifications_read' %}",
+    clearAllUrl: "{% url 'notifications:clear_all_notifications' %}"
+};
+</script>
+<script defer src="{% static 'js/heartly-notifications-live.js' %}"></script>

@@ -123,6 +123,7 @@ INSTALLED_APPS = [
     "ai_features",
     "feed",
     "notifications",
+    "notifications.apps.NotificationsConfig",
 ]
 
 

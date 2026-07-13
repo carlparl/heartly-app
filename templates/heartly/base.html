@@ -1370,5 +1370,9 @@
 {% include "heartly/pwa_scripts.html" %}
 {% include "heartly/global_call_listener.html" %}
 
+{% if request.user.is_authenticated %}
+    {% include "heartly/includes/notifications_live_config.html" %}
+{% endif %}
+
 </body>
 </html>

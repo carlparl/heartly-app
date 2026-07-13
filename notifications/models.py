@@ -35,7 +35,6 @@ class Notification(models.Model):
         null=True,
         blank=True,
     )
-
     notification_type = models.CharField(
         max_length=30,
         choices=TYPE_CHOICES,
@@ -44,13 +43,10 @@ class Notification(models.Model):
     title = models.CharField(max_length=120)
     message = models.TextField(blank=True)
     url = models.CharField(max_length=500, blank=True)
-
     related_object_type = models.CharField(max_length=120, blank=True)
     related_object_id = models.PositiveIntegerField(null=True, blank=True)
-
     is_read = models.BooleanField(default=False)
     is_resolved = models.BooleanField(default=False)
-
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -27,7 +27,7 @@
 
                 <div>
                     <h2 class="notifications-summary-title">Activity center</h2>
-                    <p class="notifications-summary-text">
+                    <p class="notifications-summary-text" data-notification-summary-text>
                         {% if unread_count %}
                             You have {{ unread_count }} unread notification{{ unread_count|pluralize }}.
                         {% else %}
@@ -38,7 +38,7 @@
             </div>
 
             <div class="notifications-meta">
-                <span class="notifications-pill">
+                <span class="notifications-pill" data-notification-unread-pill>
                     {% if unread_count %}
                         {{ unread_count }} unread
                     {% else %}
@@ -50,14 +50,14 @@
             </div>
 
             <div class="notifications-actions">
-                <form method="post" action="{% url 'notifications:mark_notifications_read' %}">
+                <form method="post" action="{% url 'notifications:mark_notifications_read' %}" data-live-mark-all>
                     {% csrf_token %}
                     <button type="submit" class="primary-action heartly-btn-primary">
                         Mark all read
                     </button>
                 </form>
 
-                <form method="post" action="{% url 'notifications:clear_all_notifications' %}">
+                <form method="post" action="{% url 'notifications:clear_all_notifications' %}" data-live-clear-all>
                     {% csrf_token %}
                     <button type="submit" class="secondary-action heartly-btn-secondary" onclick="return confirm('Clear all notifications?')">
                         Clear all
@@ -71,7 +71,7 @@
     <section class="notifications-section">
         <h2 class="notifications-section-title">Recent</h2>
 
-        <div class="notifications-card">
+        <div class="notifications-card" data-notification-list>
 
             {% for notification in notifications %}
                 <article class="notification-row {% if not notification.is_read and not notification.is_resolved %}unread{% endif %}">
@@ -128,7 +128,7 @@
                         <span class="notification-chevron">›</span>
                     </a>
 
-                    <form method="post" action="{% url 'notifications:clear_notification' notification.id %}" class="notification-clear-form">
+                    <form method="post" action="{% url 'notifications:clear_notification' notification.id %}" class="notification-clear-form" data-live-clear>
                         {% csrf_token %}
                         <button type="submit" title="Clear notification" aria-label="Clear notification">
                             ×
@@ -204,6 +204,7 @@
     <p class="notifications-footer">Heartly v1.0</p>
 
 </div>
+{% include "heartly/includes/notifications_live_config.html" %}
 {% endblock %}
 
 {% block extra_css %}
@@ -384,11 +385,18 @@
 }
 
 .notification-row {
+    transition: opacity 180ms ease, transform 180ms ease, background 180ms ease;
     position: relative;
     display: grid;
     grid-template-columns: 1fr auto;
     align-items: stretch;
     border-top: 1px solid var(--notifications-border);
+}
+
+.notification-row.is-removing {
+    opacity: 0;
+    transform: translateX(18px);
+    pointer-events: none;
 }
 
 .notification-row:first-child {
