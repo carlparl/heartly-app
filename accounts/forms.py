@@ -1,9 +1,25 @@
-from datetime import date
+﻿from datetime import date
 
 from django import forms
 from django.core.exceptions import ValidationError
+from django.db import transaction
 
 from .models import CustomUser
+
+
+USER_TO_PROFILE_GENDER = {
+    "male": "man",
+    "female": "woman",
+    "non_binary": "non_binary",
+    "prefer_not_to_say": "other",
+}
+
+USER_TO_PROFILE_INTERESTED_IN = {
+    "male": "men",
+    "female": "women",
+    "both": "everyone",
+    "friends": "everyone",
+}
 
 
 class CustomSignupForm(forms.Form):
@@ -95,7 +111,9 @@ class CustomSignupForm(forms.Form):
         )
 
         if age < 18:
-            raise ValidationError("You must be at least 18 years old to create a Heartly account.")
+            raise ValidationError(
+                "You must be at least 18 years old to create a Heartly account."
+            )
 
         if age > 100:
             raise ValidationError("Enter a valid date of birth.")
@@ -104,15 +122,41 @@ class CustomSignupForm(forms.Form):
 
     def signup(self, request, user):
         """
-        Called by django-allauth after the main account fields are validated.
-        This saves Heartly-specific fields onto CustomUser.
-        """
-        user.full_name = self.cleaned_data["full_name"]
-        user.phone_number = self.cleaned_data.get("phone_number", "")
-        user.gender = self.cleaned_data["gender"]
-        user.interested_in = self.cleaned_data["interested_in"]
-        user.date_of_birth = self.cleaned_data["date_of_birth"]
+        Save Heartly signup fields and initialize the linked Profile.
 
-        user.save()
+        The project still contains temporary duplicate identity fields on
+        CustomUser and Profile. During the rebuild, both copies are kept in
+        sync so existing views continue to work while we prepare a safe data
+        migration to one permanent source of truth.
+        """
+        from profiles.models import Profile
+
+        with transaction.atomic():
+            user.full_name = self.cleaned_data["full_name"]
+            user.phone_number = self.cleaned_data.get("phone_number", "")
+            user.gender = self.cleaned_data["gender"]
+            user.interested_in = self.cleaned_data["interested_in"]
+            user.date_of_birth = self.cleaned_data["date_of_birth"]
+            user.save()
+
+            profile, _ = Profile.objects.get_or_create(user=user)
+            display_name_max = Profile._meta.get_field("display_name").max_length
+
+            profile.display_name = user.full_name[:display_name_max]
+            profile.age = user.age
+            profile.gender = USER_TO_PROFILE_GENDER.get(user.gender, "")
+            profile.interested_in = USER_TO_PROFILE_INTERESTED_IN.get(
+                user.interested_in,
+                "",
+            )
+            profile.save(
+                update_fields=[
+                    "display_name",
+                    "age",
+                    "gender",
+                    "interested_in",
+                    "updated_at",
+                ]
+            )
 
         return user

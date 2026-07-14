@@ -1,14 +1,28 @@
-import os
+﻿import os
 
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.validators import UnicodeUsernameValidator
+from django.db import transaction
 
 from .models import Interest, Profile
 
 
 MAX_PROFILE_PHOTO_SIZE = 5 * 1024 * 1024
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
+
+PROFILE_TO_USER_GENDER = {
+    "man": "male",
+    "woman": "female",
+    "non_binary": "non_binary",
+    "other": "prefer_not_to_say",
+}
+
+PROFILE_TO_USER_INTERESTED_IN = {
+    "men": "male",
+    "women": "female",
+    "everyone": "both",
+}
 
 
 def get_file_extension(uploaded_file):
@@ -57,7 +71,7 @@ class ProfileForm(forms.ModelForm):
             ),
             "bio": forms.Textarea(
                 attrs={
-                    "placeholder": "Coffee lover ☕ | Travel enthusiast ✈️ | Good vibes only ✨",
+                    "placeholder": "Coffee lover | Travel enthusiast | Good vibes only",
                     "rows": 3,
                     "maxlength": "150",
                 }
@@ -92,10 +106,17 @@ class ProfileForm(forms.ModelForm):
         self.user = user or getattr(self.instance, "user", None)
 
         if self.user is not None:
-            self.fields["username"].initial = getattr(self.user, "username", "") or ""
+            self.fields["username"].initial = (
+                getattr(self.user, "username", "") or ""
+            )
 
-        self.fields["gender"].choices = [("", "Choose gender")] + list(Profile.GENDER_CHOICES)
-        self.fields["interested_in"].choices = [("", "Choose preference")] + list(Profile.INTERESTED_IN_CHOICES)
+        self.fields["gender"].choices = [
+            ("", "Choose gender"),
+        ] + list(Profile.GENDER_CHOICES)
+
+        self.fields["interested_in"].choices = [
+            ("", "Choose preference"),
+        ] + list(Profile.INTERESTED_IN_CHOICES)
 
     def clean_profile_picture(self):
         photo = self.cleaned_data.get("profile_picture")
@@ -169,13 +190,41 @@ class ProfileForm(forms.ModelForm):
     def save(self, commit=True):
         profile = super().save(commit=False)
         username = self.cleaned_data.get("username")
+        display_name = (
+            self.cleaned_data.get("display_name") or ""
+        ).strip()
 
-        if commit:
+        if self.user is not None and self.user.date_of_birth:
+            profile.age = self.user.age
+
+        if not commit:
+            return profile
+
+        with transaction.atomic():
             profile.save()
 
-            if self.user is not None and username and getattr(self.user, "username", "") != username:
+            if self.user is not None:
+                name_parts = display_name.split()
+
                 self.user.username = username
-                self.user.save(update_fields=["username"])
+                self.user.full_name = display_name
+                self.user.first_name = name_parts[0] if name_parts else ""
+                self.user.last_name = (
+                    " ".join(name_parts[1:])
+                    if len(name_parts) > 1
+                    else ""
+                )
+                self.user.gender = PROFILE_TO_USER_GENDER.get(
+                    profile.gender,
+                    "",
+                )
+                self.user.interested_in = (
+                    PROFILE_TO_USER_INTERESTED_IN.get(
+                        profile.interested_in,
+                        "",
+                    )
+                )
+                self.user.save()
 
             self.save_m2m()
 

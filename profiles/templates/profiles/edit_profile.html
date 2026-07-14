@@ -1,4 +1,4 @@
-{% extends "heartly/base.html" %}
+﻿{% extends "heartly/base.html" %}
 {% load static %}
 
 {% block title %}Edit Profile - Heartly{% endblock %}
@@ -9,13 +9,13 @@
         {% csrf_token %}
 
         <header class="edit-profile-topbar">
-            <a href="{% url 'profiles:profile_home' %}" class="ep-back-btn" aria-label="Back to profile">‹</a>
+            <a href="{% url 'profiles:profile_home' %}" class="ep-back-btn" aria-label="Back to profile">â€¹</a>
             <div class="ep-title-wrap">
                 <h1>Edit Profile</h1>
                 <p>Update your Heartly identity</p>
                 <span class="ep-title-dot"></span>
             </div>
-            <button type="submit" class="ep-save-link heartly-btn-ghost">Save</button>
+            <span class="ep-topbar-spacer" aria-hidden="true"></span>
         </header>
 
         {% if form.non_field_errors %}
@@ -37,13 +37,13 @@
                     <img src="" alt="Profile photo preview" class="ep-avatar-img hidden" id="profilePhotoPreview">
                 {% endif %}
 
-                <label for="{{ form.profile_picture.id_for_label }}" class="ep-camera-btn" aria-label="Change profile photo">📷</label>
+                <label for="{{ form.profile_picture.id_for_label }}" class="ep-camera-btn" aria-label="Change profile photo">ðŸ“·</label>
                 {{ form.profile_picture }}
             </div>
 
             <h2 class="ep-hero-name" id="heroDisplayName">
                 {% if profile.display_name %}{{ profile.display_name }}{% else %}Heartly User{% endif %}
-                <span class="ep-verified">◆</span>
+                <span class="ep-verified">â—†</span>
             </h2>
             <p class="ep-hero-username" id="heroUsername">@{{ request.user.username }}</p>
 
@@ -51,21 +51,21 @@
                 {% if profile.bio %}
                     {{ profile.bio }}
                 {% else %}
-                    Coffee lover ☕ | Travel enthusiast ✈️ | Good vibes only ✨
+                    Coffee lover â˜• | Travel enthusiast âœˆï¸ | Good vibes only âœ¨
                 {% endif %}
             </p>
 
             <div class="ep-badge-row">
-                <span class="ep-soft-badge ep-pink">♥ Heartly member</span>
-                <span class="ep-soft-badge ep-blue">🛡 Safety first</span>
+                <span class="ep-soft-badge ep-pink">â™¥ Heartly member</span>
+                <span class="ep-soft-badge ep-blue">ðŸ›¡ Safety first</span>
             </div>
         </section>
 
         <section class="ep-row-card ep-photo-card">
-            <div class="ep-section-icon">▣</div>
+            <div class="ep-section-icon">â–£</div>
             <div class="ep-row-copy">
                 <h3>Profile photo</h3>
-                <p>JPG, PNG or WebP · Max 5MB</p>
+                <p>JPG, PNG or WebP Â· Max 5MB</p>
             </div>
             <div class="ep-photo-stack" aria-hidden="true">
                 {% if profile.profile_picture %}
@@ -76,12 +76,12 @@
                     <span class="ep-mini-fallback">{{ request.user.username|first|upper }}</span>
                 {% endif %}
             </div>
-            <label for="{{ form.profile_picture.id_for_label }}" class="ep-chevron" aria-label="Choose photo">›</label>
+            <label for="{{ form.profile_picture.id_for_label }}" class="ep-chevron" aria-label="Choose photo">â€º</label>
         </section>
 
         <section class="ep-panel-card">
             <div class="ep-card-head">
-                <div class="ep-section-icon">👤</div>
+                <div class="ep-section-icon">ðŸ‘¤</div>
                 <h3>Basic details</h3>
             </div>
 
@@ -109,7 +109,7 @@
 
         <section class="ep-panel-card">
             <div class="ep-card-head">
-                <div class="ep-section-icon ep-heart-icon">♥</div>
+                <div class="ep-section-icon ep-heart-icon">â™¥</div>
                 <h3>More about you</h3>
             </div>
 
@@ -131,7 +131,7 @@
         <section class="ep-panel-card ep-interests-card">
             <div class="ep-card-head ep-between">
                 <div class="ep-head-left">
-                    <div class="ep-section-icon">✦</div>
+                    <div class="ep-section-icon">âœ¦</div>
                     <h3>Interests</h3>
                 </div>
                 <a href="{% url 'profiles:edit_interests' %}" class="ep-edit-link">Edit</a>
@@ -141,7 +141,7 @@
                 {% for interest in interest_chips %}
                     <span class="ep-interest-chip {% if selected_interest_count %}selected{% endif %}">
                         {{ interest.name }}
-                        {% if selected_interest_count %}<b>✓</b>{% endif %}
+                        {% if selected_interest_count %}<b>âœ“</b>{% endif %}
                     </span>
                 {% empty %}
                     <span class="ep-interest-chip">Travel</span>
@@ -806,7 +806,7 @@
             }
 
             if (bioInput && heroBio) {
-                heroBio.textContent = bioInput.value || "Coffee lover ☕ | Travel enthusiast ✈️ | Good vibes only ✨";
+                heroBio.textContent = bioInput.value || "Coffee lover â˜• | Travel enthusiast âœˆï¸ | Good vibes only âœ¨";
             }
 
             if (bioInput && bioCount) {
