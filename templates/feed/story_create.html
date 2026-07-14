@@ -7,17 +7,17 @@
     <header class="story-create-header">
         <a href="{% url 'feed:feed_home' %}" class="story-back" aria-label="Back to feed">‹</a>
         <div>
-            <p>Five-hour update</p>
+            <p>Quick update</p>
             <h1>Create Story</h1>
         </div>
     </header>
 
     <section class="story-create-card">
         <div class="story-create-note">
-            <span>⏱️</span>
+            <span>✨</span>
             <div>
-                <strong>Visible for exactly five hours</strong>
-                <p>The Story automatically disappears from Heartly when its timer reaches zero.</p>
+                <strong>Automatic Story playback</strong>
+                <p>Photos use one simple play time, while videos continue until they finish.</p>
             </div>
         </div>
 
@@ -61,7 +61,7 @@
             {% endif %}
 
             <div class="story-submit-note">Only people allowed by Heartly's privacy and blocking rules can see this Story.</div>
-            <button type="submit" class="story-share-button">Share for five hours</button>
+            <button type="submit" class="story-share-button">Share Story</button>
         </form>
     </section>
 </main>
@@ -354,4 +354,3 @@
 })();
 </script>
 {% endblock %}
-
