@@ -398,6 +398,8 @@ document.addEventListener("DOMContentLoaded", function () {
     let muted = false;
     let cameraOff = false;
     let pendingIceCandidates = [];
+    let callFinished = !["ringing", "accepted"].includes(callStatus);
+    let backgroundEndSent = false;
 
     const iceServersElement = document.getElementById("heartlyIceServers");
     const rtcConfig = {
@@ -680,6 +682,7 @@ document.addEventListener("DOMContentLoaded", function () {
             }
 
             if (data.type === "call.declined") {
+                callFinished = true;
                 setBadge("declined");
                 setLiveStatus("Call declined");
                 stopMedia();
@@ -690,6 +693,7 @@ document.addEventListener("DOMContentLoaded", function () {
             }
 
             if (data.type === "call.ended") {
+                callFinished = true;
                 setBadge("ended");
                 setLiveStatus("Call ended");
                 stopMedia();
@@ -755,6 +759,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (endCallForm) {
         endCallForm.addEventListener("submit", function () {
+            callFinished = true;
             sendSocket({
                 type: "call.end",
                 call_id: callId
@@ -764,7 +769,60 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    window.addEventListener("beforeunload", stopMedia);
+    function endCallInBackground() {
+        if (callFinished || backgroundEndSent || !endCallForm) {
+            stopMedia();
+            return;
+        }
+
+        backgroundEndSent = true;
+        callFinished = true;
+
+        sendSocket({
+            type: "call.end",
+            call_id: callId
+        });
+
+        const csrfInput = endCallForm.querySelector(
+            'input[name="csrfmiddlewaretoken"]'
+        );
+        const csrfToken = csrfInput ? csrfInput.value : "";
+        const body = new URLSearchParams();
+        body.set("csrfmiddlewaretoken", csrfToken);
+
+        fetch(endCallForm.action, {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": csrfToken,
+                "X-Requested-With": "XMLHttpRequest"
+            },
+            credentials: "same-origin",
+            keepalive: true,
+            body: body
+        }).catch(function () {});
+
+        stopMedia();
+    }
+
+    document.addEventListener("click", function (event) {
+        const link = event.target.closest("a[href]");
+
+        if (!link || callFinished) {
+            return;
+        }
+
+        event.preventDefault();
+        setLiveStatus("End the call before leaving this screen.");
+    }, true);
+
+    window.addEventListener("beforeunload", function (event) {
+        if (!callFinished) {
+            event.preventDefault();
+            event.returnValue = "";
+        }
+    });
+
+    window.addEventListener("pagehide", endCallInBackground);
 });
 </script>
 {% endblock %}

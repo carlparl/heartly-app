@@ -1244,6 +1244,26 @@
 <script>
     let globalNotificationSocket = null;
     let activeGlobalCall = null;
+    let globalCallExpiryTimer = null;
+
+    function hideGlobalIncomingCall() {
+        const callBox = document.getElementById("globalIncomingCall");
+
+        if (window.HeartlyCallAudio) {
+            window.HeartlyCallAudio.stop();
+        }
+
+        if (globalCallExpiryTimer) {
+            clearTimeout(globalCallExpiryTimer);
+        }
+
+        globalCallExpiryTimer = null;
+        activeGlobalCall = null;
+
+        if (callBox) {
+            callBox.hidden = true;
+        }
+    }
 
     function playHeartlyNotificationCue() {
         if (navigator.vibrate) {
@@ -1336,6 +1356,14 @@
                 if (window.HeartlyCallAudio) {
                     window.HeartlyCallAudio.start();
                 }
+
+                if (globalCallExpiryTimer) {
+                    clearTimeout(globalCallExpiryTimer);
+                }
+                globalCallExpiryTimer = setTimeout(
+                    hideGlobalIncomingCall,
+                    45000
+                );
             }
 
             if (data.type === "feed_notification") {
@@ -1366,16 +1394,17 @@
                 );
             }
 
-            if (data.type === "missed_call") {
-                const callBox = document.getElementById("globalIncomingCall");
-
-                if (window.HeartlyCallAudio) {
-                    window.HeartlyCallAudio.stop();
-                }
-
-                if (callBox) {
-                    callBox.hidden = true;
-                }
+            if ([
+                "call_accepted",
+                "call_declined",
+                "call_ended",
+                "missed_call",
+                "call.accepted",
+                "call.declined",
+                "call.ended",
+                "call.missed"
+            ].includes(data.type)) {
+                hideGlobalIncomingCall();
             }
         };
 
@@ -1392,22 +1421,17 @@
 
         if (acceptBtn) {
             acceptBtn.addEventListener("click", function () {
-                if (window.HeartlyCallAudio) {
-                    window.HeartlyCallAudio.stop();
-                }
+                const acceptUrl = activeGlobalCall && activeGlobalCall.accept_url;
+                hideGlobalIncomingCall();
 
-                if (activeGlobalCall && activeGlobalCall.accept_url) {
-                    window.location.href = activeGlobalCall.accept_url;
+                if (acceptUrl) {
+                    window.location.href = acceptUrl;
                 }
             });
         }
 
         if (declineBtn) {
             declineBtn.addEventListener("click", function () {
-                if (window.HeartlyCallAudio) {
-                    window.HeartlyCallAudio.stop();
-                }
-
                 if (activeGlobalCall && globalNotificationSocket) {
                     globalNotificationSocket.send(JSON.stringify({
                         type: "call.decline",
@@ -1416,13 +1440,7 @@
                     }));
                 }
 
-                const callBox = document.getElementById("globalIncomingCall");
-
-                if (callBox) {
-                    callBox.hidden = true;
-                }
-
-                activeGlobalCall = null;
+                hideGlobalIncomingCall();
             });
         }
     });

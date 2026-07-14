@@ -20,6 +20,7 @@
   let activeCall = null;
   let ringtoneContext = null;
   let ringtoneNodes = [];
+  let callExpiryTimer = null;
 
   function getCookie(name) {
     const cookies = document.cookie ? document.cookie.split(";") : [];
@@ -94,6 +95,8 @@
 
   function hideCall() {
     stopRingtone();
+    if (callExpiryTimer) window.clearTimeout(callExpiryTimer);
+    callExpiryTimer = null;
     activeCall = null;
     if (toast) toast.hidden = true;
   }
@@ -112,6 +115,8 @@
     if (toast) toast.hidden = false;
 
     startRingtone();
+    if (callExpiryTimer) window.clearTimeout(callExpiryTimer);
+    callExpiryTimer = window.setTimeout(hideCall, 45000);
   }
 
   function connect() {
