@@ -3,37 +3,38 @@
   "name": "Heartly",
   "short_name": "Heartly",
   "description": "Heartly is a social and dating app for connecting, chatting, sharing, and meeting new people.",
-  "start_url": "/",
+  "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
-  "orientation": "portrait",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait-primary",
   "background_color": "#ffffff",
-  "theme_color": "#ff4f7b",
+  "theme_color": "#18aaa1",
   "lang": "en",
   "dir": "ltr",
   "categories": ["social", "lifestyle"],
   "prefer_related_applications": false,
   "icons": [
     {
-      "src": "/static/icons/icon-192.png",
+      "src": "/pwa/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/static/icons/icon-512.png",
+      "src": "/pwa/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/static/icons/maskable-192.png",
+      "src": "/pwa/maskable-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/static/icons/maskable-512.png",
+      "src": "/pwa/maskable-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

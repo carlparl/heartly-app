@@ -1,21 +1,30 @@
+from pathlib import Path
+
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
-from django.urls import include, path
-
 from django.http import FileResponse, Http404
-from pathlib import Path
+from django.urls import include, path
 
 from accounts import views as accounts_views
 from heartly import pwa_views
 
+
 def serve_static_file_from_project(request, relative_path, content_type):
+    """Serve PWA-critical files from stable root URLs.
+
+    These routes keep PWA installation working even if a deployment's
+    collected static filenames are hashed or an old static cache is present.
+    """
     file_path = Path(settings.BASE_DIR) / "static" / relative_path
 
     if not file_path.exists():
         raise Http404(f"{relative_path} not found")
 
-    return FileResponse(open(file_path, "rb"), content_type=content_type)
+    response = FileResponse(file_path.open("rb"), content_type=content_type)
+    response["Cache-Control"] = "public, max-age=3600"
+    response["X-Content-Type-Options"] = "nosniff"
+    return response
 
 
 def pwa_icon_192(request):
@@ -35,23 +44,41 @@ def pwa_maskable_512(request):
 
 
 def pwa_registration_js(request):
-    return serve_static_file_from_project(request, "js/heartly-pwa.js", "application/javascript")
+    return serve_static_file_from_project(
+        request,
+        "js/heartly-pwa.js",
+        "application/javascript; charset=utf-8",
+    )
+
 
 urlpatterns = [
     path("admin/", admin.site.urls),
 
-    # PWA routes. Keep the service worker at root scope.
+    # Root-scoped PWA files.
     path("manifest.webmanifest", pwa_views.manifest, name="pwa_manifest"),
     path("sw.js", pwa_views.service_worker, name="pwa_service_worker"),
-    path("service-worker.js", pwa_views.service_worker, name="pwa_service_worker_compat"),
+    path(
+        "service-worker.js",
+        pwa_views.service_worker,
+        name="pwa_service_worker_compat",
+    ),
     path("offline/", pwa_views.offline, name="pwa_offline"),
 
+    # Stable PWA assets. These do not depend on WhiteNoise hashed filenames.
+    path("pwa/heartly-pwa.js", pwa_registration_js, name="pwa_registration_js"),
+    path("pwa/icon-192.png", pwa_icon_192, name="pwa_icon_192"),
+    path("pwa/icon-512.png", pwa_icon_512, name="pwa_icon_512"),
+    path("pwa/maskable-192.png", pwa_maskable_192, name="pwa_maskable_192"),
+    path("pwa/maskable-512.png", pwa_maskable_512, name="pwa_maskable_512"),
+
     path("", include("accounts.urls")),
-    path("post-login-redirect/", accounts_views.post_login_redirect, name="post_login_redirect"),
+    path(
+        "post-login-redirect/",
+        accounts_views.post_login_redirect,
+        name="post_login_redirect",
+    ),
     path("settings/", accounts_views.settings_view, name="settings"),
-
     path("accounts/", include("allauth.urls")),
-
     path("profiles/", include("profiles.urls")),
     path("matches/", include("matches.urls")),
     path("chat/", include("chat.urls")),
