@@ -19,7 +19,7 @@
   let reconnectTimer = null;
   let activeCall = null;
   let ringtoneContext = null;
-  let ringtoneTimer = null;
+  let ringtoneNodes = [];
 
   function getCookie(name) {
     const cookies = document.cookie ? document.cookie.split(";") : [];
@@ -40,37 +40,57 @@
     return ringtoneContext;
   }
 
-  function beepOnce(duration, frequency) {
-    const ctx = ensureRingtoneContext();
-    if (!ctx) return;
+  function scheduleTone(ctx, startAt, duration, frequency) {
     try {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = "sine";
-      osc.frequency.value = frequency || 760;
-      gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.18, ctx.currentTime + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + (duration || 0.22));
+      osc.frequency.setValueAtTime(frequency, startAt);
+      gain.gain.setValueAtTime(0.0001, startAt);
+      gain.gain.exponentialRampToValueAtTime(0.2, startAt + 0.025);
+      gain.gain.exponentialRampToValueAtTime(0.0001, startAt + duration);
       osc.connect(gain);
       gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + (duration || 0.22));
+      osc.start(startAt);
+      osc.stop(startAt + duration + 0.02);
+      ringtoneNodes.push({ osc: osc, gain: gain });
     } catch (error) {}
   }
 
   function startRingtone() {
     stopRingtone();
-    beepOnce(0.22, 760);
-    ringtoneTimer = window.setInterval(function () {
-      beepOnce(0.22, 760);
-      window.setTimeout(function () { beepOnce(0.2, 620); }, 260);
-    }, 1300);
+    const ctx = ensureRingtoneContext();
+    if (!ctx) return;
+
+    const schedulePattern = function () {
+      const startsAt = ctx.currentTime + 0.05;
+      for (let index = 0; index < 40; index += 1) {
+        const cycle = startsAt + (index * 1.45);
+        scheduleTone(ctx, cycle, 0.24, 760);
+        scheduleTone(ctx, cycle + 0.3, 0.22, 620);
+      }
+    };
+
+    if (ctx.state === "suspended") {
+      ctx.resume().then(schedulePattern).catch(function () {});
+    } else {
+      schedulePattern();
+    }
   }
 
   function stopRingtone() {
-    if (ringtoneTimer) window.clearInterval(ringtoneTimer);
-    ringtoneTimer = null;
+    ringtoneNodes.forEach(function (node) {
+      try { node.osc.stop(); } catch (error) {}
+      try { node.osc.disconnect(); } catch (error) {}
+      try { node.gain.disconnect(); } catch (error) {}
+    });
+    ringtoneNodes = [];
   }
+
+  window.HeartlyCallAudio = {
+    start: startRingtone,
+    stop: stopRingtone
+  };
 
   function hideCall() {
     stopRingtone();

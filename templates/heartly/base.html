@@ -1332,6 +1332,10 @@
                 if (callBox) {
                     callBox.hidden = false;
                 }
+
+                if (window.HeartlyCallAudio) {
+                    window.HeartlyCallAudio.start();
+                }
             }
 
             if (data.type === "feed_notification") {
@@ -1365,6 +1369,10 @@
             if (data.type === "missed_call") {
                 const callBox = document.getElementById("globalIncomingCall");
 
+                if (window.HeartlyCallAudio) {
+                    window.HeartlyCallAudio.stop();
+                }
+
                 if (callBox) {
                     callBox.hidden = true;
                 }
@@ -1384,6 +1392,10 @@
 
         if (acceptBtn) {
             acceptBtn.addEventListener("click", function () {
+                if (window.HeartlyCallAudio) {
+                    window.HeartlyCallAudio.stop();
+                }
+
                 if (activeGlobalCall && activeGlobalCall.accept_url) {
                     window.location.href = activeGlobalCall.accept_url;
                 }
@@ -1392,6 +1404,10 @@
 
         if (declineBtn) {
             declineBtn.addEventListener("click", function () {
+                if (window.HeartlyCallAudio) {
+                    window.HeartlyCallAudio.stop();
+                }
+
                 if (activeGlobalCall && globalNotificationSocket) {
                     globalNotificationSocket.send(JSON.stringify({
                         type: "call.decline",
