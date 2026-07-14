@@ -1245,22 +1245,56 @@
     let globalNotificationSocket = null;
     let activeGlobalCall = null;
 
+    function playHeartlyNotificationCue() {
+        if (navigator.vibrate) {
+            navigator.vibrate(120);
+        }
+
+        try {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) {
+                return;
+            }
+
+            const context = new AudioContext();
+            const oscillator = context.createOscillator();
+            const gain = context.createGain();
+            oscillator.type = "sine";
+            oscillator.frequency.setValueAtTime(740, context.currentTime);
+            gain.gain.setValueAtTime(0.0001, context.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.12, context.currentTime + 0.015);
+            gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.16);
+            oscillator.connect(gain);
+            gain.connect(context.destination);
+            oscillator.start();
+            oscillator.stop(context.currentTime + 0.17);
+            oscillator.addEventListener("ended", function () {
+                context.close();
+            });
+        } catch (error) {
+            // Some browsers require a recent interaction before playing sound.
+        }
+    }
+
     function showHeartlyToast(type, title, message, url) {
         const toast = document.createElement("a");
         toast.href = url || "/";
         toast.className = type === "match" ? "heartly-live-match-toast" : "heartly-feed-toast";
 
-        toast.innerHTML = `
-            <div class="${type === "match" ? "heartly-live-match-icon" : "heartly-feed-toast-icon"}">
-                ${type === "match" ? "💞" : "🔔"}
-            </div>
-            <div>
-                <strong>${title || "Heartly update"}</strong>
-                <p>${message || "You have a new update."}</p>
-            </div>
-        `;
+        const icon = document.createElement("div");
+        icon.className = type === "match" ? "heartly-live-match-icon" : "heartly-feed-toast-icon";
+        icon.textContent = type === "match" ? "💞" : "🔔";
+
+        const copy = document.createElement("div");
+        const heading = document.createElement("strong");
+        const detail = document.createElement("p");
+        heading.textContent = title || "Heartly update";
+        detail.textContent = message || "You have a new update.";
+        copy.append(heading, detail);
+        toast.append(icon, copy);
 
         document.body.appendChild(toast);
+        playHeartlyNotificationCue();
 
         setTimeout(function () {
             toast.remove();
@@ -1315,6 +1349,16 @@
                     data.title || "New match",
                     data.message || "You have a new match.",
                     data.url || "/matches/your-matches/"
+                );
+            }
+
+            if (data.type === "notification.created" && data.notification) {
+                const item = data.notification;
+                showHeartlyToast(
+                    item.type === "match" ? "match" : "feed",
+                    item.title || "Heartly update",
+                    item.message || "You have a new notification.",
+                    item.open_url || item.url || "/notifications/"
                 );
             }
 

@@ -57,6 +57,7 @@ def send_notification_push(notification_id):
         user_id=notification.recipient_id,
         enabled=True,
     )
+    subscription_count = subscriptions.count()
     for subscription in subscriptions.iterator():
         try:
             webpush(
@@ -81,9 +82,37 @@ def send_notification_push(notification_id):
         except Exception:
             logger.exception("Unexpected Heartly push delivery error.")
 
+    logger.warning(
+        "Heartly push result: notification=%s subscriptions=%s delivered=%s",
+        notification_id,
+        subscription_count,
+        delivered,
+    )
     return delivered
+
+
+def _push_finished(notification_id, future):
+    try:
+        future.result()
+    except Exception:
+        logger.exception(
+            "Heartly background push worker failed for notification %s.",
+            notification_id,
+        )
 
 
 def enqueue_notification_push(notification_id):
     if push_is_configured():
-        _executor.submit(send_notification_push, notification_id)
+        future = _executor.submit(send_notification_push, notification_id)
+        future.add_done_callback(
+            lambda completed, item_id=notification_id: (
+                _push_finished(item_id, completed)
+            )
+        )
+        return True
+
+    logger.warning(
+        "Heartly push skipped: VAPID settings are incomplete for notification %s.",
+        notification_id,
+    )
+    return False
