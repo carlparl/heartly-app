@@ -1,4 +1,4 @@
-{% extends "heartly/base.html" %}
+﻿{% extends "heartly/base.html" %}
 {% load static %}
 
 {% block title %}Discover - Heartly{% endblock %}
@@ -13,7 +13,7 @@
         </div>
 
         <a href="{% url 'matches:your_matches' %}" class="top-icon-btn heartly-icon-btn" title="Your matches" aria-label="Your matches">
-            💞
+            ðŸ’ž
         </a>
     </div>
     
@@ -27,7 +27,7 @@
     >
 
     {% if search_query %}
-        <a href="{% url 'matches:discover' %}" class="discover-search-clear" aria-label="Clear search">×</a>
+        <a href="{% url 'matches:discover' %}" class="discover-search-clear" aria-label="Clear search">Ã—</a>
     {% endif %}
 </form>
 
@@ -35,7 +35,7 @@
         <div class="matches-card matches-main-card">
 
             <div class="matches-summary">
-                <div class="matches-summary-icon">💗</div>
+                <div class="matches-summary-icon">ðŸ’—</div>
 
                 <div>
                     <h2 class="matches-summary-title">Find people</h2>
@@ -46,8 +46,8 @@
             </div>
 
             <div class="matches-meta">
-                <span class="matches-pill">🛡️ Safety first</span>
-                <span class="matches-pill">👁️ Visible profiles</span>
+                <span class="matches-pill">ðŸ›¡ï¸ Safety first</span>
+                <span class="matches-pill">ðŸ‘ï¸ Visible profiles</span>
             </div>
 
             <div class="matches-actions">
@@ -100,15 +100,15 @@
 
                         <div class="discover-meta">
                             {% if profile.age %}
-                                <span>🎂 {{ profile.age }} years</span>
+                                <span>ðŸŽ‚ {{ profile.age }} years</span>
                             {% endif %}
 
                             {% if profile.location %}
-                                <span>📍 {{ profile.location }}</span>
+                                <span>ðŸ“ {{ profile.location }}</span>
                             {% endif %}
 
                             {% if profile.email_verified %}
-                                <span>✅ Verified</span>
+                                <span>âœ… Verified</span>
                             {% endif %}
                         </div>
 
@@ -149,7 +149,7 @@
             {% empty %}
                 <div class="matches-card" id="discoverEmptyCard">
                     <div class="matches-empty">
-                        <div class="matches-empty-icon">💞</div>
+                        <div class="matches-empty-icon">ðŸ’ž</div>
                         {% if search_query %}
                             <h3 class="matches-empty-title">No results for "{{ search_query }}"</h3>
                             <p class="matches-empty-text">
@@ -205,7 +205,7 @@
             stack.insertAdjacentHTML(
                 'beforeend',
                 '<div class="matches-card" id="discoverEmptyCard"><div class="matches-empty">' +
-                '<div class="matches-empty-icon">💞</div>' +
+                '<div class="matches-empty-icon">ðŸ’ž</div>' +
                 '<h3 class="matches-empty-title">No more profiles right now</h3>' +
                 '<p class="matches-empty-text">Check back later for new people to discover.</p>' +
                 '</div></div>'
@@ -218,8 +218,13 @@
             event.preventDefault();
 
             const card = form.closest('.discover-card');
-            const buttons = form.querySelectorAll('button');
-            buttons.forEach(function (button) { button.disabled = true; });
+            const buttons = card
+                ? card.querySelectorAll('button')
+                : form.querySelectorAll('button');
+
+            buttons.forEach(function (button) {
+                button.disabled = true;
+            });
 
             fetch(form.action, {
                 method: 'POST',
@@ -228,20 +233,37 @@
                     'X-Requested-With': 'XMLHttpRequest'
                 },
                 credentials: 'same-origin'
-            }).then(function () {
-                if (card) {
+            })
+                .then(function (response) {
+                    if (!response.ok) {
+                        throw new Error('Match action was rejected.');
+                    }
+
+                    return response.json();
+                })
+                .then(function () {
+                    if (!card) {
+                        return;
+                    }
+
                     card.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
                     card.style.opacity = '0';
-                    card.style.transform = form.dataset.swipe === 'like' ? 'translateX(24px)' : 'translateX(-24px)';
+                    card.style.transform = form.dataset.swipe === 'like'
+                        ? 'translateX(24px)'
+                        : 'translateX(-24px)';
+
                     setTimeout(function () {
                         card.remove();
                         showEmptyStackIfNeeded();
                     }, 200);
-                }
-            }).catch(function () {
-                buttons.forEach(function (button) { button.disabled = false; });
-                alert('Network error. That action was not saved, please try again.');
-            });
+                })
+                .catch(function () {
+                    buttons.forEach(function (button) {
+                        button.disabled = false;
+                    });
+
+                    alert('That action was not saved. Please try again.');
+                });
         });
     });
 })();

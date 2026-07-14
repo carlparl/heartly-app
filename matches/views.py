@@ -1,12 +1,14 @@
-from asgiref.sync import async_to_sync
+﻿import logging
 
+from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.db.models import Q
 from django.http import JsonResponse
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 
@@ -15,8 +17,14 @@ from profiles.models import Profile
 from .models import MatchAction, MutualMatch
 
 
+logger = logging.getLogger(__name__)
+
+
 try:
-    from profiles.blocking import hidden_user_ids_for, block_exists_between
+    from profiles.blocking import (
+        block_exists_between,
+        hidden_user_ids_for,
+    )
 except Exception:
     hidden_user_ids_for = None
     block_exists_between = None
@@ -30,33 +38,48 @@ except Exception:
 
 User = get_user_model()
 
+
+PROFILE_GENDER_TO_AUDIENCE = {
+    Profile.GENDER_WOMAN: Profile.INTERESTED_IN_WOMEN,
+    Profile.GENDER_MAN: Profile.INTERESTED_IN_MEN,
+}
+
+
+def model_has_field(model, field_name):
+    return any(
+        field.name == field_name
+        for field in model._meta.fields
+    )
+
+
+def is_ajax_request(request):
+    return (
+        request.headers.get("X-Requested-With")
+        == "XMLHttpRequest"
+    )
+
+
 def build_profile_search_query(search_query):
     search_filter = (
         Q(user__username__icontains=search_query)
         | Q(user__first_name__icontains=search_query)
         | Q(user__last_name__icontains=search_query)
+        | Q(display_name__icontains=search_query)
+        | Q(bio__icontains=search_query)
     )
-
-    if model_has_field(Profile, "display_name"):
-        search_filter |= Q(display_name__icontains=search_query)
-
-    if model_has_field(Profile, "name"):
-        search_filter |= Q(name__icontains=search_query)
-
-    if model_has_field(Profile, "bio"):
-        search_filter |= Q(bio__icontains=search_query)
 
     return search_filter
 
+
 def get_profile(user):
-    profile, created = Profile.objects.get_or_create(user=user)
+    profile, _ = Profile.objects.get_or_create(user=user)
     return profile
 
 
 def get_display_name(user):
     profile = get_profile(user)
 
-    if getattr(profile, "display_name", None):
+    if profile.display_name:
         return profile.display_name
 
     return user.get_full_name() or user.username
@@ -65,7 +88,7 @@ def get_display_name(user):
 def get_photo_url(user):
     profile = get_profile(user)
 
-    if getattr(profile, "profile_picture", None):
+    if profile.profile_picture:
         try:
             return profile.profile_picture.url
         except Exception:
@@ -88,15 +111,140 @@ def blocked_between(user, other_user):
     return False
 
 
-def model_has_field(model, field_name):
-    return any(field.name == field_name for field in model._meta.fields)
+def profile_identity_is_complete(profile):
+    if not profile:
+        return False
+
+    if not (profile.display_name or "").strip():
+        return False
+
+    if profile.age is None or not 18 <= profile.age <= 100:
+        return False
+
+    valid_genders = {
+        value
+        for value, _label in Profile.GENDER_CHOICES
+    }
+    valid_preferences = {
+        value
+        for value, _label in Profile.INTERESTED_IN_CHOICES
+    }
+
+    return (
+        profile.gender in valid_genders
+        and profile.interested_in in valid_preferences
+    )
 
 
-def mutual_match_exists(user_a, user_b):
-    return MutualMatch.objects.filter(
-        Q(user_one=user_a, user_two=user_b)
-        | Q(user_one=user_b, user_two=user_a)
-    ).exists()
+def target_genders_for(preference):
+    if preference == Profile.INTERESTED_IN_WOMEN:
+        return [Profile.GENDER_WOMAN]
+
+    if preference == Profile.INTERESTED_IN_MEN:
+        return [Profile.GENDER_MAN]
+
+    if preference == Profile.INTERESTED_IN_EVERYONE:
+        return [
+            value
+            for value, _label in Profile.GENDER_CHOICES
+        ]
+
+    return []
+
+
+def preferences_accepting_gender(gender):
+    audience = PROFILE_GENDER_TO_AUDIENCE.get(gender)
+
+    if audience:
+        return [
+            audience,
+            Profile.INTERESTED_IN_EVERYONE,
+        ]
+
+    if gender in {
+        Profile.GENDER_NON_BINARY,
+        Profile.GENDER_OTHER,
+    }:
+        return [Profile.INTERESTED_IN_EVERYONE]
+
+    return []
+
+
+def discoverable_profiles_for(
+    viewer,
+    *,
+    exclude_acted=True,
+):
+    """
+    Return profiles that are safe and mutually compatible.
+
+    Location is deliberately not filtered yet because Heartly does not have
+    reliable structured location or distance-preference data.
+    """
+    viewer_profile = get_profile(viewer)
+
+    if not profile_identity_is_complete(viewer_profile):
+        return Profile.objects.none()
+
+    target_genders = target_genders_for(
+        viewer_profile.interested_in
+    )
+    accepting_preferences = preferences_accepting_gender(
+        viewer_profile.gender
+    )
+
+    if not target_genders or not accepting_preferences:
+        return Profile.objects.none()
+
+    profiles = (
+        Profile.objects
+        .select_related("user")
+        .prefetch_related("interests")
+        .filter(
+            user__is_active=True,
+            user__is_staff=False,
+            profile_visible=True,
+            hidden_by_moderation=False,
+            age__gte=18,
+            age__lte=100,
+            gender__in=target_genders,
+            interested_in__in=accepting_preferences,
+        )
+        .exclude(user=viewer)
+        .exclude(display_name="")
+        .exclude(user_id__in=hidden_ids_for(viewer))
+    )
+
+    if exclude_acted:
+        acted_user_ids = MatchAction.objects.filter(
+            from_user=viewer,
+        ).values_list("to_user_id", flat=True)
+
+        profiles = profiles.exclude(
+            user_id__in=acted_user_ids
+        )
+
+    return profiles.order_by("-updated_at")
+
+
+def match_error_response(
+    request,
+    message,
+    *,
+    status=400,
+):
+    if is_ajax_request(request):
+        return JsonResponse(
+            {
+                "ok": False,
+                "matched": False,
+                "error": message,
+            },
+            status=status,
+        )
+
+    messages.error(request, message)
+    return redirect("matches:discover")
 
 
 def create_match_notification(recipient, actor):
@@ -111,53 +259,94 @@ def create_match_notification(recipient, actor):
             "actor": actor,
         }
 
-        if model_has_field(Notification, "notification_type"):
-            notification_data["notification_type"] = getattr(Notification, "TYPE_MATCH", "match")
+        if model_has_field(
+            Notification,
+            "notification_type",
+        ):
+            notification_data["notification_type"] = getattr(
+                Notification,
+                "TYPE_MATCH",
+                "match",
+            )
 
         if model_has_field(Notification, "title"):
             notification_data["title"] = "New match"
 
         if model_has_field(Notification, "message"):
-            notification_data["message"] = f"You and {actor_name} matched. Start chatting now."
+            notification_data["message"] = (
+                f"You and {actor_name} matched. "
+                "Start chatting now."
+            )
 
         if model_has_field(Notification, "url"):
-            notification_data["url"] = reverse("matches:your_matches")
+            notification_data["url"] = reverse(
+                "matches:your_matches"
+            )
 
-        if model_has_field(Notification, "related_object_type"):
-            notification_data["related_object_type"] = "matches.mutualmatch"
+        if model_has_field(
+            Notification,
+            "related_object_type",
+        ):
+            notification_data[
+                "related_object_type"
+            ] = "matches.mutualmatch"
 
-        if model_has_field(Notification, "related_object_id"):
-            notification_data["related_object_id"] = actor.id
+        if model_has_field(
+            Notification,
+            "related_object_id",
+        ):
+            notification_data[
+                "related_object_id"
+            ] = actor.id
 
         Notification.objects.create(**notification_data)
     except Exception:
-        return
+        logger.exception(
+            "Could not create match notification.",
+            extra={
+                "recipient_id": recipient.id,
+                "actor_id": actor.id,
+            },
+        )
 
 
 def send_live_match_notification(recipient, actor):
-    channel_layer = get_channel_layer()
+    try:
+        channel_layer = get_channel_layer()
 
-    if not channel_layer:
-        return
+        if not channel_layer:
+            return
 
-    actor_name = get_display_name(actor)
-    actor_photo = get_photo_url(actor)
+        actor_name = get_display_name(actor)
+        actor_photo = get_photo_url(actor)
 
-    async_to_sync(channel_layer.group_send)(
-        f"heartly_user_{recipient.id}",
-        {
-            "type": "notification.event",
-            "payload": {
-                "type": "match",
-                "title": "New match",
-                "message": f"You and {actor_name} matched.",
-                "actor_id": actor.id,
-                "actor_name": actor_name,
-                "actor_photo": actor_photo,
-                "url": reverse("matches:your_matches"),
+        async_to_sync(channel_layer.group_send)(
+            f"heartly_user_{recipient.id}",
+            {
+                "type": "notification.event",
+                "payload": {
+                    "type": "match",
+                    "title": "New match",
+                    "message": (
+                        f"You and {actor_name} matched."
+                    ),
+                    "actor_id": actor.id,
+                    "actor_name": actor_name,
+                    "actor_photo": actor_photo,
+                    "url": reverse(
+                        "matches:your_matches"
+                    ),
+                },
             },
-        },
-    )
+        )
+    except Exception:
+        logger.exception(
+            "Could not send live match notification.",
+            extra={
+                "recipient_id": recipient.id,
+                "actor_id": actor.id,
+            },
+        )
 
 
 def notify_new_match(user_a, user_b):
@@ -171,25 +360,9 @@ def notify_new_match(user_a, user_b):
 @login_required
 def discover(request):
     search_query = request.GET.get("q", "").strip()
+    viewer_profile = get_profile(request.user)
 
-    viewer_profile, created = Profile.objects.get_or_create(user=request.user)
-
-    acted_user_ids = MatchAction.objects.filter(
-        from_user=request.user,
-    ).values_list("to_user_id", flat=True)
-
-    hidden_ids = hidden_ids_for(request.user)
-
-    profiles = (
-        Profile.objects
-        .select_related("user")
-        .prefetch_related("interests")
-        .filter(profile_visible=True)
-        .exclude(user=request.user)
-        .exclude(user_id__in=acted_user_ids)
-        .exclude(user_id__in=hidden_ids)
-        .order_by("-updated_at")
-    )
+    profiles = discoverable_profiles_for(request.user)
 
     if search_query:
         profiles = profiles.filter(
@@ -202,6 +375,11 @@ def discover(request):
         {
             "profiles": profiles,
             "viewer_profile": viewer_profile,
+            "viewer_profile_complete": (
+                profile_identity_is_complete(
+                    viewer_profile
+                )
+            ),
             "search_query": search_query,
         },
     )
@@ -210,48 +388,89 @@ def discover(request):
 @login_required
 @require_POST
 def swipe(request, user_id, action):
-    if action not in (MatchAction.LIKE, MatchAction.PASS):
-        return redirect("matches:discover")
+    if action not in (
+        MatchAction.LIKE,
+        MatchAction.PASS,
+    ):
+        return match_error_response(
+            request,
+            "Invalid match action.",
+        )
 
-    target_user = get_object_or_404(User, id=user_id)
-
-    if target_user == request.user:
-        return redirect("matches:discover")
-
-    if blocked_between(request.user, target_user):
-        messages.error(request, "This profile is not available.")
-        return redirect("matches:discover")
-
-    MatchAction.objects.update_or_create(
-        from_user=request.user,
-        to_user=target_user,
-        defaults={"action": action},
+    target_profile = (
+        discoverable_profiles_for(
+            request.user,
+            exclude_acted=False,
+        )
+        .filter(user_id=user_id)
+        .first()
     )
 
+    if target_profile is None:
+        return match_error_response(
+            request,
+            "This profile is not available for matching.",
+            status=404,
+        )
+
+    target_user = target_profile.user
+
+    if blocked_between(request.user, target_user):
+        return match_error_response(
+            request,
+            "This profile is not available.",
+            status=403,
+        )
+
     matched = False
+    match_created = False
 
-    if action == MatchAction.LIKE:
-        reciprocal_like = MatchAction.objects.filter(
-            from_user=target_user,
-            to_user=request.user,
-            action=MatchAction.LIKE,
-        ).exists()
+    with transaction.atomic():
+        MatchAction.objects.update_or_create(
+            from_user=request.user,
+            to_user=target_user,
+            defaults={"action": action},
+        )
 
-        if reciprocal_like:
-            already_matched = mutual_match_exists(request.user, target_user)
+        if action == MatchAction.LIKE:
+            reciprocal_like = MatchAction.objects.filter(
+                from_user=target_user,
+                to_user=request.user,
+                action=MatchAction.LIKE,
+            ).exists()
 
-            MutualMatch.create_safe(request.user, target_user)
+            if reciprocal_like:
+                match, match_created = (
+                    MutualMatch.create_safe(
+                        request.user,
+                        target_user,
+                        return_created=True,
+                    )
+                )
+                matched = match is not None
 
-            matched = True
+    if match_created:
+        notify_new_match(
+            request.user,
+            target_user,
+        )
 
-            if not already_matched:
-                notify_new_match(request.user, target_user)
-
-    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-        return JsonResponse({"matched": matched})
+    if is_ajax_request(request):
+        return JsonResponse(
+            {
+                "ok": True,
+                "matched": matched,
+            }
+        )
 
     if matched:
-        messages.success(request, f"You matched with {get_display_name(target_user)}.")
+        messages.success(
+            request,
+            (
+                "You matched with "
+                f"{get_display_name(target_user)}."
+            ),
+        )
 
     return redirect("matches:discover")
 
@@ -262,7 +481,10 @@ def your_matches(request):
 
     matches = (
         MutualMatch.objects
-        .filter(Q(user_one=request.user) | Q(user_two=request.user))
+        .filter(
+            Q(user_one=request.user)
+            | Q(user_two=request.user)
+        )
         .exclude(user_one_id__in=hidden_ids)
         .exclude(user_two_id__in=hidden_ids)
         .select_related(
@@ -277,16 +499,39 @@ def your_matches(request):
     match_cards = []
 
     for match in matches:
-        other_user = match.user_two if match.user_one == request.user else match.user_one
+        other_user = (
+            match.user_two
+            if match.user_one == request.user
+            else match.user_one
+        )
 
-        if blocked_between(request.user, other_user):
+        if (
+            not other_user.is_active
+            or blocked_between(
+                request.user,
+                other_user,
+            )
+        ):
+            continue
+
+        other_profile = getattr(
+            other_user,
+            "profile",
+            None,
+        )
+
+        if (
+            other_profile is None
+            or not other_profile.profile_visible
+            or other_profile.hidden_by_moderation
+        ):
             continue
 
         match_cards.append(
             {
                 "match": match,
                 "other_user": other_user,
-                "other_profile": getattr(other_user, "profile", None),
+                "other_profile": other_profile,
             }
         )
 

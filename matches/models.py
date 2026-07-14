@@ -1,4 +1,4 @@
-from django.conf import settings
+﻿from django.conf import settings
 from django.db import models
 
 
@@ -71,8 +71,23 @@ class MutualMatch(models.Model):
         return f"{self.user_one} matched with {self.user_two}"
 
     @classmethod
-    def create_safe(cls, user_a, user_b):
+    def create_safe(
+        cls,
+        user_a,
+        user_b,
+        *,
+        return_created=False,
+    ):
+        """
+        Create one canonical match row regardless of user order.
+
+        return_created=True exposes the database creation result so callers
+        can send notifications only once.
+        """
         if user_a == user_b:
+            if return_created:
+                return None, False
+
             return None
 
         first, second = sorted(
@@ -84,5 +99,8 @@ class MutualMatch(models.Model):
             user_one=first,
             user_two=second,
         )
+
+        if return_created:
+            return match, created
 
         return match
