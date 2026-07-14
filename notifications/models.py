@@ -12,6 +12,13 @@ class Notification(models.Model):
     TYPE_REPORT = "report"
     TYPE_SYSTEM = "system"
 
+    # These two values intentionally stay out of TYPE_CHOICES. They are created
+    # by Heartly's broadcast views, not by the normal notification admin form.
+    # Keeping the database field definition unchanged means this feature does
+    # not require a risky migration on the existing Neon database.
+    TYPE_BROADCAST = "broadcast"
+    TYPE_BROADCAST_FEEDBACK = "broadcast_feedback"
+
     TYPE_CHOICES = [
         (TYPE_MESSAGE, "Message"),
         (TYPE_MATCH, "Match"),

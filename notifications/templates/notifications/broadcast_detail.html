@@ -1,0 +1,297 @@
+{% extends "heartly/base.html" %}
+
+{% block title %}{{ broadcast.title }} - Heartly{% endblock %}
+
+{% block content %}
+<main class="broadcast-page">
+    <header class="broadcast-header">
+        <a href="{% url 'notifications:notifications_home' %}" class="broadcast-back" aria-label="Back to notifications">‹</a>
+        <div>
+            <p class="broadcast-kicker">Official update</p>
+            <h1>Heartly broadcast</h1>
+        </div>
+    </header>
+
+    <article class="broadcast-card broadcast-message">
+        <div class="broadcast-badge">📣 Broadcast</div>
+        <h2>{{ broadcast.title }}</h2>
+
+        <div class="broadcast-meta">
+            {% if broadcast.actor %}
+                <span>From {{ broadcast.actor.get_display_name }}</span>
+            {% else %}
+                <span>From Heartly</span>
+            {% endif %}
+            <span>{{ broadcast.created_at|date:"M j, Y · H:i" }}</span>
+        </div>
+
+        <div class="broadcast-body">{{ broadcast.message|linebreaksbr }}</div>
+    </article>
+
+    <section class="broadcast-card broadcast-response">
+        {% if broadcast.actor_id == request.user.id %}
+            <div class="broadcast-status-icon">✅</div>
+            <div>
+                <h2>Broadcast sent</h2>
+                <p>You received a copy so you can confirm what every active user sees. User feedback will arrive in your Notifications.</p>
+            </div>
+        {% elif existing_feedback %}
+            <div class="broadcast-status-icon">📝</div>
+            <div class="broadcast-response-copy">
+                <h2>Feedback sent</h2>
+                <p class="broadcast-existing-feedback">{{ existing_feedback.message|linebreaksbr }}</p>
+                <small>Only one feedback response is accepted for each broadcast.</small>
+            </div>
+        {% elif feedback_allowed %}
+            <div class="broadcast-feedback-heading">
+                <div class="broadcast-status-icon">📝</div>
+                <div>
+                    <h2>Give feedback</h2>
+                    <p>This is optional and goes only to the Heartly staff member who sent the broadcast.</p>
+                </div>
+            </div>
+
+            <form method="post" class="broadcast-feedback-form">
+                {% csrf_token %}
+                <label for="id_feedback">Your feedback</label>
+                <textarea
+                    id="id_feedback"
+                    name="feedback"
+                    rows="5"
+                    maxlength="{{ max_feedback_length }}"
+                    placeholder="Write feedback about this update..."
+                    required
+                ></textarea>
+                <div class="broadcast-feedback-footer">
+                    <small>Maximum {{ max_feedback_length }} characters</small>
+                    <button type="submit">Send feedback</button>
+                </div>
+            </form>
+        {% else %}
+            <div class="broadcast-status-icon">🔒</div>
+            <div>
+                <h2>Read-only update</h2>
+                <p>Replies are turned off for this broadcast. It does not open a private chat.</p>
+            </div>
+        {% endif %}
+    </section>
+</main>
+{% endblock %}
+
+{% block extra_css %}
+.broadcast-page {
+    width: min(100%, 620px);
+    margin: 0 auto;
+    padding: 18px 16px 104px;
+    color: var(--heartly-text, #172033);
+}
+
+.broadcast-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 18px;
+}
+
+.broadcast-back {
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 44px;
+    border: 1px solid var(--heartly-border, #e5e7eb);
+    border-radius: 50%;
+    background: var(--heartly-card, #fff);
+    color: var(--heartly-text, #172033);
+    text-decoration: none;
+    font-size: 30px;
+    line-height: 1;
+}
+
+.broadcast-kicker {
+    margin: 0 0 2px;
+    color: var(--heartly-primary, #18ada0);
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.broadcast-header h1 {
+    margin: 0;
+    font-size: clamp(25px, 7vw, 33px);
+    line-height: 1.05;
+    letter-spacing: -.04em;
+}
+
+.broadcast-card {
+    border: 1px solid var(--heartly-border, #e5e7eb);
+    border-radius: 24px;
+    background: var(--heartly-card, #fff);
+    box-shadow: var(--heartly-shadow, 0 14px 35px rgba(15, 23, 42, .08));
+}
+
+.broadcast-message {
+    padding: 22px;
+}
+
+.broadcast-badge {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 7px 11px;
+    background: var(--heartly-primary-soft, rgba(24, 173, 160, .12));
+    color: var(--heartly-primary, #18ada0);
+    font-size: 12px;
+    font-weight: 900;
+}
+
+.broadcast-message h2 {
+    margin: 16px 0 8px;
+    font-size: clamp(22px, 6vw, 30px);
+    line-height: 1.15;
+    letter-spacing: -.035em;
+}
+
+.broadcast-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    color: var(--heartly-muted, #6b7280);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.broadcast-meta span + span::before {
+    content: "•";
+    margin-right: 7px;
+}
+
+.broadcast-body {
+    margin-top: 20px;
+    padding-top: 18px;
+    border-top: 1px solid var(--heartly-border, #e5e7eb);
+    font-size: 15px;
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+}
+
+.broadcast-response {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    margin-top: 16px;
+    padding: 18px;
+}
+
+.broadcast-status-icon {
+    width: 46px;
+    height: 46px;
+    flex: 0 0 46px;
+    display: grid;
+    place-items: center;
+    border-radius: 16px;
+    background: var(--heartly-primary-soft, rgba(24, 173, 160, .12));
+    font-size: 21px;
+}
+
+.broadcast-response h2 {
+    margin: 2px 0 5px;
+    font-size: 17px;
+}
+
+.broadcast-response p {
+    margin: 0;
+    color: var(--heartly-muted, #6b7280);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.broadcast-response-copy {
+    min-width: 0;
+}
+
+.broadcast-existing-feedback {
+    margin: 8px 0 !important;
+    padding: 12px;
+    border-radius: 14px;
+    background: var(--heartly-primary-soft, rgba(24, 173, 160, .12));
+    color: var(--heartly-text, #172033) !important;
+    overflow-wrap: anywhere;
+}
+
+.broadcast-response small {
+    color: var(--heartly-muted, #6b7280);
+}
+
+.broadcast-feedback-heading {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+}
+
+.broadcast-feedback-form {
+    display: grid;
+    gap: 8px;
+    width: 100%;
+}
+
+.broadcast-feedback-form label {
+    margin-top: 10px;
+    font-size: 13px;
+    font-weight: 900;
+}
+
+.broadcast-feedback-form textarea {
+    width: 100%;
+    box-sizing: border-box;
+    resize: vertical;
+    border: 1px solid var(--heartly-input-border, var(--heartly-border, #dbe1ea));
+    border-radius: 16px;
+    background: var(--heartly-input-bg, #fff);
+    color: var(--heartly-input-text, var(--heartly-text, #172033));
+    padding: 12px 13px;
+    font: inherit;
+    line-height: 1.5;
+    outline: none;
+}
+
+.broadcast-feedback-form textarea:focus {
+    border-color: var(--heartly-primary, #18ada0);
+    box-shadow: 0 0 0 4px var(--heartly-primary-soft, rgba(24, 173, 160, .12));
+}
+
+.broadcast-feedback-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.broadcast-feedback-footer button {
+    border: 0;
+    border-radius: 999px;
+    padding: 11px 16px;
+    background: var(--heartly-gradient, linear-gradient(135deg, #18ada0, #28c7b8));
+    color: #fff;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+@media (max-width: 460px) {
+    .broadcast-response:has(.broadcast-feedback-form) {
+        display: block;
+    }
+
+    .broadcast-feedback-footer {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .broadcast-feedback-footer button {
+        width: 100%;
+    }
+}
+{% endblock %}

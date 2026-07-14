@@ -1,5 +1,6 @@
 from django.urls import reverse
 from django.utils import timezone
+from django.db.models import Q
 
 from profiles.models import Profile
 
@@ -26,16 +27,21 @@ def visible_notifications_for(user):
 
     blocked_ids = hidden_user_ids(user)
     if blocked_ids:
-        notifications = notifications.exclude(actor_id__in=blocked_ids)
+        notifications = notifications.exclude(
+            Q(actor_id__in=blocked_ids)
+            & ~Q(notification_type=Notification.TYPE_BROADCAST)
+        )
 
     if model_has_field(Profile, "hidden_by_moderation"):
         notifications = notifications.exclude(
-            actor__profile__hidden_by_moderation=True
+            Q(actor__profile__hidden_by_moderation=True)
+            & ~Q(notification_type=Notification.TYPE_BROADCAST)
         )
 
     if model_has_field(Profile, "profile_visible"):
         notifications = notifications.exclude(
-            actor__profile__profile_visible=False
+            Q(actor__profile__profile_visible=False)
+            & ~Q(notification_type=Notification.TYPE_BROADCAST)
         )
 
     return notifications.order_by("-created_at")
@@ -51,6 +57,8 @@ def notification_icon(notification_type):
         Notification.TYPE_MISSED_CALL: "📵",
         Notification.TYPE_REPORT: "🛡️",
         Notification.TYPE_SYSTEM: "🔔",
+        Notification.TYPE_BROADCAST: "📣",
+        Notification.TYPE_BROADCAST_FEEDBACK: "📝",
     }.get(notification_type, "🔔")
 
 

@@ -4,30 +4,35 @@
 {% block title %}Notifications - Heartly{% endblock %}
 
 {% block content %}
-<div class="notifications-page">
-
-    <div class="notifications-header">
+<main class="notifications-page">
+    <header class="notifications-header">
         <div>
-            <h1 class="notifications-title">Notifications</h1>
-            <p class="notifications-subtitle">
-                Matches, messages, likes, comments, calls, and system alerts.
-            </p>
+            <h1>Notifications</h1>
+            <p>Messages, activity, calls, broadcasts, and safety alerts.</p>
         </div>
+        <a href="{% url 'settings' %}" class="notifications-icon-button heartly-icon-btn" title="Settings" aria-label="Open settings">⚙️</a>
+    </header>
 
-        <a href="{% url 'settings' %}" class="top-icon-btn heartly-icon-btn" title="Settings" aria-label="Open settings">
-            ⚙️
-        </a>
-    </div>
+    {% if request.user.is_staff %}
+        <section class="notifications-section">
+            <a href="{% url 'notifications:create_broadcast' %}" class="staff-broadcast-card">
+                <span class="staff-broadcast-icon">📣</span>
+                <span>
+                    <strong>Send a broadcast</strong>
+                    <small>Post a one-way update to every active Heartly user.</small>
+                </span>
+                <span class="notification-chevron">›</span>
+            </a>
+        </section>
+    {% endif %}
 
     <section class="notifications-section">
-        <div class="notifications-card notifications-main-card">
-
+        <div class="notifications-card notifications-summary-card">
             <div class="notifications-summary">
                 <div class="notifications-summary-icon">🔔</div>
-
                 <div>
-                    <h2 class="notifications-summary-title">Activity center</h2>
-                    <p class="notifications-summary-text" data-notification-summary-text>
+                    <h2>Activity center</h2>
+                    <p data-notification-summary-text>
                         {% if unread_count %}
                             You have {{ unread_count }} unread notification{{ unread_count|pluralize }}.
                         {% else %}
@@ -39,48 +44,37 @@
 
             <div class="notifications-meta">
                 <span class="notifications-pill" data-notification-unread-pill>
-                    {% if unread_count %}
-                        {{ unread_count }} unread
-                    {% else %}
-                        No unread
-                    {% endif %}
+                    {% if unread_count %}{{ unread_count }} unread{% else %}No unread{% endif %}
                 </span>
-
                 <span class="notifications-pill">💗 Heartly alerts</span>
             </div>
 
             <div class="notifications-actions">
                 <form method="post" action="{% url 'notifications:mark_notifications_read' %}" data-live-mark-all>
                     {% csrf_token %}
-                    <button type="submit" class="primary-action heartly-btn-primary">
-                        Mark all read
-                    </button>
+                    <button type="submit" class="primary-action heartly-btn-primary">Mark all read</button>
                 </form>
-
                 <form method="post" action="{% url 'notifications:clear_all_notifications' %}" data-live-clear-all>
                     {% csrf_token %}
-                    <button type="submit" class="secondary-action heartly-btn-secondary" onclick="return confirm('Clear all notifications?')">
-                        Clear all
-                    </button>
+                    <button type="submit" class="secondary-action heartly-btn-secondary" onclick="return confirm('Clear all notifications?')">Clear all</button>
                 </form>
             </div>
-
         </div>
     </section>
 
     <section class="notifications-section">
         <h2 class="notifications-section-title">Recent</h2>
-
         <div class="notifications-card" data-notification-list>
-
             {% for notification in notifications %}
                 <article class="notification-row {% if not notification.is_read and not notification.is_resolved %}unread{% endif %}">
-
                     <a href="{% url 'notifications:open_notification' notification.id %}" class="notification-main-link">
-
                         <div class="notification-left">
                             <div class="notification-icon">
-                                {% if notification.notification_type == "like" %}
+                                {% if notification.notification_type == "broadcast" %}
+                                    📣
+                                {% elif notification.notification_type == "broadcast_feedback" %}
+                                    📝
+                                {% elif notification.notification_type == "like" %}
                                     ❤️
                                 {% elif notification.notification_type == "comment" %}
                                     💬
@@ -90,70 +84,51 @@
                                     💞
                                 {% elif notification.notification_type == "call" %}
                                     📞
-                                {% elif notification.notification_type == "system" %}
+                                {% elif notification.notification_type == "missed_call" %}
+                                    📵
+                                {% elif notification.notification_type == "report" %}
                                     🛡️
+                                {% elif notification.notification_type == "system" %}
+                                    🔔
                                 {% else %}
                                     🔔
                                 {% endif %}
                             </div>
 
                             <div class="notification-copy">
-                                <p class="notification-label">
-                                    {{ notification.title|default:"Heartly notification" }}
-                                </p>
-
-                                <p class="notification-desc">
-                                    {{ notification.message|default:"Open this notification for more details." }}
-                                </p>
-
+                                <p class="notification-label">{{ notification.title|default:"Heartly notification" }}</p>
+                                <p class="notification-desc">{{ notification.message|default:"Open this notification for more details." }}</p>
                                 <div class="notification-meta-line">
                                     {% if notification.actor %}
-                                        <span>
-                                            From
-                                            {% if notification.actor.profile.display_name %}
-                                                {{ notification.actor.profile.display_name }}
-                                            {% else %}
-                                                {{ notification.actor.username }}
-                                            {% endif %}
-                                        </span>
+                                        <span>From {{ notification.actor.get_display_name }}</span>
                                     {% endif %}
-
                                     {% if notification.created_at %}
                                         <span>{{ notification.created_at|timesince }} ago</span>
                                     {% endif %}
                                 </div>
                             </div>
                         </div>
-
                         <span class="notification-chevron">›</span>
                     </a>
 
                     <form method="post" action="{% url 'notifications:clear_notification' notification.id %}" class="notification-clear-form" data-live-clear>
                         {% csrf_token %}
-                        <button type="submit" title="Clear notification" aria-label="Clear notification">
-                            ×
-                        </button>
+                        <button type="submit" title="Clear notification" aria-label="Clear notification">×</button>
                     </form>
-
                 </article>
             {% empty %}
                 <div class="notifications-empty">
                     <div class="notifications-empty-icon">✅</div>
-                    <h3 class="notifications-empty-title">No notifications</h3>
-                    <p class="notifications-empty-text">
-                        Likes, comments, matches, messages, calls, and safety alerts will appear here.
-                    </p>
+                    <h3>No notifications</h3>
+                    <p>Your Heartly activity and official updates will appear here.</p>
                 </div>
             {% endfor %}
-
         </div>
     </section>
 
     <section class="notifications-section">
         <h2 class="notifications-section-title">Quick access</h2>
-
         <div class="notifications-card">
-
             <a href="{% url 'feed:feed_home' %}" class="notifications-row-link">
                 <div class="notification-left">
                     <div class="notification-icon">🏠</div>
@@ -164,7 +139,6 @@
                 </div>
                 <span class="notification-chevron">›</span>
             </a>
-
             <a href="{% url 'matches:your_matches' %}" class="notifications-row-link">
                 <div class="notification-left">
                     <div class="notification-icon">💞</div>
@@ -175,7 +149,6 @@
                 </div>
                 <span class="notification-chevron">›</span>
             </a>
-
             <a href="{% url 'chat:chat_home' %}" class="notifications-row-link">
                 <div class="notification-left">
                     <div class="notification-icon">💬</div>
@@ -186,7 +159,6 @@
                 </div>
                 <span class="notification-chevron">›</span>
             </a>
-
             <a href="{% url 'profiles:profile_home' %}" class="notifications-row-link">
                 <div class="notification-left">
                     <div class="notification-icon">👤</div>
@@ -197,164 +169,178 @@
                 </div>
                 <span class="notification-chevron">›</span>
             </a>
-
         </div>
     </section>
 
     <p class="notifications-footer">Heartly v1.0</p>
-
-</div>
+</main>
 {% include "heartly/includes/notifications_live_config.html" %}
 {% endblock %}
 
 {% block extra_css %}
-:root {
-    --notifications-bg: #f8fafc;
-    --notifications-card: #ffffff;
-    --notifications-text: #111827;
-    --notifications-muted: #6b7280;
-    --notifications-border: #e5e7eb;
-    --notifications-pink: #ec4899;
-    --notifications-pink-soft: #fce7f3;
-    --notifications-red: #ef4444;
-    --notifications-shadow: 0 14px 35px rgba(15, 23, 42, 0.08);
-}
-
-:root[data-heartly-theme="dark"] {
-    --notifications-bg: #080b12;
-    --notifications-card: #111827;
-    --notifications-text: #f9fafb;
-    --notifications-muted: #9ca3af;
-    --notifications-border: #263244;
-    --notifications-pink: #f472b6;
-    --notifications-pink-soft: rgba(244, 114, 182, 0.14);
-    --notifications-shadow: 0 14px 35px rgba(0, 0, 0, 0.38);
-}
-
 .notifications-page {
+    width: min(100%, 540px);
     min-height: 100vh;
-    color: var(--notifications-text);
-    padding: 18px 16px 92px;
-    max-width: 520px;
     margin: 0 auto;
+    padding: 18px 16px 104px;
+    color: var(--heartly-text, #172033);
 }
 
 .notifications-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 22px;
+    gap: 16px;
+    margin-bottom: 20px;
 }
 
-.notifications-title {
+.notifications-header h1 {
+    margin: 0;
     font-size: 28px;
     font-weight: 900;
-    margin: 0;
-    letter-spacing: -0.04em;
+    letter-spacing: -.04em;
 }
 
-.notifications-subtitle {
-    color: var(--notifications-muted);
-    font-size: 14px;
-    margin-top: 4px;
-    max-width: 340px;
-    line-height: 1.35;
+.notifications-header p {
+    max-width: 360px;
+    margin: 4px 0 0;
+    color: var(--heartly-muted, #6b7280);
+    font-size: 13px;
+    line-height: 1.4;
 }
 
-.top-icon-btn {
-    width: 46px;
-    height: 46px;
-    border-radius: 50%;
+.notifications-icon-button {
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
     display: grid;
     place-items: center;
-    background: var(--notifications-card);
-    color: var(--notifications-text);
+    border: 1px solid var(--heartly-border, #e5e7eb);
+    border-radius: 50%;
+    background: var(--heartly-card, #fff);
+    color: var(--heartly-text, #172033);
     text-decoration: none;
-    border: 1px solid var(--notifications-border);
-    box-shadow: var(--notifications-shadow);
-    font-size: 20px;
+    box-shadow: var(--heartly-shadow, 0 12px 30px rgba(15, 23, 42, .08));
 }
 
 .notifications-section {
-    margin-bottom: 24px;
+    margin-bottom: 22px;
 }
 
 .notifications-section-title {
-    color: var(--notifications-muted);
-    font-size: 13px;
+    margin: 0 0 9px 4px;
+    color: var(--heartly-muted, #6b7280);
+    font-size: 12px;
     font-weight: 900;
+    letter-spacing: .08em;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin: 0 0 10px;
-    padding-left: 4px;
 }
 
-.notifications-card {
-    background: var(--notifications-card);
-    border: 1px solid var(--notifications-border);
+.notifications-card,
+.staff-broadcast-card {
+    border: 1px solid var(--heartly-border, #e5e7eb);
     border-radius: 24px;
+    background: var(--heartly-card, #fff);
+    box-shadow: var(--heartly-shadow, 0 14px 35px rgba(15, 23, 42, .08));
     overflow: hidden;
-    box-shadow: var(--notifications-shadow);
 }
 
-.notifications-main-card {
+.staff-broadcast-card {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    padding: 15px;
+    color: var(--heartly-text, #172033);
+    text-decoration: none;
+    border-color: var(--heartly-primary, #18ada0);
+}
+
+.staff-broadcast-card > span:nth-child(2) {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+    flex: 1;
+}
+
+.staff-broadcast-card strong {
+    font-size: 15px;
+}
+
+.staff-broadcast-card small {
+    color: var(--heartly-muted, #6b7280);
+    line-height: 1.35;
+}
+
+.staff-broadcast-icon,
+.notifications-summary-icon,
+.notification-icon,
+.notifications-empty-icon {
+    display: grid;
+    place-items: center;
+    background: var(--heartly-primary-soft, rgba(24, 173, 160, .12));
+}
+
+.staff-broadcast-icon {
+    width: 48px;
+    height: 48px;
+    flex: 0 0 48px;
+    border-radius: 17px;
+    font-size: 22px;
+}
+
+.notifications-summary-card {
     padding: 18px;
 }
 
 .notifications-summary {
     display: flex;
-    gap: 16px;
     align-items: center;
+    gap: 14px;
 }
 
 .notifications-summary-icon {
-    width: 72px;
-    height: 72px;
-    border-radius: 26px;
-    background: var(--notifications-pink-soft);
-    color: var(--notifications-pink);
-    display: grid;
-    place-items: center;
-    font-size: 30px;
-    flex-shrink: 0;
+    width: 64px;
+    height: 64px;
+    flex: 0 0 64px;
+    border-radius: 22px;
+    font-size: 27px;
 }
 
-.notifications-summary-title {
+.notifications-summary h2 {
     margin: 0;
-    font-size: 22px;
-    font-weight: 900;
-    letter-spacing: -0.04em;
+    font-size: 21px;
+    letter-spacing: -.035em;
 }
 
-.notifications-summary-text {
-    margin: 5px 0 0;
-    color: var(--notifications-muted);
-    font-size: 14px;
-    line-height: 1.4;
+.notifications-summary p {
+    margin: 4px 0 0;
+    color: var(--heartly-muted, #6b7280);
+    font-size: 13px;
     font-weight: 700;
+    line-height: 1.4;
 }
 
 .notifications-meta {
     display: flex;
     flex-wrap: wrap;
-    gap: 9px;
-    margin-top: 16px;
+    gap: 8px;
+    margin-top: 15px;
 }
 
 .notifications-pill {
-    background: var(--notifications-pink-soft);
-    color: var(--notifications-pink);
     border-radius: 999px;
-    padding: 8px 12px;
-    font-size: 13px;
+    padding: 7px 10px;
+    background: var(--heartly-primary-soft, rgba(24, 173, 160, .12));
+    color: var(--heartly-primary, #18ada0);
+    font-size: 12px;
     font-weight: 900;
 }
 
 .notifications-actions {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-top: 18px;
+    gap: 9px;
+    margin-top: 16px;
 }
 
 .notifications-actions form {
@@ -364,33 +350,40 @@
 .primary-action,
 .secondary-action {
     width: 100%;
-    border: none;
+    border: 0;
     border-radius: 999px;
     padding: 12px 14px;
-    text-align: center;
-    text-decoration: none;
-    font-size: 14px;
+    font: inherit;
+    font-size: 13px;
     font-weight: 900;
     cursor: pointer;
 }
 
 .primary-action {
-    background: var(--notifications-pink);
-    color: #ffffff;
+    background: var(--heartly-gradient, linear-gradient(135deg, #18ada0, #28c7b8));
+    color: #fff;
 }
 
 .secondary-action {
-    background: var(--notifications-pink-soft);
-    color: var(--notifications-pink);
+    background: var(--heartly-primary-soft, rgba(24, 173, 160, .12));
+    color: var(--heartly-primary, #18ada0);
 }
 
 .notification-row {
-    transition: opacity 180ms ease, transform 180ms ease, background 180ms ease;
     position: relative;
     display: grid;
     grid-template-columns: 1fr auto;
     align-items: stretch;
-    border-top: 1px solid var(--notifications-border);
+    border-top: 1px solid var(--heartly-border, #e5e7eb);
+    transition: opacity .18s ease, transform .18s ease, background .18s ease;
+}
+
+.notification-row:first-child {
+    border-top: 0;
+}
+
+.notification-row.unread {
+    background: linear-gradient(90deg, var(--heartly-primary-soft, rgba(24, 173, 160, .12)), transparent);
 }
 
 .notification-row.is-removing {
@@ -399,43 +392,35 @@
     pointer-events: none;
 }
 
-.notification-row:first-child {
-    border-top: none;
-}
-
-.notification-row.unread {
-    background: linear-gradient(90deg, var(--notifications-pink-soft), transparent);
-}
-
 .notification-main-link,
 .notifications-row-link {
-    width: 100%;
-    color: var(--notifications-text);
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 14px;
-    padding: 16px;
+    gap: 12px;
+    min-width: 0;
+    padding: 15px;
+    color: var(--heartly-text, #172033);
     text-decoration: none;
+}
+
+.notifications-row-link + .notifications-row-link {
+    border-top: 1px solid var(--heartly-border, #e5e7eb);
 }
 
 .notification-left {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 13px;
     min-width: 0;
 }
 
 .notification-icon {
     width: 42px;
     height: 42px;
-    border-radius: 16px;
-    background: var(--notifications-pink-soft);
-    color: var(--notifications-pink);
-    display: grid;
-    place-items: center;
-    font-size: 20px;
-    flex-shrink: 0;
+    flex: 0 0 42px;
+    border-radius: 15px;
+    font-size: 19px;
 }
 
 .notification-copy {
@@ -443,112 +428,97 @@
 }
 
 .notification-label {
-    font-weight: 900;
-    font-size: 15px;
     margin: 0;
+    font-size: 14px;
+    font-weight: 900;
 }
 
 .notification-desc {
-    color: var(--notifications-muted);
-    font-size: 13px;
+    display: -webkit-box;
     margin: 3px 0 0;
-    line-height: 1.35;
+    overflow: hidden;
+    color: var(--heartly-muted, #6b7280);
+    font-size: 12px;
+    line-height: 1.4;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
 }
 
 .notification-meta-line {
     display: flex;
     flex-wrap: wrap;
-    gap: 7px;
+    gap: 6px;
     margin-top: 6px;
 }
 
 .notification-meta-line span {
-    color: var(--notifications-pink);
-    background: var(--notifications-pink-soft);
     border-radius: 999px;
-    padding: 5px 8px;
-    font-size: 11px;
+    padding: 4px 7px;
+    background: var(--heartly-primary-soft, rgba(24, 173, 160, .12));
+    color: var(--heartly-primary, #18ada0);
+    font-size: 10px;
     font-weight: 900;
 }
 
 .notification-chevron {
-    color: var(--notifications-muted);
+    flex: 0 0 auto;
+    color: var(--heartly-muted, #6b7280);
     font-size: 22px;
-    flex-shrink: 0;
 }
 
 .notification-clear-form {
-    margin: 0;
     display: grid;
     place-items: center;
-    padding-right: 12px;
+    margin: 0;
+    padding-right: 11px;
 }
 
 .notification-clear-form button {
-    width: 32px;
-    height: 32px;
-    border: none;
+    width: 31px;
+    height: 31px;
+    border: 0;
     border-radius: 50%;
-    background: rgba(239, 68, 68, 0.12);
-    color: var(--notifications-red);
-    font-size: 18px;
+    background: rgba(239, 68, 68, .12);
+    color: #ef4444;
+    font-size: 17px;
     font-weight: 900;
     cursor: pointer;
 }
 
-.notifications-row-link + .notifications-row-link {
-    border-top: 1px solid var(--notifications-border);
-}
-
 .notifications-empty {
-    text-align: center;
     padding: 28px 18px;
+    text-align: center;
 }
 
 .notifications-empty-icon {
-    width: 56px;
-    height: 56px;
-    border-radius: 20px;
-    background: var(--notifications-pink-soft);
-    color: var(--notifications-pink);
-    display: grid;
-    place-items: center;
-    margin: 0 auto 12px;
-    font-size: 24px;
+    width: 55px;
+    height: 55px;
+    margin: 0 auto 11px;
+    border-radius: 19px;
+    font-size: 23px;
 }
 
-.notifications-empty-title {
+.notifications-empty h3 {
     margin: 0;
     font-size: 16px;
-    font-weight: 900;
 }
 
-.notifications-empty-text {
-    margin: 6px 0 0;
-    color: var(--notifications-muted);
-    font-size: 14px;
-    line-height: 1.45;
+.notifications-empty p {
+    margin: 5px 0 0;
+    color: var(--heartly-muted, #6b7280);
+    font-size: 13px;
 }
 
 .notifications-footer {
+    margin-top: 26px;
+    color: var(--heartly-muted, #6b7280);
+    font-size: 11px;
     text-align: center;
-    color: var(--notifications-muted);
-    font-size: 12px;
-    margin-top: 28px;
 }
 
 @media (max-width: 380px) {
     .notifications-actions {
         grid-template-columns: 1fr;
-    }
-
-    .notification-main-link,
-    .notifications-row-link {
-        align-items: flex-start;
-    }
-
-    .notifications-summary-title {
-        font-size: 20px;
     }
 }
 {% endblock %}

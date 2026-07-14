@@ -1,10 +1,43 @@
+from django import forms
 from django.contrib import admin
 
 from .models import Notification
 
 
+class NotificationAdminForm(forms.ModelForm):
+    notification_type = forms.ChoiceField(
+        choices=[
+            *Notification.TYPE_CHOICES,
+            (Notification.TYPE_BROADCAST, "Broadcast"),
+            (Notification.TYPE_BROADCAST_FEEDBACK, "Broadcast feedback"),
+        ]
+    )
+
+    class Meta:
+        model = Notification
+        fields = "__all__"
+
+
+class NotificationTypeFilter(admin.SimpleListFilter):
+    title = "notification type"
+    parameter_name = "notification_type"
+
+    def lookups(self, request, model_admin):
+        return [
+            *Notification.TYPE_CHOICES,
+            (Notification.TYPE_BROADCAST, "Broadcast"),
+            (Notification.TYPE_BROADCAST_FEEDBACK, "Broadcast feedback"),
+        ]
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(notification_type=self.value())
+        return queryset
+
+
 @admin.register(Notification)
 class NotificationAdmin(admin.ModelAdmin):
+    form = NotificationAdminForm
     list_display = (
         "title",
         "recipient",
@@ -15,7 +48,7 @@ class NotificationAdmin(admin.ModelAdmin):
         "created_at",
     )
     list_filter = (
-        "notification_type",
+        NotificationTypeFilter,
         "is_read",
         "is_resolved",
         "created_at",
