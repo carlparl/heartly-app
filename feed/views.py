@@ -10,10 +10,12 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
-from .forms import EditPostForm, PostForm
-from .models import Comment, CommentReaction, Post, PostLike, PostSave
+from profiles.blocking import hidden_user_ids_for
+
+from .forms import EditPostForm, PostForm, StoryForm
+from .models import Comment, CommentReaction, Post, PostLike, PostSave, Story, StoryView
 
 
 POSTS_PER_PAGE = 12
@@ -247,6 +249,65 @@ def enrich_posts(posts, viewer):
         yield decorate_post(post, viewer)
 
 
+def visible_active_stories(viewer):
+    queryset = (
+        Story.objects.active()
+        .select_related("author", "author__profile")
+        .order_by("-created_at")
+    )
+
+    hidden_ids = hidden_user_ids_for(viewer)
+    if hidden_ids:
+        queryset = queryset.exclude(author_id__in=hidden_ids)
+
+    return queryset
+
+
+def decorate_story(story):
+    decorate_user_identity(story, story.author)
+    story.media_url = _safe_file_url(story.video or story.image)
+    return story
+
+
+def story_groups_for(viewer):
+    stories = list(visible_active_stories(viewer))
+    seen_ids = set(
+        StoryView.objects.filter(
+            viewer=viewer,
+            story_id__in=[story.id for story in stories],
+        ).values_list("story_id", flat=True)
+    )
+
+    groups = {}
+    order = []
+
+    for story in stories:
+        decorate_story(story)
+        if story.author_id not in groups:
+            groups[story.author_id] = {
+                "author_id": story.author_id,
+                "latest_story": story,
+                "story_count": 0,
+                "has_unseen": False,
+                "is_owner": story.author_id == viewer.id,
+            }
+            order.append(story.author_id)
+
+        group = groups[story.author_id]
+        group["story_count"] += 1
+        if story.author_id != viewer.id and story.id not in seen_ids:
+            group["has_unseen"] = True
+
+    order.sort(
+        key=lambda author_id: (
+            groups[author_id]["is_owner"],
+            groups[author_id]["latest_story"].created_at,
+        ),
+        reverse=True,
+    )
+    return [groups[author_id] for author_id in order]
+
+
 def render_post_card(request, post):
     post = decorate_post(post, request.user)
     return render_to_string(
@@ -299,8 +360,112 @@ def feed_home(request):
             "viewer_username": username_for(request.user),
             "viewer_avatar_url": avatar_url_for(request.user),
             "viewer_initials": initials_for(username_for(request.user)),
+            "story_groups": story_groups_for(request.user),
         },
     )
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def create_story(request):
+    if request.method == "POST":
+        form = StoryForm(request.POST, request.FILES)
+
+        if form.is_valid():
+            story = form.save(commit=False)
+            story.author = request.user
+
+            try:
+                story.save()
+            except Exception as exc:
+                messages.error(request, upload_exception_message(exc))
+            else:
+                messages.success(request, "Story shared for five hours.")
+                return redirect("feed:story_detail", story_id=story.id)
+    else:
+        form = StoryForm()
+
+    return render(
+        request,
+        "feed/story_create.html",
+        {"story_form": form},
+    )
+
+
+@login_required
+@require_GET
+def story_detail(request, story_id):
+    story = get_object_or_404(
+        visible_active_stories(request.user),
+        id=story_id,
+    )
+    decorate_story(story)
+
+    if story.author_id != request.user.id:
+        StoryView.objects.get_or_create(
+            story=story,
+            viewer=request.user,
+        )
+
+    author_stories = list(
+        visible_active_stories(request.user)
+        .filter(author_id=story.author_id)
+        .order_by("created_at")
+        .values_list("id", flat=True)
+    )
+    current_index = author_stories.index(story.id)
+    previous_story_id = (
+        author_stories[current_index - 1]
+        if current_index > 0
+        else None
+    )
+    next_story_id = (
+        author_stories[current_index + 1]
+        if current_index + 1 < len(author_stories)
+        else None
+    )
+
+    viewers = []
+    if story.author_id == request.user.id:
+        viewer_queryset = (
+            story.views
+            .exclude(viewer_id=request.user.id)
+            .select_related("viewer", "viewer__profile")
+            .order_by("-viewed_at")
+        )
+        hidden_viewer_ids = hidden_user_ids_for(request.user)
+        if hidden_viewer_ids:
+            viewer_queryset = viewer_queryset.exclude(
+                viewer_id__in=hidden_viewer_ids
+            )
+        viewers = list(viewer_queryset)
+        for view in viewers:
+            decorate_user_identity(view, view.viewer)
+
+    return render(
+        request,
+        "feed/story_detail.html",
+        {
+            "story": story,
+            "previous_story_id": previous_story_id,
+            "next_story_id": next_story_id,
+            "story_viewers": viewers,
+            "story_expires_ms": int(story.expires_at.timestamp() * 1000),
+        },
+    )
+
+
+@login_required
+@require_POST
+def delete_story(request, story_id):
+    story = get_object_or_404(
+        Story,
+        id=story_id,
+        author=request.user,
+    )
+    story.delete()
+    messages.success(request, "Story deleted.")
+    return redirect("feed:feed_home")
 
 
 @login_required

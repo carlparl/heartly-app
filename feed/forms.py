@@ -1,9 +1,10 @@
 import os
 
 from django import forms
+from django.conf import settings
 from django.core.exceptions import ValidationError
 
-from .models import Post, PostReport
+from .models import Post, PostReport, Story
 
 
 ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
@@ -11,6 +12,14 @@ ALLOWED_VIDEO_EXTENSIONS = {".mp4", ".mov", ".m4v", ".webm"}
 
 MAX_IMAGE_SIZE_MB = 10
 MAX_VIDEO_SIZE_MB = 100
+STORY_MAX_IMAGE_SIZE_MB = min(
+    MAX_IMAGE_SIZE_MB,
+    max(1, getattr(settings, "HEARTLY_MAX_IMAGE_UPLOAD_SIZE", 15 * 1024 * 1024) // (1024 * 1024)),
+)
+STORY_MAX_VIDEO_SIZE_MB = min(
+    MAX_VIDEO_SIZE_MB,
+    max(1, getattr(settings, "HEARTLY_MAX_VIDEO_UPLOAD_SIZE", 60 * 1024 * 1024) // (1024 * 1024)),
+)
 
 
 def validate_uploaded_file(file, allowed_extensions, max_size_mb, file_type_name):
@@ -120,6 +129,59 @@ class EditPostForm(BasePostForm):
                 "accept": "video/mp4,video/quicktime,video/webm",
             }),
         }
+
+
+class StoryForm(forms.ModelForm):
+    class Meta:
+        model = Story
+        fields = ["caption", "image", "video"]
+        widgets = {
+            "caption": forms.Textarea(attrs={
+                "class": "story-caption-input",
+                "placeholder": "Add a short caption (optional)",
+                "rows": 3,
+                "maxlength": 280,
+            }),
+            "image": forms.ClearableFileInput(attrs={
+                "class": "story-file-input",
+                "accept": "image/jpeg,image/png,image/webp",
+            }),
+            "video": forms.ClearableFileInput(attrs={
+                "class": "story-file-input",
+                "accept": "video/mp4,video/quicktime,video/webm",
+            }),
+        }
+
+    def clean_image(self):
+        image = self.cleaned_data.get("image")
+        return validate_uploaded_file(
+            image,
+            ALLOWED_IMAGE_EXTENSIONS,
+            STORY_MAX_IMAGE_SIZE_MB,
+            "image",
+        )
+
+    def clean_video(self):
+        video = self.cleaned_data.get("video")
+        return validate_uploaded_file(
+            video,
+            ALLOWED_VIDEO_EXTENSIONS,
+            STORY_MAX_VIDEO_SIZE_MB,
+            "video",
+        )
+
+    def clean_caption(self):
+        return (self.cleaned_data.get("caption") or "").strip()
+
+    def clean(self):
+        cleaned_data = super().clean()
+        image = cleaned_data.get("image")
+        video = cleaned_data.get("video")
+
+        if bool(image) == bool(video):
+            raise ValidationError("Choose one photo or one video for your Story.")
+
+        return cleaned_data
 
 
 class PostReportForm(forms.ModelForm):

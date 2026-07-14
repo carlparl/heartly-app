@@ -1,0 +1,357 @@
+{% extends "heartly/base.html" %}
+
+{% block title %}Create Story | Heartly{% endblock %}
+
+{% block content %}
+<main class="story-create-page">
+    <header class="story-create-header">
+        <a href="{% url 'feed:feed_home' %}" class="story-back" aria-label="Back to feed">‹</a>
+        <div>
+            <p>Five-hour update</p>
+            <h1>Create Story</h1>
+        </div>
+    </header>
+
+    <section class="story-create-card">
+        <div class="story-create-note">
+            <span>⏱️</span>
+            <div>
+                <strong>Visible for exactly five hours</strong>
+                <p>The Story automatically disappears from Heartly when its timer reaches zero.</p>
+            </div>
+        </div>
+
+        {% if story_form.non_field_errors %}
+            <div class="story-form-errors">
+                {% for error in story_form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+            </div>
+        {% endif %}
+
+        <form method="post" enctype="multipart/form-data" class="story-create-form" id="storyCreateForm">
+            {% csrf_token %}
+
+            <div class="story-media-options">
+                <label class="story-media-option" for="id_image">
+                    <span class="story-option-icon">🖼️</span>
+                    <span><strong>Choose photo</strong><small>JPG, PNG or WebP</small></span>
+                    {{ story_form.image }}
+                </label>
+
+                <label class="story-media-option" for="id_video">
+                    <span class="story-option-icon">🎬</span>
+                    <span><strong>Choose video</strong><small>MP4, MOV or WebM</small></span>
+                    {{ story_form.video }}
+                </label>
+            </div>
+
+            {% if story_form.image.errors %}
+                <div class="story-field-error">{{ story_form.image.errors|join:", " }}</div>
+            {% endif %}
+            {% if story_form.video.errors %}
+                <div class="story-field-error">{{ story_form.video.errors|join:", " }}</div>
+            {% endif %}
+
+            <div class="story-preview" id="storyPreview" hidden></div>
+            <button type="button" class="story-clear-media" id="storyClearMedia" hidden>Remove selected media</button>
+
+            <label class="story-caption-label" for="id_caption">Caption <span>optional</span></label>
+            {{ story_form.caption }}
+            {% if story_form.caption.errors %}
+                <div class="story-field-error">{{ story_form.caption.errors|join:", " }}</div>
+            {% endif %}
+
+            <div class="story-submit-note">Only people allowed by Heartly's privacy and blocking rules can see this Story.</div>
+            <button type="submit" class="story-share-button">Share for five hours</button>
+        </form>
+    </section>
+</main>
+{% endblock %}
+
+{% block extra_css %}
+.story-create-page {
+    width: min(100%, 620px);
+    margin: 0 auto;
+    padding: 18px 16px 104px;
+    color: var(--heartly-text, #172033);
+}
+
+.story-create-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 17px;
+}
+
+.story-back {
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 44px;
+    border: 1px solid var(--heartly-border, #e5e7eb);
+    border-radius: 50%;
+    background: var(--heartly-card, #fff);
+    color: var(--heartly-text, #172033);
+    text-decoration: none;
+    font-size: 30px;
+    line-height: 1;
+}
+
+.story-create-header p {
+    margin: 0 0 2px;
+    color: var(--heartly-primary, #18ada0);
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.story-create-header h1 {
+    margin: 0;
+    font-size: clamp(26px, 7vw, 34px);
+    line-height: 1.05;
+    letter-spacing: -.04em;
+}
+
+.story-create-card {
+    padding: 18px;
+    border: 1px solid var(--heartly-border, #e5e7eb);
+    border-radius: 26px;
+    background: var(--heartly-card, #fff);
+    box-shadow: var(--heartly-shadow, 0 14px 35px rgba(15, 23, 42, .08));
+}
+
+.story-create-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px;
+    border-radius: 18px;
+    background: var(--heartly-primary-soft, rgba(24, 173, 160, .12));
+}
+
+.story-create-note > span {
+    font-size: 23px;
+}
+
+.story-create-note strong {
+    font-size: 14px;
+}
+
+.story-create-note p {
+    margin: 4px 0 0;
+    color: var(--heartly-muted, #6b7280);
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.story-create-form {
+    display: grid;
+    gap: 11px;
+    margin-top: 17px;
+}
+
+.story-media-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.story-media-option {
+    min-width: 0;
+    padding: 14px;
+    border: 1px solid var(--heartly-border, #e5e7eb);
+    border-radius: 18px;
+    background: var(--heartly-card-soft, rgba(127, 127, 127, .06));
+    cursor: pointer;
+}
+
+.story-media-option > span:not(.story-option-icon) {
+    display: grid;
+    gap: 2px;
+}
+
+.story-option-icon {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 24px;
+}
+
+.story-media-option strong {
+    font-size: 13px;
+}
+
+.story-media-option small {
+    color: var(--heartly-muted, #6b7280);
+    font-size: 10px;
+}
+
+.story-file-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+}
+
+.story-preview {
+    overflow: hidden;
+    border-radius: 22px;
+    background: #000;
+}
+
+.story-preview img,
+.story-preview video {
+    display: block;
+    width: 100%;
+    max-height: 520px;
+    object-fit: contain;
+    background: #000;
+}
+
+.story-clear-media {
+    justify-self: start;
+    border: 0;
+    background: transparent;
+    color: #ef4444;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.story-caption-label {
+    margin-top: 5px;
+    font-size: 13px;
+    font-weight: 900;
+}
+
+.story-caption-label span {
+    color: var(--heartly-muted, #6b7280);
+    font-weight: 700;
+}
+
+.story-caption-input {
+    width: 100%;
+    box-sizing: border-box;
+    resize: vertical;
+    border: 1px solid var(--heartly-input-border, var(--heartly-border, #dbe1ea));
+    border-radius: 16px;
+    background: var(--heartly-input-bg, #fff);
+    color: var(--heartly-input-text, var(--heartly-text, #172033));
+    padding: 12px 13px;
+    font: inherit;
+    line-height: 1.45;
+    outline: none;
+}
+
+.story-caption-input:focus {
+    border-color: var(--heartly-primary, #18ada0);
+    box-shadow: 0 0 0 4px var(--heartly-primary-soft, rgba(24, 173, 160, .12));
+}
+
+.story-field-error,
+.story-form-errors {
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: rgba(239, 68, 68, .12);
+    color: #dc2626;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.story-form-errors p {
+    margin: 0;
+}
+
+.story-submit-note {
+    padding: 11px 12px;
+    border-radius: 14px;
+    background: var(--heartly-card-soft, rgba(127, 127, 127, .06));
+    color: var(--heartly-muted, #6b7280);
+    font-size: 11px;
+    line-height: 1.45;
+}
+
+.story-share-button {
+    border: 0;
+    border-radius: 999px;
+    padding: 14px 18px;
+    background: var(--heartly-gradient, linear-gradient(135deg, #18ada0, #28c7b8));
+    color: #fff;
+    font: inherit;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+@media (max-width: 390px) {
+    .story-media-options {
+        grid-template-columns: 1fr;
+    }
+}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    "use strict";
+
+    const imageInput = document.getElementById("id_image");
+    const videoInput = document.getElementById("id_video");
+    const preview = document.getElementById("storyPreview");
+    const clearButton = document.getElementById("storyClearMedia");
+    let previewUrl = "";
+
+    function clearPreview(clearInputs) {
+        if (previewUrl) {
+            URL.revokeObjectURL(previewUrl);
+            previewUrl = "";
+        }
+        preview.innerHTML = "";
+        preview.hidden = true;
+        clearButton.hidden = true;
+        if (clearInputs) {
+            imageInput.value = "";
+            videoInput.value = "";
+        }
+    }
+
+    function showPreview(file, isVideo) {
+        clearPreview(false);
+        if (!file) return;
+
+        previewUrl = URL.createObjectURL(file);
+        const media = document.createElement(isVideo ? "video" : "img");
+        media.src = previewUrl;
+        if (isVideo) {
+            media.controls = true;
+            media.playsInline = true;
+            media.preload = "metadata";
+        } else {
+            media.alt = "Selected Story photo preview";
+        }
+        preview.appendChild(media);
+        preview.hidden = false;
+        clearButton.hidden = false;
+    }
+
+    imageInput.addEventListener("change", function () {
+        const file = imageInput.files && imageInput.files[0];
+        if (file) videoInput.value = "";
+        showPreview(file, false);
+    });
+
+    videoInput.addEventListener("change", function () {
+        const file = videoInput.files && videoInput.files[0];
+        if (file) imageInput.value = "";
+        showPreview(file, true);
+    });
+
+    clearButton.addEventListener("click", function () {
+        clearPreview(true);
+    });
+})();
+</script>
+{% endblock %}
+

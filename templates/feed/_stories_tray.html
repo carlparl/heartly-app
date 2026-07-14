@@ -1,0 +1,53 @@
+<section class="stories-section" aria-label="Heartly Stories">
+    <div class="stories-heading">
+        <div>
+            <h2>Stories</h2>
+            <p>Updates disappear after exactly five hours.</p>
+        </div>
+        <a href="{% url 'feed:create_story' %}" class="stories-create-link">Add story</a>
+    </div>
+
+    <div class="stories-tray">
+        <a href="{% url 'feed:create_story' %}" class="story-tray-item story-add-item">
+            <span class="story-ring story-add-ring">
+                {% if viewer_avatar_url %}
+                    <img src="{{ viewer_avatar_url }}" alt="Your profile photo">
+                {% else %}
+                    <span class="story-avatar-fallback">{{ viewer_initials }}</span>
+                {% endif %}
+                <span class="story-plus">+</span>
+            </span>
+            <span class="story-tray-name">Add story</span>
+        </a>
+
+        {% for group in story_groups %}
+            <a
+                href="{% url 'feed:story_detail' group.latest_story.id %}"
+                class="story-tray-item"
+                aria-label="Open {{ group.latest_story.display_name }}'s Story"
+            >
+                <span class="story-ring {% if group.has_unseen %}story-unseen{% else %}story-seen{% endif %}">
+                    {% if group.latest_story.image and group.latest_story.media_url %}
+                        <img src="{{ group.latest_story.media_url }}" alt="{{ group.latest_story.display_name }} Story preview" loading="lazy">
+                    {% elif group.latest_story.avatar_url %}
+                        <img src="{{ group.latest_story.avatar_url }}" alt="{{ group.latest_story.display_name }}">
+                    {% else %}
+                        <span class="story-avatar-fallback">{{ group.latest_story.avatar_initials }}</span>
+                    {% endif %}
+
+                    {% if group.latest_story.is_video %}
+                        <span class="story-video-badge">▶</span>
+                    {% endif %}
+
+                    {% if group.story_count > 1 %}
+                        <span class="story-count-badge">{{ group.story_count }}</span>
+                    {% endif %}
+                </span>
+                <span class="story-tray-name">
+                    {% if group.is_owner %}Your story{% else %}{{ group.latest_story.display_name }}{% endif %}
+                </span>
+            </a>
+        {% endfor %}
+    </div>
+</section>
+

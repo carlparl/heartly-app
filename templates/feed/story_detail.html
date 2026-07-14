@@ -1,0 +1,357 @@
+{% extends "heartly/base.html" %}
+
+{% block title %}{{ story.display_name }}'s Story | Heartly{% endblock %}
+
+{% block content %}
+<main class="story-viewer" data-story-expires-ms="{{ story_expires_ms }}">
+    <div class="story-progress-track"><span id="storyProgress"></span></div>
+
+    <header class="story-viewer-header">
+        <a href="{% url 'feed:feed_home' %}" class="story-viewer-close" aria-label="Close Story">×</a>
+
+        <div class="story-owner-avatar">
+            {% if story.avatar_url %}
+                <img src="{{ story.avatar_url }}" alt="{{ story.display_name }}">
+            {% else %}
+                <span>{{ story.avatar_initials }}</span>
+            {% endif %}
+        </div>
+
+        <div class="story-owner-copy">
+            <strong>{{ story.display_name }}</strong>
+            <span>{{ story.created_at|timesince }} ago · <b id="storyCountdown">5h left</b></span>
+        </div>
+
+        {% if story.author_id == request.user.id %}
+            <form method="post" action="{% url 'feed:delete_story' story.id %}" class="story-delete-form">
+                {% csrf_token %}
+                <button type="submit" onclick="return confirm('Delete this Story now?')">Delete</button>
+            </form>
+        {% endif %}
+    </header>
+
+    <section class="story-media-stage">
+        {% if story.video and story.media_url %}
+            <video src="{{ story.media_url }}" controls playsinline preload="metadata"></video>
+        {% elif story.image and story.media_url %}
+            <img src="{{ story.media_url }}" alt="{{ story.display_name }}'s Story">
+        {% else %}
+            <div class="story-media-unavailable">This Story's media is unavailable.</div>
+        {% endif %}
+    </section>
+
+    {% if previous_story_id %}
+        <a href="{% url 'feed:story_detail' previous_story_id %}" class="story-nav story-nav-previous" aria-label="Previous Story">‹</a>
+    {% endif %}
+    {% if next_story_id %}
+        <a href="{% url 'feed:story_detail' next_story_id %}" class="story-nav story-nav-next" aria-label="Next Story">›</a>
+    {% endif %}
+
+    <footer class="story-viewer-footer">
+        {% if story.caption %}
+            <p class="story-caption">{{ story.caption }}</p>
+        {% endif %}
+
+        {% if story.author_id == request.user.id %}
+            <details class="story-viewers-panel">
+                <summary>👁 {{ story_viewers|length }} viewer{{ story_viewers|length|pluralize }}</summary>
+                <div class="story-viewers-list">
+                    {% for view in story_viewers %}
+                        <div class="story-viewer-row">
+                            <span class="story-viewer-mini-avatar">
+                                {% if view.avatar_url %}
+                                    <img src="{{ view.avatar_url }}" alt="{{ view.display_name }}">
+                                {% else %}
+                                    {{ view.avatar_initials }}
+                                {% endif %}
+                            </span>
+                            <span><strong>{{ view.display_name }}</strong><small>{{ view.viewed_at|timesince }} ago</small></span>
+                        </div>
+                    {% empty %}
+                        <p>No viewers yet.</p>
+                    {% endfor %}
+                </div>
+            </details>
+        {% else %}
+            <p class="story-read-only">Story updates are view-only.</p>
+        {% endif %}
+    </footer>
+</main>
+{% endblock %}
+
+{% block extra_css %}
+.heartly-bottom-nav,
+.heartly-notification-fab,
+.heartly-topbar {
+    display: none !important;
+}
+
+.story-viewer {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    overflow: hidden;
+    background: #050609;
+    color: #fff;
+}
+
+.story-progress-track {
+    position: fixed;
+    top: max(8px, env(safe-area-inset-top));
+    left: 12px;
+    right: 12px;
+    z-index: 3;
+    height: 3px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .3);
+}
+
+.story-progress-track span {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #18ada0, #ff4f7b);
+    transform-origin: left center;
+}
+
+.story-viewer-header {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: calc(max(18px, env(safe-area-inset-top)) + 8px) 14px 10px;
+    background: linear-gradient(180deg, rgba(0, 0, 0, .82), transparent);
+}
+
+.story-viewer-close {
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 38px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .14);
+    color: #fff;
+    text-decoration: none;
+    font-size: 25px;
+}
+
+.story-owner-avatar,
+.story-viewer-mini-avatar {
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #18ada0, #ff4f7b);
+    color: #fff;
+    font-weight: 900;
+}
+
+.story-owner-avatar {
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+}
+
+.story-owner-avatar img,
+.story-viewer-mini-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.story-owner-copy {
+    display: grid;
+    min-width: 0;
+    flex: 1;
+}
+
+.story-owner-copy strong {
+    overflow: hidden;
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.story-owner-copy span {
+    color: rgba(255, 255, 255, .72);
+    font-size: 10px;
+}
+
+.story-delete-form {
+    margin: 0;
+}
+
+.story-delete-form button {
+    border: 0;
+    border-radius: 999px;
+    padding: 8px 10px;
+    background: rgba(239, 68, 68, .22);
+    color: #fff;
+    font: inherit;
+    font-size: 10px;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.story-media-stage {
+    min-height: 0;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+}
+
+.story-media-stage img,
+.story-media-stage video {
+    width: 100%;
+    height: 100%;
+    max-width: 760px;
+    object-fit: contain;
+    background: #050609;
+}
+
+.story-media-unavailable {
+    color: rgba(255, 255, 255, .72);
+    font-size: 13px;
+}
+
+.story-nav {
+    position: fixed;
+    top: 50%;
+    z-index: 3;
+    width: 42px;
+    height: 54px;
+    display: grid;
+    place-items: center;
+    border-radius: 16px;
+    background: rgba(0, 0, 0, .32);
+    color: #fff;
+    text-decoration: none;
+    font-size: 34px;
+    transform: translateY(-50%);
+}
+
+.story-nav-previous { left: 8px; }
+.story-nav-next { right: 8px; }
+
+.story-viewer-footer {
+    position: relative;
+    z-index: 2;
+    padding: 13px 16px calc(14px + env(safe-area-inset-bottom));
+    background: linear-gradient(0deg, rgba(0, 0, 0, .9), transparent);
+}
+
+.story-caption {
+    max-width: 620px;
+    margin: 0 auto 10px;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.45;
+    text-align: center;
+    overflow-wrap: anywhere;
+}
+
+.story-read-only {
+    margin: 0;
+    color: rgba(255, 255, 255, .64);
+    font-size: 11px;
+    text-align: center;
+}
+
+.story-viewers-panel {
+    width: min(100%, 460px);
+    margin: 0 auto;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, .12);
+}
+
+.story-viewers-panel summary {
+    padding: 12px 14px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 900;
+}
+
+.story-viewers-list {
+    max-height: 190px;
+    overflow-y: auto;
+    padding: 0 12px 12px;
+}
+
+.story-viewer-row {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 8px 2px;
+    border-top: 1px solid rgba(255, 255, 255, .12);
+}
+
+.story-viewer-mini-avatar {
+    width: 32px;
+    height: 32px;
+    flex: 0 0 32px;
+    font-size: 10px;
+}
+
+.story-viewer-row > span:last-child {
+    display: grid;
+}
+
+.story-viewer-row strong {
+    font-size: 11px;
+}
+
+.story-viewer-row small {
+    color: rgba(255, 255, 255, .65);
+    font-size: 9px;
+}
+
+.story-viewers-list > p {
+    margin: 5px 0 0;
+    color: rgba(255, 255, 255, .65);
+    font-size: 11px;
+}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    "use strict";
+
+    const viewer = document.querySelector("[data-story-expires-ms]");
+    const countdown = document.getElementById("storyCountdown");
+    const progress = document.getElementById("storyProgress");
+    if (!viewer || !countdown || !progress) return;
+
+    const expiresAt = Number(viewer.dataset.storyExpiresMs);
+    const lifetimeMs = 5 * 60 * 60 * 1000;
+
+    function updateTimer() {
+        const remaining = expiresAt - Date.now();
+        if (remaining <= 0) {
+            countdown.textContent = "Expired";
+            progress.style.transform = "scaleX(0)";
+            window.location.replace("{% url 'feed:feed_home' %}");
+            return;
+        }
+
+        const hours = Math.floor(remaining / 3600000);
+        const minutes = Math.floor((remaining % 3600000) / 60000);
+        const seconds = Math.floor((remaining % 60000) / 1000);
+        countdown.textContent = hours > 0
+            ? hours + "h " + minutes + "m left"
+            : minutes + "m " + seconds + "s left";
+        progress.style.transform = "scaleX(" + Math.max(0, Math.min(1, remaining / lifetimeMs)) + ")";
+    }
+
+    updateTimer();
+    window.setInterval(updateTimer, 1000);
+})();
+</script>
+{% endblock %}
+

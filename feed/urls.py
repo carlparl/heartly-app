@@ -8,6 +8,10 @@ urlpatterns = [
     path("", views.feed_home, name="feed_home"),
     path("create/", views.create_post, name="create_post"),
 
+    path("stories/create/", views.create_story, name="create_story"),
+    path("stories/<int:story_id>/", views.story_detail, name="story_detail"),
+    path("stories/<int:story_id>/delete/", views.delete_story, name="delete_story"),
+
     path("post/<int:post_id>/edit/", views.edit_post, name="edit_post"),
     path("post/<int:post_id>/delete/", views.delete_post, name="delete_post"),
 

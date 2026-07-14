@@ -1,6 +1,8 @@
 from django.contrib import admin
 
-from .models import Comment, Post, PostLike
+from django.utils import timezone
+
+from .models import Comment, Post, PostLike, Story, StoryView
 
 
 @admin.register(Post)
@@ -77,3 +79,56 @@ class PostLikeAdmin(admin.ModelAdmin):
         return getattr(obj, "user", None) or "Unknown"
 
     liked_by.short_description = "User"
+
+
+@admin.register(Story)
+class StoryAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "author",
+        "media_type",
+        "is_active_now",
+        "viewer_count",
+        "created_at",
+        "expires_at",
+    )
+    list_filter = ("created_at", "expires_at")
+    search_fields = ("author__username", "author__email", "caption")
+    ordering = ("-created_at",)
+    readonly_fields = ("created_at", "expires_at")
+    list_select_related = ("author",)
+    actions = ("delete_expired_stories",)
+
+    @admin.display(description="Media")
+    def media_type(self, obj):
+        return "Video" if obj.video else "Photo"
+
+    @admin.display(boolean=True, description="Active")
+    def is_active_now(self, obj):
+        return obj.expires_at > timezone.now()
+
+    @admin.display(description="Views")
+    def viewer_count(self, obj):
+        return obj.views.exclude(viewer_id=obj.author_id).count()
+
+    @admin.action(description="Delete selected expired Stories")
+    def delete_expired_stories(self, request, queryset):
+        queryset.filter(expires_at__lte=timezone.now()).delete()
+
+
+@admin.register(StoryView)
+class StoryViewAdmin(admin.ModelAdmin):
+    list_display = ("story", "viewer", "viewed_at")
+    list_filter = ("viewed_at",)
+    search_fields = (
+        "story__author__username",
+        "story__author__email",
+        "viewer__username",
+        "viewer__email",
+    )
+    ordering = ("-viewed_at",)
+    list_select_related = ("story", "viewer")
+    readonly_fields = ("story", "viewer", "viewed_at")
+
+    def has_add_permission(self, request):
+        return False

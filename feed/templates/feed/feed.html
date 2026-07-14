@@ -5,6 +5,8 @@
 
 {% block content %}
 <section class="heartly-feed-page">
+    {% include "feed/_stories_tray.html" %}
+
     <section class="feed-composer-card">
         <div class="composer-user">
             {% if viewer_avatar_url %}
@@ -89,6 +91,174 @@
     padding: 0 10px 96px;
     box-sizing: border-box;
     overflow-x: hidden;
+}
+
+.stories-section {
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 16px;
+    padding: 14px 12px 12px;
+    border: 1px solid var(--heartly-border, rgba(17, 24, 39, .08));
+    border-radius: 24px;
+    background: var(--heartly-card, #fff);
+    box-shadow: var(--heartly-shadow-soft, 0 16px 40px rgba(15, 23, 42, .08));
+}
+
+.stories-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 0 3px 10px;
+}
+
+.stories-heading h2 {
+    margin: 0;
+    color: var(--heartly-text, #172033);
+    font-size: 16px;
+    font-weight: 950;
+}
+
+.stories-heading p {
+    margin: 2px 0 0;
+    color: var(--heartly-muted, #6b7280);
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.stories-create-link {
+    flex: 0 0 auto;
+    border-radius: 999px;
+    padding: 8px 11px;
+    background: var(--heartly-primary-soft, rgba(24, 173, 160, .12));
+    color: var(--heartly-primary, #18ada0);
+    text-decoration: none;
+    font-size: 11px;
+    font-weight: 950;
+}
+
+.stories-tray {
+    display: flex;
+    align-items: flex-start;
+    gap: 11px;
+    overflow-x: auto;
+    padding: 2px 2px 4px;
+    scrollbar-width: none;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+}
+
+.stories-tray::-webkit-scrollbar {
+    display: none;
+}
+
+.story-tray-item {
+    width: 68px;
+    flex: 0 0 68px;
+    display: grid;
+    justify-items: center;
+    gap: 6px;
+    color: var(--heartly-text, #172033);
+    text-decoration: none;
+    scroll-snap-align: start;
+}
+
+.story-ring {
+    position: relative;
+    width: 62px;
+    height: 62px;
+    display: grid;
+    place-items: center;
+    box-sizing: border-box;
+    overflow: visible;
+    padding: 3px;
+    border: 3px solid var(--heartly-border, #d5dbe5);
+    border-radius: 50%;
+    background: var(--heartly-card, #fff);
+}
+
+.story-ring.story-unseen {
+    border-color: transparent;
+    background:
+        linear-gradient(var(--heartly-card, #fff), var(--heartly-card, #fff)) padding-box,
+        linear-gradient(135deg, #18ada0, #ff4f7b, #8b5cf6) border-box;
+}
+
+.story-ring.story-seen {
+    opacity: .74;
+}
+
+.story-ring > img,
+.story-avatar-fallback {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    place-items: center;
+    box-sizing: border-box;
+    overflow: hidden;
+    border-radius: 50%;
+    object-fit: cover;
+    background: linear-gradient(135deg, #18ada0, #ff4f7b);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 950;
+}
+
+.story-add-ring {
+    border-style: dashed;
+    border-color: var(--heartly-primary, #18ada0);
+}
+
+.story-plus,
+.story-video-badge,
+.story-count-badge {
+    position: absolute;
+    display: grid;
+    place-items: center;
+    border: 2px solid var(--heartly-card, #fff);
+    border-radius: 50%;
+    color: #fff;
+    font-weight: 950;
+}
+
+.story-plus {
+    right: -3px;
+    bottom: -2px;
+    width: 20px;
+    height: 20px;
+    background: var(--heartly-primary, #18ada0);
+    font-size: 15px;
+}
+
+.story-video-badge {
+    right: -2px;
+    bottom: -1px;
+    width: 18px;
+    height: 18px;
+    background: #111827;
+    font-size: 7px;
+}
+
+.story-count-badge {
+    top: -4px;
+    right: -4px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 3px;
+    box-sizing: border-box;
+    background: #ff4f7b;
+    font-size: 8px;
+}
+
+.story-tray-name {
+    width: 100%;
+    overflow: hidden;
+    color: var(--heartly-text, #172033);
+    font-size: 10px;
+    font-weight: 850;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .feed-composer-card,
@@ -965,7 +1135,8 @@ body.comments-sheet-open {
 
     .feed-composer-card,
     .post-card,
-    .empty-feed-card {
+    .empty-feed-card,
+    .stories-section {
         border-radius: 0;
         border-left: 0;
         border-right: 0;

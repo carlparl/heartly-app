@@ -1,5 +1,12 @@
+from datetime import timedelta
+
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
+from django.db import transaction
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
+from django.utils import timezone
 
 try:
     from cloudinary_storage.storage import VideoMediaCloudinaryStorage
@@ -250,3 +257,149 @@ class PostReport(models.Model):
 
     def __str__(self):
         return f"Report on post {self.post_id} by {self.reporter}"
+
+
+STORY_LIFETIME = timedelta(hours=5)
+
+
+class StoryQuerySet(models.QuerySet):
+    def active(self):
+        return self.filter(expires_at__gt=timezone.now())
+
+    def expired(self):
+        return self.filter(expires_at__lte=timezone.now())
+
+
+class Story(models.Model):
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="stories",
+    )
+    caption = models.CharField(max_length=280, blank=True)
+    image = models.ImageField(
+        upload_to="stories/images/",
+        blank=True,
+        null=True,
+    )
+
+    if VideoMediaCloudinaryStorage:
+        video = models.FileField(
+            upload_to="stories/videos/",
+            blank=True,
+            null=True,
+            storage=VideoMediaCloudinaryStorage(),
+        )
+    else:
+        video = models.FileField(
+            upload_to="stories/videos/",
+            blank=True,
+            null=True,
+        )
+
+    # These values are set together inside save(), guaranteeing that a Story
+    # remains active for exactly five hours.
+    created_at = models.DateTimeField(editable=False)
+    expires_at = models.DateTimeField(editable=False, db_index=True)
+
+    objects = StoryQuerySet.as_manager()
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(
+                fields=["author", "expires_at"],
+                name="feed_story_author_exp_idx",
+            ),
+            models.Index(
+                fields=["expires_at", "created_at"],
+                name="feed_story_exp_created_idx",
+            ),
+        ]
+
+    def clean(self):
+        super().clean()
+        has_image = bool(self.image)
+        has_video = bool(self.video)
+
+        if has_image == has_video:
+            raise ValidationError("A Story must contain one photo or one video.")
+
+    def save(self, *args, **kwargs):
+        if self._state.adding:
+            created = timezone.now()
+            self.created_at = created
+            self.expires_at = created + STORY_LIFETIME
+
+        super().save(*args, **kwargs)
+
+    @property
+    def is_active(self):
+        return timezone.now() < self.expires_at
+
+    @property
+    def is_video(self):
+        return bool(self.video)
+
+    @property
+    def remaining_seconds(self):
+        return max(0, int((self.expires_at - timezone.now()).total_seconds()))
+
+    def __str__(self):
+        return f"Story by {self.author} - {self.created_at:%Y-%m-%d %H:%M}"
+
+
+class StoryView(models.Model):
+    story = models.ForeignKey(
+        Story,
+        on_delete=models.CASCADE,
+        related_name="views",
+    )
+    viewer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="story_views",
+    )
+    viewed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-viewed_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["story", "viewer"],
+                name="unique_story_view_per_user",
+            )
+        ]
+        indexes = [
+            models.Index(
+                fields=["story", "viewed_at"],
+                name="feed_storyv_story_view_idx",
+            ),
+            models.Index(
+                fields=["viewer", "viewed_at"],
+                name="feed_storyv_user_view_idx",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.viewer} viewed story {self.story_id}"
+
+
+@receiver(post_delete, sender=Story)
+def remove_story_media(sender, instance, **kwargs):
+    """Remove Cloudinary/local media when a Story row is deleted."""
+    media_files = []
+    for field in (instance.image, instance.video):
+        if field and field.name:
+            media_files.append((field.storage, field.name))
+
+    for storage, name in media_files:
+        def remove_file(file_storage=storage, file_name=name):
+            try:
+                file_storage.delete(file_name)
+            except Exception:
+                # Database deletion must still succeed if remote storage is
+                # temporarily unavailable. The orphan can be cleaned later.
+                pass
+
+        transaction.on_commit(remove_file, robust=True)
