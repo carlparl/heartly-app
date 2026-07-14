@@ -30,17 +30,18 @@ class AutoResourceCloudinaryStorage(MediaCloudinaryStorage):
     """
     Heartly Cloudinary media storage.
 
-    Forces images to Cloudinary image resources,
-    videos to Cloudinary video resources,
-    and everything else to raw.
+    Cloudinary removes the extension from saved image and video public IDs.
+    The known folder paths therefore remain the reliable source of truth when
+    Django later asks this storage class to rebuild a media URL.
     """
 
     def _get_resource_type(self, name):
-        normalized_name = str(name or "").lower()
+        normalized_name = str(name or "").replace("\\", "/").lower()
         suffix = Path(normalized_name).suffix.lower()
 
         image_paths = (
             "feed/images/",
+            "stories/images/",
             "chat/images/",
             "profiles/",
             "profile/",
@@ -51,6 +52,7 @@ class AutoResourceCloudinaryStorage(MediaCloudinaryStorage):
 
         video_paths = (
             "feed/videos/",
+            "stories/videos/",
             "chat/videos/",
         )
 

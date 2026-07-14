@@ -6,7 +6,26 @@ from django.db import IntegrityError, transaction
 from django.test import TestCase
 from django.utils import timezone
 
+from heartly.storage_backends import AutoResourceCloudinaryStorage
+
 from .models import STORY_LIFETIME, Story, StoryView
+
+
+class StoryStorageRoutingTests(TestCase):
+    def setUp(self):
+        self.storage = AutoResourceCloudinaryStorage()
+
+    def test_story_image_public_id_stays_an_image_without_extension(self):
+        self.assertEqual(
+            self.storage._get_resource_type("stories/images/sample_public_id"),
+            "image",
+        )
+
+    def test_story_video_public_id_stays_a_video_without_extension(self):
+        self.assertEqual(
+            self.storage._get_resource_type("stories/videos/sample_public_id"),
+            "video",
+        )
 
 
 class StoryModelTests(TestCase):

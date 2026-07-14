@@ -7,19 +7,21 @@
 <section class="heartly-feed-page">
     {% include "feed/_stories_tray.html" %}
 
-    <section class="feed-composer-card">
-        <div class="composer-user">
+    <details class="feed-composer-card" id="feedComposerCard">
+        <summary class="composer-launcher" aria-label="Open the Add post form">
             {% if viewer_avatar_url %}
                 <img src="{{ viewer_avatar_url }}" alt="{{ viewer_username }}" class="composer-avatar">
             {% else %}
                 <div class="composer-avatar composer-avatar-fallback">{{ viewer_initials }}</div>
             {% endif %}
 
-            <div class="composer-user-copy">
-                <strong>{{ viewer_name }}</strong>
-                <span>@{{ viewer_username }}</span>
-            </div>
-        </div>
+            <span class="composer-launcher-copy">
+                <strong>Add post</strong>
+                <small>Share an update, photo, or video</small>
+            </span>
+
+            <span class="composer-launcher-icon" aria-hidden="true">+</span>
+        </summary>
 
         <form method="post"
               action="{% url 'feed:create_post' %}"
@@ -46,12 +48,12 @@
                 </label>
 
                 <button type="button" class="clear-media-btn" id="clearComposerMedia" hidden>Clear</button>
-                <button type="submit" class="post-submit-btn">Post</button>
+                <button type="submit" class="post-submit-btn">Share post</button>
             </div>
 
             <p class="composer-note">Upload either one photo or one video per post.</p>
         </form>
-    </section>
+    </details>
 
     <section class="feed-list" data-feed-list aria-label="Heartly posts">
         {% if posts %}
@@ -295,6 +297,67 @@
     min-width: 0;
 }
 
+.composer-launcher {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    min-width: 0;
+    list-style: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.composer-launcher::-webkit-details-marker {
+    display: none;
+}
+
+.composer-launcher-copy {
+    display: grid;
+    min-width: 0;
+    flex: 1;
+}
+
+.composer-launcher-copy strong {
+    color: var(--heartly-text, #111827);
+    font-size: .94rem;
+    font-weight: 950;
+}
+
+.composer-launcher-copy small {
+    margin-top: 2px;
+    overflow: hidden;
+    color: var(--heartly-muted, #6b7280);
+    font-size: .76rem;
+    font-weight: 750;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.composer-launcher-icon {
+    width: 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 40px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, var(--heartly-primary, #ff4f7b), var(--heartly-accent, #14b8a6));
+    box-shadow: 0 10px 24px rgba(255, 79, 123, .22);
+    color: #fff;
+    font-size: 25px;
+    font-weight: 750;
+    line-height: 1;
+    transition: transform .18s ease;
+}
+
+.feed-composer-card[open] .composer-launcher {
+    padding-bottom: 13px;
+    border-bottom: 1px solid var(--heartly-border, rgba(17, 24, 39, .08));
+}
+
+.feed-composer-card[open] .composer-launcher-icon {
+    transform: rotate(45deg);
+}
+
 .composer-avatar {
     width: 42px;
     height: 42px;
@@ -356,7 +419,7 @@
 }
 
 .feed-composer-form {
-    margin-top: 14px;
+    margin-top: 13px;
 }
 
 .composer-textarea,
@@ -1171,6 +1234,7 @@ body.comments-sheet-open {
             return;
         }
 
+        const composerCard = document.getElementById("feedComposerCard");
         const imageInput = document.getElementById("composerImageInput");
         const videoInput = document.getElementById("composerVideoInput");
         const preview = document.getElementById("composerPreview");
@@ -1330,6 +1394,12 @@ body.comments-sheet-open {
 
         form.addEventListener("reset", function () {
             window.setTimeout(clearPreview, 0);
+
+            if (composerCard) {
+                window.setTimeout(function () {
+                    composerCard.open = false;
+                }, 0);
+            }
         });
 
         form.addEventListener("submit", function () {
