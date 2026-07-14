@@ -7,6 +7,12 @@
 <section class="heartly-ai-shell" aria-label="Heartly AI chat">
 
   <header class="heartly-ai-header">
+    <a
+      href="{% url 'feed:feed_home' %}"
+      class="heartly-ai-back"
+      aria-label="Back to feed"
+    >‹</a>
+
     <div class="heartly-ai-identity">
       <div class="heartly-ai-logo" aria-hidden="true">
         <svg viewBox="0 0 24 24">
@@ -138,6 +144,27 @@
   gap: 10px;
   overflow: hidden;
   color: var(--heartly-text, #111827);
+}
+
+.heartly-ai-back {
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--heartly-border, rgba(15, 23, 42, 0.10));
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  color: var(--heartly-text, #111827);
+  background: var(--heartly-card-soft, rgba(15, 23, 42, 0.04));
+  text-decoration: none;
+  font-size: 1.65rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.heartly-ai-back:hover {
+  color: var(--heartly-primary, #ec4899);
+  background: var(--heartly-primary-soft, rgba(236, 72, 153, 0.10));
 }
 
 .heartly-ai-header {

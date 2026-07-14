@@ -805,6 +805,20 @@
             }
         }
 
+        /* Focus mode: hide the main navbar during active conversations. */
+        body.heartly-conversation-mode {
+            --heartly-bottomnav-bar-height: 0px;
+            --heartly-bottomnav-height: 0px;
+        }
+
+        body.heartly-conversation-mode .heartly-bottomnav {
+            display: none !important;
+        }
+
+        body.heartly-conversation-mode .heartly-app-main {
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+        }
+
         /* Heartly mobile swipe navigation */
         .heartly-swipe-indicator,
         .heartly-swipe-toast {
@@ -945,6 +959,13 @@
             has-feed-topbar
         {% else %}
             no-feed-topbar
+        {% endif %}
+        {% if request.resolver_match.namespace == 'chat' %}
+            {% if request.resolver_match.url_name == 'chat_room' or request.resolver_match.url_name == 'call_room' %}
+                heartly-conversation-mode
+            {% endif %}
+        {% elif request.resolver_match.namespace == 'ai_features' and request.resolver_match.url_name == 'ai_coach' %}
+            heartly-conversation-mode
         {% endif %}
     "
     data-heartly-swipe-section="{% if user.is_authenticated %}{% if request.resolver_match.namespace == 'feed' and request.resolver_match.url_name == 'feed_home' %}feed{% elif request.resolver_match.namespace == 'ai_features' and request.resolver_match.url_name == 'ai_coach' %}ai{% elif request.resolver_match.namespace == 'chat' and request.resolver_match.url_name == 'chat_home' %}chat{% elif request.resolver_match.namespace == 'profiles' and request.resolver_match.url_name == 'profile_home' %}profile{% endif %}{% endif %}"
