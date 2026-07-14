@@ -380,7 +380,7 @@ def create_story(request):
             except Exception as exc:
                 messages.error(request, upload_exception_message(exc))
             else:
-                messages.success(request, "Story shared for five hours.")
+                messages.success(request, "Story shared.")
                 return redirect("feed:story_detail", story_id=story.id)
     else:
         form = StoryForm()
@@ -450,7 +450,6 @@ def story_detail(request, story_id):
             "previous_story_id": previous_story_id,
             "next_story_id": next_story_id,
             "story_viewers": viewers,
-            "story_expires_ms": int(story.expires_at.timestamp() * 1000),
         },
     )
 
@@ -592,6 +591,26 @@ def like_post(request, post_id):
     else:
         reaction.reaction_type = reaction_type
         reaction.save(update_fields=["reaction_type"])
+
+    if post.author_id != request.user.id:
+        notification_filter = {
+            "recipient_id": post.author_id,
+            "actor": request.user,
+            "notification_type": Notification.TYPE_LIKE,
+            "related_object_type": "feed.post",
+            "related_object_id": post.id,
+        }
+        if reacted:
+            Notification.objects.get_or_create(
+                **notification_filter,
+                defaults={
+                    "title": f"{username_for(request.user)} liked your post"[:120],
+                    "message": "Tap to view your post.",
+                    "url": reverse("feed:feed_home"),
+                },
+            )
+        else:
+            Notification.objects.filter(**notification_filter).delete()
 
     post = decorate_post(post, request.user)
 

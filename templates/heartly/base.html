@@ -24,6 +24,9 @@
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
         rel="stylesheet"
     >
+    {% if request.user.is_authenticated %}
+    <link rel="stylesheet" href="{% static 'css/heartly-push.css' %}">
+    {% endif %}
 
     <script>
         (function () {
@@ -54,12 +57,12 @@
             --heartly-primary-2: #28c7b8;
             --heartly-primary-soft: rgba(24, 173, 160, 0.1);
             --heartly-primary-glow: rgba(24, 173, 160, 0.22);
-            --heartly-gradient: linear-gradient(135deg, #18ada0, #28c7b8);
+            --heartly-gradient: linear-gradient(135deg, #18ada0, #2563eb);
 
-            --heartly-accent: #f24d6b;
-            --heartly-accent-2: #ff6f8c;
-            --heartly-accent-soft: rgba(242, 77, 107, 0.1);
-            --heartly-accent-glow: rgba(242, 77, 107, 0.2);
+            --heartly-accent: #2563eb;
+            --heartly-accent-2: #3b82f6;
+            --heartly-accent-soft: rgba(37, 99, 235, 0.1);
+            --heartly-accent-glow: rgba(37, 99, 235, 0.2);
 
             --heartly-bg: #fafbfc;
             --heartly-bg-2: #ffffff;
@@ -83,7 +86,7 @@
                 0 1px 4px rgba(13, 17, 23, 0.03);
 
             --heartly-shadow-btn:
-                0 10px 24px -10px rgba(242, 77, 107, 0.35);
+                0 10px 24px -10px rgba(37, 99, 235, 0.35);
 
             --heartly-page-max: 520px;
             --heartly-content-padding: 14px;
@@ -112,12 +115,12 @@
             --heartly-primary-2: #1db8aa;
             --heartly-primary-soft: rgba(18, 160, 149, 0.16);
             --heartly-primary-glow: rgba(18, 160, 149, 0.32);
-            --heartly-gradient: linear-gradient(135deg, #ff3f72, #ff82a6);
+            --heartly-gradient: linear-gradient(135deg, #18ada0, #2563eb);
 
-            --heartly-accent: #ff4f7b;
-            --heartly-accent-2: #ff6f8c;
-            --heartly-accent-soft: rgba(255, 79, 123, 0.16);
-            --heartly-accent-glow: rgba(255, 79, 123, 0.28);
+            --heartly-accent: #2563eb;
+            --heartly-accent-2: #3b82f6;
+            --heartly-accent-soft: rgba(37, 99, 235, 0.16);
+            --heartly-accent-glow: rgba(37, 99, 235, 0.28);
 
             --heartly-bg: #0a0e14;
             --heartly-bg-2: #0a0e14;
@@ -141,7 +144,7 @@
                 inset 0 1px 0 rgba(255, 255, 255, 0.03);
 
             --heartly-shadow-btn:
-                0 10px 28px -10px rgba(255, 79, 123, 0.38);
+                0 10px 28px -10px rgba(37, 99, 235, 0.38);
         }
 
         body.has-feed-topbar {
@@ -1405,6 +1408,7 @@
 
 {% if request.user.is_authenticated %}
     {% include "heartly/includes/notifications_live_config.html" %}
+    <script src="{% static 'js/heartly-push.js' %}" defer></script>
 {% endif %}
 
 </body>

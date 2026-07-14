@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib import admin
 
-from .models import Notification
+from .models import Notification, PushSubscription
 
 
 class NotificationAdminForm(forms.ModelForm):
@@ -72,3 +72,12 @@ class NotificationAdmin(admin.ModelAdmin):
     @admin.action(description="Resolve selected notifications")
     def resolve_selected(self, request, queryset):
         queryset.update(is_read=True, is_resolved=True)
+
+
+@admin.register(PushSubscription)
+class PushSubscriptionAdmin(admin.ModelAdmin):
+    list_display = ("user", "enabled", "updated_at", "created_at")
+    list_filter = ("enabled", "created_at", "updated_at")
+    search_fields = ("user__username", "user__email", "endpoint")
+    readonly_fields = ("created_at", "updated_at")
+    ordering = ("-updated_at",)

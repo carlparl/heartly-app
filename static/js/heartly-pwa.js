@@ -77,7 +77,7 @@
         border-radius: 999px;
         padding: 10px 13px;
         color: #ffffff;
-        background: linear-gradient(135deg, #18aaa1, #f24d6b);
+        background: linear-gradient(135deg, #18ada0, #2563eb);
         font-size: .76rem;
         font-weight: 900;
         white-space: nowrap;

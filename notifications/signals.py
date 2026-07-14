@@ -53,6 +53,10 @@ def notification_saved(sender, instance, created, **kwargs):
         }
         send_group_event(recipient_id, payload)
         broadcast_snapshot(recipient_id)
+        if created:
+            from .push import enqueue_notification_push
+
+            enqueue_notification_push(instance.pk)
 
     transaction.on_commit(publish)
 

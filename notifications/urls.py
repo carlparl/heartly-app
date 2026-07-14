@@ -18,6 +18,9 @@ urlpatterns = [
     ),
     path("snapshot/", views.notification_snapshot_view, name="snapshot"),
     path("unread-count/", views.unread_count, name="unread_count"),
+    path("push/config/", views.push_config, name="push_config"),
+    path("push/subscribe/", views.push_subscribe, name="push_subscribe"),
+    path("push/unsubscribe/", views.push_unsubscribe, name="push_unsubscribe"),
     path(
         "<int:notification_id>/open/",
         views.open_notification,

@@ -23,7 +23,7 @@
             {% if other_user_photo %}
                 <img src="{{ other_user_photo }}" alt="{{ other_user_name }}" class="call-avatar">
             {% else %}
-                <div class="call-logo">💗</div>
+                <div class="call-logo">H</div>
             {% endif %}
         </div>
 
@@ -153,7 +153,7 @@
 .call-logo {
     display: grid;
     place-items: center;
-    background: linear-gradient(135deg, #ef3f7f, #2dd4bf);
+    background: linear-gradient(135deg, #2563eb, #2dd4bf);
     font-size: 36px;
 }
 
@@ -263,7 +263,7 @@
     border-radius: 999px;
     display: grid;
     place-items: center;
-    background: linear-gradient(135deg, #ef3f7f, #2dd4bf);
+    background: linear-gradient(135deg, #2563eb, #2dd4bf);
     font-size: 28px;
     box-shadow: 0 0 0 0 rgba(45, 212, 191, 0.4);
     animation: pulse 1.7s infinite;
@@ -362,6 +362,7 @@
 {% endblock %}
 
 {% block extra_js %}
+{{ ice_servers|json_script:"heartlyIceServers" }}
 <script>
 document.addEventListener("DOMContentLoaded", function () {
     const page = document.getElementById("callPage");
@@ -398,10 +399,11 @@ document.addEventListener("DOMContentLoaded", function () {
     let cameraOff = false;
     let pendingIceCandidates = [];
 
+    const iceServersElement = document.getElementById("heartlyIceServers");
     const rtcConfig = {
-        iceServers: [
-            { urls: "stun:stun.l.google.com:19302" }
-        ]
+        iceServers: iceServersElement
+            ? JSON.parse(iceServersElement.textContent)
+            : [{ urls: "stun:stun.l.google.com:19302" }]
     };
 
     function setLiveStatus(text) {

@@ -1,8 +1,11 @@
+import json
 import secrets
+from urllib.parse import urlparse
 
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from django.conf import settings
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.http import JsonResponse
@@ -10,7 +13,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
-from .models import Notification
+from .models import Notification, PushSubscription
 from .utils import notification_snapshot, visible_notifications_for
 
 
@@ -46,12 +49,16 @@ def create_broadcast_batch_id():
     raise RuntimeError("Could not allocate a broadcast ID. Please try again.")
 
 
-def refresh_notification_users(user_ids):
+def refresh_notification_users(user_ids, notification_ids=None):
     """Push fresh notification snapshots after bulk delivery commits."""
     from .signals import broadcast_snapshot
+    from .push import enqueue_notification_push
 
     for user_id in user_ids:
         broadcast_snapshot(user_id)
+
+    for notification_id in notification_ids or []:
+        enqueue_notification_push(notification_id)
 
 
 @login_required
@@ -141,8 +148,11 @@ def create_broadcast(request):
 
         with transaction.atomic():
             Notification.objects.bulk_create(notifications, batch_size=500)
+            notification_ids = [item.id for item in notifications if item.id]
             transaction.on_commit(
-                lambda ids=recipient_ids: refresh_notification_users(ids)
+                lambda user_ids=recipient_ids, push_ids=notification_ids: (
+                    refresh_notification_users(user_ids, push_ids)
+                )
             )
 
         messages.success(
@@ -328,3 +338,86 @@ def clear_all_notifications(request):
 
     messages.success(request, "All notifications cleared.")
     return redirect("notifications:notifications_home")
+
+
+@login_required
+@require_GET
+def push_config(request):
+    public_key = getattr(settings, "VAPID_PUBLIC_KEY", "")
+    return JsonResponse(
+        {
+            "enabled": bool(
+                public_key and getattr(settings, "VAPID_PRIVATE_KEY", "")
+            ),
+            "public_key": public_key,
+        }
+    )
+
+
+def _request_json(request):
+    try:
+        return json.loads(request.body.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return None
+
+
+@login_required
+@require_POST
+def push_subscribe(request):
+    payload = _request_json(request)
+    if not isinstance(payload, dict):
+        return JsonResponse({"ok": False, "error": "Invalid JSON."}, status=400)
+
+    endpoint = str(payload.get("endpoint") or "").strip()
+    keys = payload.get("keys") or {}
+    if not isinstance(keys, dict):
+        return JsonResponse(
+            {"ok": False, "error": "Invalid push subscription keys."},
+            status=400,
+        )
+    p256dh = str(keys.get("p256dh") or "").strip()
+    auth = str(keys.get("auth") or "").strip()
+    parsed_endpoint = urlparse(endpoint)
+
+    if (
+        parsed_endpoint.scheme != "https"
+        or not parsed_endpoint.netloc
+        or len(endpoint) > 4096
+        or not p256dh
+        or len(p256dh) > 512
+        or not auth
+        or len(auth) > 512
+    ):
+        return JsonResponse(
+            {"ok": False, "error": "Invalid push subscription."},
+            status=400,
+        )
+
+    subscription, created = PushSubscription.objects.update_or_create(
+        endpoint=endpoint,
+        defaults={
+            "user": request.user,
+            "p256dh": p256dh,
+            "auth": auth,
+            "user_agent": request.headers.get("user-agent", "")[:500],
+            "enabled": True,
+        },
+    )
+    return JsonResponse(
+        {"ok": True, "created": created, "subscription_id": subscription.id}
+    )
+
+
+@login_required
+@require_POST
+def push_unsubscribe(request):
+    payload = _request_json(request)
+    endpoint = str((payload or {}).get("endpoint") or "").strip()
+    if not endpoint:
+        return JsonResponse({"ok": False, "error": "Missing endpoint."}, status=400)
+
+    deleted, _ = PushSubscription.objects.filter(
+        user=request.user,
+        endpoint=endpoint,
+    ).delete()
+    return JsonResponse({"ok": True, "deleted": bool(deleted)})

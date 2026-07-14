@@ -67,3 +67,40 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"{self.recipient} - {self.title}"
+
+
+class PushSubscription(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="push_subscriptions",
+    )
+    endpoint = models.TextField(unique=True)
+    p256dh = models.TextField()
+    auth = models.TextField()
+    user_agent = models.CharField(max_length=500, blank=True)
+    enabled = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at"]
+        indexes = [
+            models.Index(
+                fields=["user", "enabled"],
+                name="notificatio_user_id_8ff346_idx",
+            ),
+            models.Index(
+                fields=["updated_at"],
+                name="notificatio_updated_b98f91_idx",
+            ),
+        ]
+
+    def as_webpush_dict(self):
+        return {
+            "endpoint": self.endpoint,
+            "keys": {"p256dh": self.p256dh, "auth": self.auth},
+        }
+
+    def __str__(self):
+        return f"{self.user} push subscription"

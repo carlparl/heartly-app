@@ -988,6 +988,20 @@ def broadcast_call_event(call, event_type):
             )
         except Exception:
             pass
+
+
+def resolve_call_notification(call, recipient):
+    if Notification is None:
+        return
+
+    Notification.objects.filter(
+        recipient=recipient,
+        notification_type=Notification.TYPE_CALL,
+        related_object_type="chat.callsession",
+        related_object_id=call.id,
+    ).update(is_read=True, is_resolved=True)
+
+
 @login_required
 def start_call(request, thread_id, call_type):
     thread = get_object_or_404(
@@ -1019,6 +1033,22 @@ def start_call(request, thread_id, call_type):
 
     broadcast_call_event(call, "call.incoming")
 
+    if Notification is not None:
+        Notification.objects.create(
+            recipient=other_user,
+            actor=request.user,
+            notification_type=Notification.TYPE_CALL,
+            title=(
+                "Incoming video call"
+                if call_type == CallSession.CALL_VIDEO
+                else "Incoming audio call"
+            ),
+            message=f"{get_display_name(request.user)} is calling you.",
+            url=reverse("chat:call_room", args=[call.id]),
+            related_object_type="chat.callsession",
+            related_object_id=call.id,
+        )
+
     if wants_json(request):
         return json_success(
             message="Call started.",
@@ -1049,6 +1079,7 @@ def call_room(request, call_id):
         call.accepted_at = timezone.now()
         call.save(update_fields=["status", "accepted_at"])
         broadcast_call_event(call, "call.accepted")
+        resolve_call_notification(call, request.user)
 
     other_user = call.receiver if request.user == call.caller else call.caller
 
@@ -1062,6 +1093,7 @@ def call_room(request, call_id):
             "other_user": other_user,
             "other_user_name": get_display_name(other_user),
             "other_user_photo": get_photo_url(other_user),
+            "ice_servers": settings.HEARTLY_ICE_SERVERS,
         },
     )
 
@@ -1086,6 +1118,7 @@ def accept_call(request, call_id):
         call.accepted_at = timezone.now()
         call.save(update_fields=["status", "accepted_at"])
         broadcast_call_event(call, "call.accepted")
+        resolve_call_notification(call, request.user)
 
     if wants_json(request):
         return json_success(call=build_call_payload(call))
@@ -1112,6 +1145,7 @@ def decline_call(request, call_id):
     call.ended_at = timezone.now()
     call.save(update_fields=["status", "ended_at"])
     broadcast_call_event(call, "call.declined")
+    resolve_call_notification(call, call.receiver)
 
     if wants_json(request):
         return json_success(call=build_call_payload(call))
@@ -1138,6 +1172,7 @@ def end_call(request, call_id):
     call.ended_at = timezone.now()
     call.save(update_fields=["status", "ended_at"])
     broadcast_call_event(call, "call.ended")
+    resolve_call_notification(call, call.receiver)
 
     if wants_json(request):
         return json_success(call=build_call_payload(call))

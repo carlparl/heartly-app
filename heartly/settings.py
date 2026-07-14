@@ -500,6 +500,32 @@ GROQ_MODEL = os.environ.get("GROQ_MODEL", "openai/gpt-oss-20b")
 
 
 # ============================================================
+# BROWSER PUSH / WEBRTC
+# ============================================================
+
+VAPID_PUBLIC_KEY = os.environ.get("VAPID_PUBLIC_KEY", "").strip()
+VAPID_PRIVATE_KEY = os.environ.get("VAPID_PRIVATE_KEY", "").strip()
+VAPID_SUBJECT = os.environ.get(
+    "VAPID_SUBJECT",
+    "mailto:admin@example.com",
+).strip()
+
+HEARTLY_ICE_SERVERS = [{"urls": "stun:stun.l.google.com:19302"}]
+HEARTLY_TURN_URLS = env_list("HEARTLY_TURN_URLS", "")
+HEARTLY_TURN_USERNAME = os.environ.get("HEARTLY_TURN_USERNAME", "").strip()
+HEARTLY_TURN_CREDENTIAL = os.environ.get("HEARTLY_TURN_CREDENTIAL", "").strip()
+
+if HEARTLY_TURN_URLS and HEARTLY_TURN_USERNAME and HEARTLY_TURN_CREDENTIAL:
+    HEARTLY_ICE_SERVERS.append(
+        {
+            "urls": HEARTLY_TURN_URLS,
+            "username": HEARTLY_TURN_USERNAME,
+            "credential": HEARTLY_TURN_CREDENTIAL,
+        }
+    )
+
+
+# ============================================================
 # LOCAL / PRODUCTION SECURITY
 # ============================================================
 

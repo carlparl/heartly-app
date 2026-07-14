@@ -1,4 +1,4 @@
-const HEARTLY_CACHE = "heartly-pwa-v4";
+const HEARTLY_CACHE = "heartly-pwa-v5";
 const HEARTLY_OFFLINE_URL = "/offline/";
 const HEARTLY_PRECACHE = [
   HEARTLY_OFFLINE_URL,
@@ -86,4 +86,62 @@ self.addEventListener("fetch", (event) => {
       })
     );
   }
+});
+
+self.addEventListener("push", (event) => {
+  event.waitUntil((async () => {
+    const visibleClients = await self.clients.matchAll({
+      type: "window",
+      includeUncontrolled: true
+    });
+
+    if (visibleClients.some((client) => client.visibilityState === "visible")) {
+      return;
+    }
+
+    let data = {};
+    try {
+      data = event.data ? event.data.json() : {};
+    } catch (error) {
+      data = { body: event.data ? event.data.text() : "You have a Heartly update." };
+    }
+
+    await self.registration.showNotification(data.title || "Heartly", {
+      body: data.body || "You have a new update.",
+      icon: data.icon || "/pwa/icon-192.png",
+      badge: data.badge || "/pwa/icon-192.png",
+      tag: data.tag || "heartly-update",
+      data: { url: data.url || "/notifications/" },
+      renotify: true
+    });
+  })());
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  let targetUrl = new URL(
+    event.notification.data && event.notification.data.url
+      ? event.notification.data.url
+      : "/notifications/",
+    self.location.origin
+  );
+  if (targetUrl.origin !== self.location.origin) {
+    targetUrl = new URL("/notifications/", self.location.origin);
+  }
+  targetUrl = targetUrl.href;
+
+  event.waitUntil((async () => {
+    const clientList = await self.clients.matchAll({
+      type: "window",
+      includeUncontrolled: true
+    });
+    const client = clientList[0];
+
+    if (client) {
+      await client.navigate(targetUrl);
+      return client.focus();
+    }
+
+    return self.clients.openWindow(targetUrl);
+  })());
 });
