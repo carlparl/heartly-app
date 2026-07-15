@@ -1,4 +1,6 @@
+import logging
 import mimetypes
+import re
 from pathlib import Path
 
 from asgiref.sync import async_to_sync
@@ -8,6 +10,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -47,6 +50,7 @@ except Exception:
 
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 MAX_IMAGE_SIZE = 8 * 1024 * 1024
 MAX_VIDEO_SIZE = 75 * 1024 * 1024
@@ -144,6 +148,18 @@ def respond_chat_error(request, message, thread=None, status=400):
     if thread:
         return redirect("chat:chat_room", thread_id=thread.id)
     return redirect("chat:chat_home")
+
+
+def normalize_client_message_id(raw_value):
+    value = (raw_value or "").strip()
+
+    if not value:
+        return ""
+
+    if not re.fullmatch(r"[A-Za-z0-9_-]{8,64}", value):
+        return None
+
+    return value
 
 
 def users_have_mutual_match(user_a, user_b):
@@ -477,6 +493,7 @@ def serialize_message(message):
         "sender_id": message.sender_id,
         "sender_name": get_display_name(message.sender),
         "text": message.text,
+        "client_message_id": message.client_message_id,
         "created_at": timezone.localtime(message.created_at).strftime("%H:%M"),
         "is_read": message.is_read,
         "reply_to": reply_preview(message.reply_to),
@@ -521,7 +538,13 @@ def create_message_notification(message):
 
         Notification.objects.create(**notification_data)
     except Exception:
-        return
+        logger.exception(
+            "Could not create chat message notification.",
+            extra={
+                "message_id": message.id,
+                "thread_id": message.thread_id,
+            },
+        )
 
 
 def broadcast_message(message):
@@ -541,7 +564,13 @@ def broadcast_message(message):
             },
         )
     except Exception:
-        return
+        logger.exception(
+            "Could not broadcast committed chat message.",
+            extra={
+                "message_id": message.id,
+                "thread_id": message.thread_id,
+            },
+        )
 
 
 def latest_message_preview(message, viewer):
@@ -710,54 +739,180 @@ def chat_room(request, thread_id):
 @login_required
 @require_POST
 def send_message(request, thread_id):
-    thread = get_object_or_404(ChatThread, id=thread_id)
+    thread = get_object_or_404(
+        ChatThread.objects.select_related(
+            "user_one",
+            "user_two",
+        ),
+        id=thread_id,
+    )
 
     if not thread.has_user(request.user):
-        return respond_chat_error(request, "This chat is not available.", status=403)
+        return respond_chat_error(
+            request,
+            "This chat is not available.",
+            status=403,
+        )
 
     other_user = thread.other_user(request.user)
 
     if blocked_between(request.user, other_user):
-        return respond_chat_error(request, "You cannot message this user.", thread=thread, status=403)
+        return respond_chat_error(
+            request,
+            "You cannot message this user.",
+            thread=thread,
+            status=403,
+        )
+
+    if not other_user.is_active or not profile_is_available(other_user):
+        return respond_chat_error(
+            request,
+            "This chat is no longer available.",
+            thread=thread,
+            status=403,
+        )
+
+    client_message_id = normalize_client_message_id(
+        request.POST.get("client_message_id", "")
+    )
+
+    if client_message_id is None:
+        return respond_chat_error(
+            request,
+            "Invalid message request identifier.",
+            thread=thread,
+            status=400,
+        )
+
+    if client_message_id:
+        existing_message = (
+            ChatMessage.objects
+            .filter(
+                thread=thread,
+                sender=request.user,
+                client_message_id=client_message_id,
+            )
+            .select_related(
+                "sender",
+                "reply_to",
+                "reply_to__sender",
+            )
+            .prefetch_related(
+                "attachments",
+                "reply_to__attachments",
+            )
+            .first()
+        )
+
+        if existing_message is not None:
+            if wants_json(request):
+                return json_success(
+                    message=serialize_message(existing_message),
+                    duplicate=True,
+                )
+
+            return redirect(
+                "chat:chat_room",
+                thread_id=thread.id,
+            )
 
     text = (request.POST.get("text") or "").strip()
 
     if len(text) > 1200:
-        text = text[:1200]
+        return respond_chat_error(
+            request,
+            "Message is too long. Maximum length is 1200 characters.",
+            thread=thread,
+            status=400,
+        )
 
     image_file = request.FILES.get("image")
     video_file = request.FILES.get("video")
     regular_file = request.FILES.get("file")
-    voice_file = request.FILES.get("voice") or request.FILES.get("audio")
+    voice_file = (
+        request.FILES.get("voice")
+        or request.FILES.get("audio")
+    )
 
-    if not text and not image_file and not video_file and not regular_file and not voice_file:
-        return respond_chat_error(request, "Message cannot be empty.", thread=thread)
+    if (
+        not text
+        and not image_file
+        and not video_file
+        and not regular_file
+        and not voice_file
+    ):
+        return respond_chat_error(
+            request,
+            "Message cannot be empty.",
+            thread=thread,
+        )
 
     upload_checks = [
-        (image_file, ALLOWED_IMAGE_TYPES, ALLOWED_IMAGE_EXTENSIONS, MAX_IMAGE_SIZE, 1),
-        (video_file, ALLOWED_VIDEO_TYPES, ALLOWED_VIDEO_EXTENSIONS, MAX_VIDEO_SIZE, 1),
-        (regular_file, ALLOWED_FILE_TYPES, ALLOWED_FILE_EXTENSIONS, MAX_FILE_SIZE, 1),
-        (voice_file, ALLOWED_AUDIO_TYPES, ALLOWED_AUDIO_EXTENSIONS, MAX_AUDIO_SIZE, 300),
+        (
+            image_file,
+            ALLOWED_IMAGE_TYPES,
+            ALLOWED_IMAGE_EXTENSIONS,
+            MAX_IMAGE_SIZE,
+            1,
+        ),
+        (
+            video_file,
+            ALLOWED_VIDEO_TYPES,
+            ALLOWED_VIDEO_EXTENSIONS,
+            MAX_VIDEO_SIZE,
+            1,
+        ),
+        (
+            regular_file,
+            ALLOWED_FILE_TYPES,
+            ALLOWED_FILE_EXTENSIONS,
+            MAX_FILE_SIZE,
+            1,
+        ),
+        (
+            voice_file,
+            ALLOWED_AUDIO_TYPES,
+            ALLOWED_AUDIO_EXTENSIONS,
+            MAX_AUDIO_SIZE,
+            300,
+        ),
     ]
 
-    for uploaded_file, allowed_types, allowed_extensions, max_size, min_size in upload_checks:
-        if uploaded_file:
-            error = validate_upload(
-                uploaded_file,
-                allowed_types,
-                allowed_extensions,
-                max_size,
-                min_size=min_size,
+    for (
+        uploaded_file,
+        allowed_types,
+        allowed_extensions,
+        max_size,
+        min_size,
+    ) in upload_checks:
+        if not uploaded_file:
+            continue
+
+        error = validate_upload(
+            uploaded_file,
+            allowed_types,
+            allowed_extensions,
+            max_size,
+            min_size=min_size,
+        )
+
+        if error:
+            return respond_chat_error(
+                request,
+                error,
+                thread=thread,
             )
 
-            if error:
-                return respond_chat_error(request, error, thread=thread)
-
     reply_to = None
-    reply_to_id = (request.POST.get("reply_to_id") or "").strip()
+    reply_to_id = (
+        request.POST.get("reply_to_id") or ""
+    ).strip()
 
     if reply_to_id:
-        reply_to = ChatMessage.objects.filter(id=reply_to_id, thread=thread).first()
+        reply_to = ChatMessage.objects.filter(
+            id=reply_to_id,
+            thread=thread,
+        ).first()
 
         if reply_to is None:
             return respond_chat_error(
@@ -771,94 +926,187 @@ def send_message(request, thread_id):
     if voice_file and cloudinary_voice_upload_is_available():
         try:
             voice_upload = upload_voice_note_to_cloudinary(voice_file)
-        except Exception as exc:
-            error = f"Voice note upload failed: {exc}" if settings.DEBUG else "Voice note upload failed. Please try again."
-            return respond_chat_error(request, error, thread=thread, status=500)
+        except Exception:
+            logger.exception(
+                "Voice note upload failed.",
+                extra={
+                    "thread_id": thread.id,
+                    "sender_id": request.user.id,
+                },
+            )
+            return respond_chat_error(
+                request,
+                "Voice note upload failed. Please try again.",
+                thread=thread,
+                status=500,
+            )
 
-    message = ChatMessage.objects.create(
-        thread=thread,
-        sender=request.user,
-        reply_to=reply_to,
-        text=text,
-    )
+    message = None
+    created_message = False
 
     try:
-        if image_file:
-            ChatAttachment.objects.create(
-                message=message,
-                attachment_type=ChatAttachment.TYPE_IMAGE,
-                file=image_file,
-                original_filename=image_file.name,
-                file_size=image_file.size,
-                content_type=image_file.content_type or "",
+        with transaction.atomic():
+            message = ChatMessage.objects.create(
+                thread=thread,
+                sender=request.user,
+                reply_to=reply_to,
+                text=text,
+                client_message_id=client_message_id or "",
             )
+            created_message = True
 
-        if video_file:
-            ChatAttachment.objects.create(
-                message=message,
-                attachment_type=ChatAttachment.TYPE_VIDEO,
-                file=video_file,
-                original_filename=video_file.name,
-                file_size=video_file.size,
-                content_type=video_file.content_type or "",
-            )
-
-        if regular_file:
-            ChatAttachment.objects.create(
-                message=message,
-                attachment_type=ChatAttachment.TYPE_FILE,
-                file=regular_file,
-                original_filename=regular_file.name,
-                file_size=regular_file.size,
-                content_type=regular_file.content_type or "",
-            )
-
-        if voice_file:
-            voice_name = voice_file.name or "heartly-voice-note.webm"
-
-            if voice_upload:
+            if image_file:
                 ChatAttachment.objects.create(
                     message=message,
-                    attachment_type=ChatAttachment.TYPE_AUDIO,
-                    file=None,
-                    external_url=voice_upload["url"],
-                    cloudinary_public_id=voice_upload.get("public_id", ""),
-                    original_filename=voice_name,
-                    file_size=voice_file.size,
-                    content_type=voice_upload.get("content_type", "") or content_type_for_audio(voice_file),
+                    attachment_type=ChatAttachment.TYPE_IMAGE,
+                    file=image_file,
+                    original_filename=image_file.name,
+                    file_size=image_file.size,
+                    content_type=image_file.content_type or "",
                 )
-            else:
+
+            if video_file:
                 ChatAttachment.objects.create(
                     message=message,
-                    attachment_type=ChatAttachment.TYPE_AUDIO,
-                    file=voice_file,
-                    original_filename=voice_name,
-                    file_size=voice_file.size,
-                    content_type=content_type_for_audio(voice_file),
+                    attachment_type=ChatAttachment.TYPE_VIDEO,
+                    file=video_file,
+                    original_filename=video_file.name,
+                    file_size=video_file.size,
+                    content_type=video_file.content_type or "",
                 )
 
-    except Exception as exc:
-        message.delete()
-        error = f"Upload failed: {exc}" if settings.DEBUG else "Upload failed. Please try again."
-        return respond_chat_error(request, error, thread=thread, status=500)
+            if regular_file:
+                ChatAttachment.objects.create(
+                    message=message,
+                    attachment_type=ChatAttachment.TYPE_FILE,
+                    file=regular_file,
+                    original_filename=regular_file.name,
+                    file_size=regular_file.size,
+                    content_type=regular_file.content_type or "",
+                )
 
-    thread.save()
-    create_message_notification(message)
+            if voice_file:
+                voice_name = (
+                    voice_file.name
+                    or "heartly-voice-note.webm"
+                )
+
+                if voice_upload:
+                    ChatAttachment.objects.create(
+                        message=message,
+                        attachment_type=ChatAttachment.TYPE_AUDIO,
+                        file=None,
+                        external_url=voice_upload["url"],
+                        cloudinary_public_id=voice_upload.get(
+                            "public_id",
+                            "",
+                        ),
+                        original_filename=voice_name,
+                        file_size=voice_file.size,
+                        content_type=(
+                            voice_upload.get("content_type", "")
+                            or content_type_for_audio(voice_file)
+                        ),
+                    )
+                else:
+                    ChatAttachment.objects.create(
+                        message=message,
+                        attachment_type=ChatAttachment.TYPE_AUDIO,
+                        file=voice_file,
+                        original_filename=voice_name,
+                        file_size=voice_file.size,
+                        content_type=content_type_for_audio(voice_file),
+                    )
+
+            thread.save(update_fields=["updated_at"])
+
+    except IntegrityError:
+        if not client_message_id:
+            logger.exception(
+                "Chat message database write failed.",
+                extra={
+                    "thread_id": thread.id,
+                    "sender_id": request.user.id,
+                },
+            )
+            return respond_chat_error(
+                request,
+                "Message could not be saved.",
+                thread=thread,
+                status=500,
+            )
+
+        message = (
+            ChatMessage.objects
+            .filter(
+                thread=thread,
+                sender=request.user,
+                client_message_id=client_message_id,
+            )
+            .first()
+        )
+
+        if message is None:
+            logger.exception(
+                "Idempotent chat message recovery failed.",
+                extra={
+                    "thread_id": thread.id,
+                    "sender_id": request.user.id,
+                    "client_message_id": client_message_id,
+                },
+            )
+            return respond_chat_error(
+                request,
+                "Message could not be saved.",
+                thread=thread,
+                status=500,
+            )
+
+        created_message = False
+
+    except Exception:
+        logger.exception(
+            "Chat message or attachment save failed.",
+            extra={
+                "thread_id": thread.id,
+                "sender_id": request.user.id,
+            },
+        )
+        return respond_chat_error(
+            request,
+            "Upload failed. Please try again.",
+            thread=thread,
+            status=500,
+        )
 
     message = (
         ChatMessage.objects
-        .select_related("sender", "reply_to", "reply_to__sender")
-        .prefetch_related("attachments", "reply_to__attachments")
+        .select_related(
+            "sender",
+            "reply_to",
+            "reply_to__sender",
+        )
+        .prefetch_related(
+            "attachments",
+            "reply_to__attachments",
+        )
         .get(id=message.id)
     )
 
-    broadcast_message(message)
+    if created_message:
+        create_message_notification(message)
+        broadcast_message(message)
 
     if wants_json(request):
-        return json_success(message=serialize_message(message))
+        return json_success(
+            message=serialize_message(message),
+            duplicate=not created_message,
+        )
 
-    return redirect("chat:chat_room", thread_id=thread.id)
-
+    return redirect(
+        "chat:chat_room",
+        thread_id=thread.id,
+    )
 
 @login_required
 @require_POST

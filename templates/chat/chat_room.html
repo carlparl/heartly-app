@@ -1669,6 +1669,33 @@ body {
     function replacePending(pendingRow,payload){if(!pendingRow){appendMessage(payload);return;}pendingRow.outerHTML=renderMessage(payload);const row=document.querySelector(`[data-message-id="${cssEscape(payload.id||payload.message_id)}"]`);prepareAudioPlayers(row||messagesBox);scrollToBottom();}
     function selectedLocalAttachment(){const input=fileInputs.find(item=>item.files&&item.files[0]);if(!input)return null;const file=input.files[0];let type="image";if(input.id==="videoInput")type="video";else if(input.id==="fileInput")type="file";else if(input.id==="voiceInput")type="audio";return {type:type,name:file.name,url:URL.createObjectURL(file)};}
 
+    function createClientMessageId(){
+        if(
+            window.crypto &&
+            typeof window.crypto.randomUUID === "function"
+        ){
+            return window.crypto.randomUUID();
+        }
+
+        return (
+            "msg-" +
+            Date.now().toString(36) +
+            "-" +
+            Math.random().toString(36).slice(2,12)
+        );
+    }
+
+    function currentClientMessageId(){
+        if(!chatComposerForm)return "";
+
+        if(!chatComposerForm.dataset.clientMessageId){
+            chatComposerForm.dataset.clientMessageId =
+                createClientMessageId();
+        }
+
+        return chatComposerForm.dataset.clientMessageId;
+    }
+
     async function sendComposer(event){
         event.preventDefault();
         if(chatComposerForm&&chatComposerForm.dataset.sending==="1")return;
@@ -1683,6 +1710,10 @@ body {
         const pendingRow=appendMessage(tempPayload,{sending:true,tempId:tempPayload.id});
         const formData=new FormData(chatComposerForm);
         formData.append("_ajax","1");
+        formData.append(
+            "client_message_id",
+            currentClientMessageId()
+        );
         if(chatComposerForm)chatComposerForm.dataset.sending="1";
         if(sendMessageBtn)sendMessageBtn.disabled=true;
         if(voiceRecordBtn)voiceRecordBtn.disabled=true;
@@ -1694,6 +1725,7 @@ body {
             const data=await response.json();
             if(!response.ok||data.ok===false)throw new Error(data.message||"Message failed.");
             replacePending(pendingRow,data.message);
+            delete chatComposerForm.dataset.clientMessageId;
             chatComposerForm.reset();
             if(messageInput)messageInput.style.height="auto";
             clearSelectedFile();
@@ -1719,6 +1751,10 @@ body {
             let data=null;
             try{data=JSON.parse(event.data);}catch(error){return;}
             if(!data||!data.type)return;
+            if(data.type==="chat.error"){
+                setStatus(data.message||"Chat action failed.");
+                return;
+            }
             if(data.type==="chat.message"){
                 if(Number(data.sender_id)===CURRENT_USER_ID)return;
                 appendMessage(data);

@@ -1,5 +1,6 @@
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
+from django.db.models import Q
 from django.urls import reverse
 from django.utils import timezone
 
@@ -159,7 +160,10 @@ class ThreadConsumer(AsyncJsonWebsocketConsumer):
 
     async def handle_call_accept(self, content):
         call_id = content.get("call_id")
-        await self.answer_call(call_id)
+        updated = await self.answer_call(call_id)
+
+        if not updated:
+            return
 
         await self.channel_layer.group_send(
             self.group_name,
@@ -175,7 +179,13 @@ class ThreadConsumer(AsyncJsonWebsocketConsumer):
 
     async def handle_call_decline(self, content):
         call_id = content.get("call_id")
-        await self.close_call(call_id, CallSession.STATUS_DECLINED)
+        updated = await self.close_call(
+            call_id,
+            CallSession.STATUS_DECLINED,
+        )
+
+        if not updated:
+            return
 
         await self.channel_layer.group_send(
             self.group_name,
@@ -191,7 +201,13 @@ class ThreadConsumer(AsyncJsonWebsocketConsumer):
 
     async def handle_call_end(self, content):
         call_id = content.get("call_id")
-        await self.close_call(call_id, CallSession.STATUS_ENDED)
+        updated = await self.close_call(
+            call_id,
+            CallSession.STATUS_ENDED,
+        )
+
+        if not updated:
+            return
 
         await self.channel_layer.group_send(
             self.group_name,
@@ -235,12 +251,19 @@ class ThreadConsumer(AsyncJsonWebsocketConsumer):
         )
 
     async def relay_call_signal(self, content):
-        content["sender_id"] = self.user.id
+        call_id = content.get("call_id")
+
+        if not await self.user_can_access_call(call_id):
+            return
+
+        safe_content = dict(content)
+        safe_content["sender_id"] = self.user.id
+
         await self.channel_layer.group_send(
             self.group_name,
             {
                 "type": "chat.broadcast",
-                "payload": content,
+                "payload": safe_content,
             },
         )
 
@@ -277,6 +300,17 @@ class ThreadConsumer(AsyncJsonWebsocketConsumer):
             return False
 
         return True
+
+    @database_sync_to_async
+    def user_can_access_call(self, call_id):
+        if not call_id:
+            return False
+
+        return CallSession.objects.filter(
+            Q(caller=self.user) | Q(receiver=self.user),
+            id=call_id,
+            thread_id=self.thread_id,
+        ).exists()
 
     @database_sync_to_async
     def mark_messages_read(self):
@@ -375,22 +409,37 @@ class ThreadConsumer(AsyncJsonWebsocketConsumer):
     @database_sync_to_async
     def answer_call(self, call_id):
         if not call_id:
-            return
+            return False
 
-        CallSession.objects.filter(id=call_id).update(
+        updated = CallSession.objects.filter(
+            id=call_id,
+            thread_id=self.thread_id,
+            receiver=self.user,
+            status=CallSession.STATUS_RINGING,
+        ).update(
             status=CallSession.STATUS_ACCEPTED,
             accepted_at=timezone.now(),
         )
+        return bool(updated)
 
     @database_sync_to_async
     def close_call(self, call_id, status):
         if not call_id:
-            return
+            return False
 
-        CallSession.objects.filter(id=call_id).update(
+        updated = CallSession.objects.filter(
+            Q(caller=self.user) | Q(receiver=self.user),
+            id=call_id,
+            thread_id=self.thread_id,
+            status__in=[
+                CallSession.STATUS_RINGING,
+                CallSession.STATUS_ACCEPTED,
+            ],
+        ).update(
             status=status,
             ended_at=timezone.now(),
         )
+        return bool(updated)
 
     @database_sync_to_async
     def mark_call_missed(self, call_id):
@@ -400,7 +449,12 @@ class ThreadConsumer(AsyncJsonWebsocketConsumer):
         call = (
             CallSession.objects
             .select_related("thread", "caller", "receiver")
-            .filter(id=call_id, caller=self.user, status=CallSession.STATUS_RINGING)
+            .filter(
+                id=call_id,
+                thread_id=self.thread_id,
+                caller=self.user,
+                status=CallSession.STATUS_RINGING,
+            )
             .first()
         )
 

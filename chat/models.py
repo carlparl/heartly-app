@@ -83,6 +83,12 @@ class ChatMessage(models.Model):
         null=True,
     )
     text = models.TextField(max_length=1200, blank=True)
+    client_message_id = models.CharField(
+        max_length=64,
+        blank=True,
+        default="",
+        db_index=True,
+    )
     is_read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -93,6 +99,17 @@ class ChatMessage(models.Model):
             models.Index(fields=["sender", "created_at"]),
             models.Index(fields=["reply_to"]),
             models.Index(fields=["is_read"]),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=[
+                    "thread",
+                    "sender",
+                    "client_message_id",
+                ],
+                condition=~Q(client_message_id=""),
+                name="uniq_chat_client_message",
+            ),
         ]
 
     def __str__(self):
