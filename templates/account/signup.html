@@ -10,7 +10,7 @@
     <div class="heartly-signup-header">
         <p class="heartly-kicker">Join Heartly</p>
         <h1>Create account</h1>
-        <p>Set up your account and start connecting safely.</p>
+        <p>Create a verified adult account and start connecting safely.</p>
     </div>
 
     <form method="post" action="{% url 'account_signup' %}" class="heartly-signup-form">
@@ -67,6 +67,10 @@
         <div class="heartly-field">
             <label for="{{ form.date_of_birth.id_for_label }}">Date of birth</label>
             {{ form.date_of_birth }}
+            <p class="heartly-field-help">
+                Heartly is for adults aged 18–100. Your exact birth date
+                is used for eligibility and is not shown publicly.
+            </p>
             {% if form.date_of_birth.errors %}
                 <div class="heartly-field-error">{{ form.date_of_birth.errors }}</div>
             {% endif %}
@@ -181,6 +185,14 @@
         color: var(--heartly-text, #1f1f1f);
         font-size: 0.88rem;
         font-weight: 700;
+    }
+
+    .heartly-field-help {
+        margin: 0;
+        color: var(--heartly-muted, #666666);
+        font-size: 0.78rem;
+        font-weight: 600;
+        line-height: 1.45;
     }
 
     .heartly-field input,

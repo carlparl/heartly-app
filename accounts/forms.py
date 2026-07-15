@@ -1,25 +1,26 @@
-﻿from datetime import date
+from datetime import timedelta
 
 from django import forms
 from django.core.exceptions import ValidationError
 from django.db import transaction
 
+from profiles.identity import (
+    MAXIMUM_LEGAL_AGE,
+    MINIMUM_LEGAL_AGE,
+    age_from_date_of_birth,
+    legal_birth_date_bounds,
+    mapped_profile_gender,
+    mapped_profile_preference,
+)
+
 from .models import CustomUser
 
 
-USER_TO_PROFILE_GENDER = {
-    "male": "man",
-    "female": "woman",
-    "non_binary": "non_binary",
-    "prefer_not_to_say": "other",
-}
-
-USER_TO_PROFILE_INTERESTED_IN = {
-    "male": "men",
-    "female": "women",
-    "both": "everyone",
-    "friends": "everyone",
-}
+SIGNUP_INTERESTED_IN_CHOICES = [
+    choice
+    for choice in CustomUser.INTERESTED_IN_CHOICES
+    if choice[0] != "friends"
+]
 
 
 class CustomSignupForm(forms.Form):
@@ -50,7 +51,10 @@ class CustomSignupForm(forms.Form):
     )
 
     gender = forms.ChoiceField(
-        choices=[("", "Select your gender")] + CustomUser.GENDER_CHOICES,
+        choices=[
+            ("", "Select your gender"),
+            *CustomUser.GENDER_CHOICES,
+        ],
         required=True,
         label="Gender",
         widget=forms.Select(
@@ -61,7 +65,10 @@ class CustomSignupForm(forms.Form):
     )
 
     interested_in = forms.ChoiceField(
-        choices=[("", "Who are you interested in?")] + CustomUser.INTERESTED_IN_CHOICES,
+        choices=[
+            ("", "Who are you interested in?"),
+            *SIGNUP_INTERESTED_IN_CHOICES,
+        ],
         required=True,
         label="Interested in",
         widget=forms.Select(
@@ -75,80 +82,126 @@ class CustomSignupForm(forms.Form):
         required=True,
         label="Date of birth",
         widget=forms.DateInput(
+            format="%Y-%m-%d",
             attrs={
                 "type": "date",
+                "autocomplete": "bday",
                 "class": "heartly-input",
             }
         ),
     )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        oldest_exclusive, youngest_inclusive = (
+            legal_birth_date_bounds()
+        )
+
+        self.fields["date_of_birth"].widget.attrs.update(
+            {
+                "min": (
+                    oldest_exclusive
+                    + timedelta(days=1)
+                ).isoformat(),
+                "max": youngest_inclusive.isoformat(),
+            }
+        )
+
     def clean_full_name(self):
-        full_name = self.cleaned_data.get("full_name", "").strip()
+        full_name = (
+            self.cleaned_data.get("full_name", "") or ""
+        ).strip()
 
         if len(full_name.split()) < 2:
-            raise ValidationError("Enter your first and last name.")
+            raise ValidationError(
+                "Enter your first and last name."
+            )
 
         return full_name
 
     def clean_phone_number(self):
-        return self.cleaned_data.get("phone_number", "").strip()
+        return (
+            self.cleaned_data.get("phone_number", "") or ""
+        ).strip()
 
     def clean_date_of_birth(self):
-        dob = self.cleaned_data.get("date_of_birth")
-
-        if not dob:
-            return dob
-
-        today = date.today()
-
-        if dob >= today:
-            raise ValidationError("Enter a valid date of birth.")
-
-        age = (
-            today.year
-            - dob.year
-            - ((today.month, today.day) < (dob.month, dob.day))
+        date_of_birth = self.cleaned_data.get(
+            "date_of_birth"
         )
+        age = age_from_date_of_birth(date_of_birth)
 
-        if age < 18:
+        if age is None or not (
+            MINIMUM_LEGAL_AGE
+            <= age
+            <= MAXIMUM_LEGAL_AGE
+        ):
             raise ValidationError(
-                "You must be at least 18 years old to create a Heartly account."
+                "Heartly accounts are available only to "
+                "confirmed adults between 18 and 100."
             )
 
-        if age > 100:
-            raise ValidationError("Enter a valid date of birth.")
-
-        return dob
+        return date_of_birth
 
     def signup(self, request, user):
-        """
-        Save Heartly signup fields and initialize the linked Profile.
-
-        The project still contains temporary duplicate identity fields on
-        CustomUser and Profile. During the rebuild, both copies are kept in
-        sync so existing views continue to work while we prepare a safe data
-        migration to one permanent source of truth.
-        """
         from profiles.models import Profile
 
+        full_name = self.cleaned_data["full_name"]
+        gender = self.cleaned_data["gender"]
+        interested_in = self.cleaned_data[
+            "interested_in"
+        ]
+        date_of_birth = self.cleaned_data[
+            "date_of_birth"
+        ]
+
+        profile_gender = mapped_profile_gender(gender)
+        profile_preference = mapped_profile_preference(
+            interested_in
+        )
+
+        if not profile_gender or not profile_preference:
+            raise ValidationError(
+                "The selected identity details could not "
+                "be synchronized."
+            )
+
+        name_parts = full_name.split()
+
         with transaction.atomic():
-            user.full_name = self.cleaned_data["full_name"]
-            user.phone_number = self.cleaned_data.get("phone_number", "")
-            user.gender = self.cleaned_data["gender"]
-            user.interested_in = self.cleaned_data["interested_in"]
-            user.date_of_birth = self.cleaned_data["date_of_birth"]
-            user.save()
-
-            profile, _ = Profile.objects.get_or_create(user=user)
-            display_name_max = Profile._meta.get_field("display_name").max_length
-
-            profile.display_name = user.full_name[:display_name_max]
-            profile.age = user.age
-            profile.gender = USER_TO_PROFILE_GENDER.get(user.gender, "")
-            profile.interested_in = USER_TO_PROFILE_INTERESTED_IN.get(
-                user.interested_in,
+            user.full_name = full_name
+            user.first_name = (
+                name_parts[0] if name_parts else ""
+            )
+            user.last_name = (
+                " ".join(name_parts[1:])
+                if len(name_parts) > 1
+                else ""
+            )
+            user.phone_number = self.cleaned_data.get(
+                "phone_number",
                 "",
             )
+            user.gender = gender
+            user.interested_in = interested_in
+            user.date_of_birth = date_of_birth
+            user.save()
+
+            profile, _ = Profile.objects.get_or_create(
+                user=user
+            )
+            display_name_max = Profile._meta.get_field(
+                "display_name"
+            ).max_length
+
+            profile.display_name = full_name[
+                :display_name_max
+            ]
+            profile.age = age_from_date_of_birth(
+                date_of_birth
+            )
+            profile.gender = profile_gender
+            profile.interested_in = profile_preference
             profile.save(
                 update_fields=[
                     "display_name",
