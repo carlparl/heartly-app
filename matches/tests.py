@@ -1,4 +1,5 @@
-﻿from unittest.mock import patch
+from datetime import date
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
@@ -10,6 +11,19 @@ from .models import MatchAction, MutualMatch
 
 
 User = get_user_model()
+
+
+def date_of_birth_for_age(age):
+    today = date.today()
+
+    try:
+        return today.replace(year=today.year - age)
+    except ValueError:
+        return today.replace(
+            year=today.year - age,
+            month=2,
+            day=28,
+        )
 
 
 @override_settings(
@@ -35,6 +49,7 @@ class MatchTestBase(TestCase):
             username=username,
             email=f"{username}@example.com",
             password="StrongPass123!",
+            date_of_birth=date_of_birth_for_age(age),
             is_active=active,
             is_staff=staff,
         )

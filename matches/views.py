@@ -1,4 +1,4 @@
-﻿import logging
+import logging
 
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
@@ -12,6 +12,10 @@ from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 
+from profiles.identity import (
+    confirmed_legal_age,
+    legal_birth_date_bounds,
+)
 from profiles.models import Profile
 
 from .models import MatchAction, MutualMatch
@@ -118,7 +122,12 @@ def profile_identity_is_complete(profile):
     if not (profile.display_name or "").strip():
         return False
 
-    if profile.age is None or not 18 <= profile.age <= 100:
+    confirmed_age = confirmed_legal_age(profile.user)
+
+    if confirmed_age is None:
+        return False
+
+    if profile.age != confirmed_age:
         return False
 
     valid_genders = {
@@ -186,6 +195,11 @@ def discoverable_profiles_for(
     if not profile_identity_is_complete(viewer_profile):
         return Profile.objects.none()
 
+    (
+        oldest_dob_exclusive,
+        youngest_dob_inclusive,
+    ) = legal_birth_date_bounds()
+
     target_genders = target_genders_for(
         viewer_profile.interested_in
     )
@@ -203,6 +217,12 @@ def discoverable_profiles_for(
         .filter(
             user__is_active=True,
             user__is_staff=False,
+            user__date_of_birth__gt=(
+                oldest_dob_exclusive
+            ),
+            user__date_of_birth__lte=(
+                youngest_dob_inclusive
+            ),
             profile_visible=True,
             hidden_by_moderation=False,
             age__gte=18,
@@ -213,6 +233,15 @@ def discoverable_profiles_for(
         .exclude(user=viewer)
         .exclude(display_name="")
         .exclude(user_id__in=hidden_ids_for(viewer))
+    )
+
+    eligible_profile_ids = [
+        profile.id
+        for profile in profiles
+        if profile_identity_is_complete(profile)
+    ]
+    profiles = profiles.filter(
+        id__in=eligible_profile_ids
     )
 
     if exclude_acted:
