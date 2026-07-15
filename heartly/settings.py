@@ -1,6 +1,7 @@
 from dotenv import load_dotenv
 from pathlib import Path
 import os
+import sys
 import dj_database_url
 
 
@@ -11,6 +12,14 @@ import dj_database_url
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 load_dotenv(BASE_DIR / ".env")
+
+
+RUNNING_TESTS = (
+    "test" in sys.argv
+    or any("pytest" in argument.lower() for argument in sys.argv)
+    or os.environ.get("HEARTLY_TEST_MODE", "").strip().lower()
+    in {"1", "true", "yes", "on"}
+)
 
 
 # ============================================================
@@ -40,7 +49,7 @@ DEBUG = env_bool("DJANGO_DEBUG", True)
 
 DJANGO_ENV = os.environ.get("DJANGO_ENV", "local").strip().lower()
 
-IS_PRODUCTION = DJANGO_ENV == "production"
+IS_PRODUCTION = DJANGO_ENV == "production" and not RUNNING_TESTS
 
 ALLOWED_HOSTS = env_list(
     "DJANGO_ALLOWED_HOSTS",
@@ -198,7 +207,19 @@ TEMPLATES = [
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
 
-if DATABASE_URL:
+if RUNNING_TESTS:
+    # Tests must never create databases on Neon or another remote service.
+    # Django converts this into a shared in-memory SQLite test database.
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": ":memory:",
+            "TEST": {
+                "NAME": ":memory:",
+            },
+        }
+    }
+elif DATABASE_URL:
     DATABASES = {
         "default": dj_database_url.parse(
             DATABASE_URL,
@@ -239,6 +260,11 @@ AUTH_PASSWORD_VALIDATORS = [
         "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
 ]
+
+if RUNNING_TESTS:
+    PASSWORD_HASHERS = [
+        "django.contrib.auth.hashers.MD5PasswordHasher",
+    ]
 
 
 # ============================================================
@@ -281,7 +307,14 @@ CLOUDINARY_STORAGE = {
     "API_SECRET": os.environ.get("CLOUDINARY_API_SECRET", ""),
 }
 
-MEDIA_STORAGE_BACKEND = os.environ.get("MEDIA_STORAGE_BACKEND", "cloudinary").strip().lower()
+MEDIA_STORAGE_BACKEND = (
+    "local"
+    if RUNNING_TESTS
+    else os.environ.get(
+        "MEDIA_STORAGE_BACKEND",
+        "cloudinary",
+    ).strip().lower()
+)
 
 STORAGES = {
     "default": {
@@ -314,6 +347,11 @@ elif MEDIA_STORAGE_BACKEND == "s3":
 
 elif MEDIA_STORAGE_BACKEND != "local":
     raise RuntimeError("Invalid MEDIA_STORAGE_BACKEND. Use one of: local, cloudinary, s3.")
+
+if RUNNING_TESTS:
+    STORAGES["default"] = {
+        "BACKEND": "django.core.files.storage.InMemoryStorage",
+    }
 
 DATA_UPLOAD_MAX_MEMORY_SIZE = int(os.environ.get("DJANGO_DATA_UPLOAD_MAX_MEMORY_SIZE", 70 * 1024 * 1024))
 FILE_UPLOAD_MAX_MEMORY_SIZE = int(os.environ.get("DJANGO_FILE_UPLOAD_MAX_MEMORY_SIZE", 70 * 1024 * 1024))
@@ -382,6 +420,9 @@ EMAIL_BACKEND = os.environ.get(
     "django.core.mail.backends.console.EmailBackend",
 )
 
+if RUNNING_TESTS:
+    EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+
 DEFAULT_FROM_EMAIL = os.environ.get(
     "DJANGO_DEFAULT_FROM_EMAIL",
     "Heartly <noreply@heartly.local>",
@@ -394,9 +435,13 @@ DEFAULT_FROM_EMAIL = os.environ.get(
 
 REDIS_URL = os.environ.get("REDIS_URL", "").strip()
 
-USE_REDIS_CHANNEL_LAYER = env_bool(
-    "USE_REDIS_CHANNEL_LAYER",
-    bool(REDIS_URL) and IS_PRODUCTION,
+USE_REDIS_CHANNEL_LAYER = (
+    False
+    if RUNNING_TESTS
+    else env_bool(
+        "USE_REDIS_CHANNEL_LAYER",
+        bool(REDIS_URL) and IS_PRODUCTION,
+    )
 )
 
 if USE_REDIS_CHANNEL_LAYER:
@@ -475,12 +520,24 @@ CACHES = {
     }
 }
 
+if RUNNING_TESTS:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "heartly-test-cache",
+        }
+    }
+
 
 # ============================================================
 # DJANGO-RATELIMIT
 # ============================================================
 
-RATELIMIT_ENABLE = env_bool("RATELIMIT_ENABLE", True)
+RATELIMIT_ENABLE = (
+    False
+    if RUNNING_TESTS
+    else env_bool("RATELIMIT_ENABLE", True)
+)
 
 RATELIMIT_USE_CACHE = "default"
 
