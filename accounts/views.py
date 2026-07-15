@@ -86,6 +86,16 @@ def post_login_redirect(request):
         query = urlencode({"next": discover_url})
         return redirect(f"{repair_url}?{query}")
 
+    email_verified = _sync_profile_email_verification(
+        request.user
+    )
+
+    if (
+        settings.HEARTLY_REQUIRE_VERIFIED_EMAIL
+        and not email_verified
+    ):
+        return redirect("settings_account")
+
     return redirect("matches:discover")
 
 

@@ -2,6 +2,7 @@ import logging
 
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
@@ -176,6 +177,12 @@ def discoverable_profiles_for(
     if not profile_identity_is_complete(viewer_profile):
         return Profile.objects.none()
 
+    if (
+        settings.HEARTLY_REQUIRE_VERIFIED_EMAIL
+        and not viewer_profile.email_verified
+    ):
+        return Profile.objects.none()
+
     (
         oldest_dob_exclusive,
         youngest_dob_inclusive,
@@ -215,6 +222,11 @@ def discoverable_profiles_for(
         .exclude(display_name="")
         .exclude(user_id__in=hidden_ids_for(viewer))
     )
+
+    if settings.HEARTLY_REQUIRE_VERIFIED_EMAIL:
+        profiles = profiles.filter(
+            email_verified=True
+        )
 
     eligible_profile_ids = [
         profile.id
@@ -392,6 +404,22 @@ def discover(request):
             },
         )
 
+    if (
+        settings.HEARTLY_REQUIRE_VERIFIED_EMAIL
+        and not viewer_profile.email_verified
+    ):
+        return render(
+            request,
+            "matches/discover_email_required.html",
+            {
+                "profiles": Profile.objects.none(),
+                "viewer_profile": viewer_profile,
+                "viewer_profile_complete": True,
+                "identity_issues": [],
+                "search_query": search_query,
+            },
+        )
+
     profiles = discoverable_profiles_for(request.user)
 
     if search_query:
@@ -436,6 +464,16 @@ def swipe(request, user_id, action):
                 "Complete your identity details before "
                 "using Discover."
             ),
+            status=403,
+        )
+
+    if (
+        settings.HEARTLY_REQUIRE_VERIFIED_EMAIL
+        and not viewer_profile.email_verified
+    ):
+        return match_error_response(
+            request,
+            "Verify your email before using Discover.",
             status=403,
         )
 

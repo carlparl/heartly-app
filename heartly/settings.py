@@ -429,12 +429,56 @@ EMAIL_BACKEND = os.environ.get(
     "django.core.mail.backends.console.EmailBackend",
 )
 
+EMAIL_HOST = os.environ.get(
+    "DJANGO_EMAIL_HOST",
+    "",
+).strip()
+EMAIL_PORT = int(
+    os.environ.get(
+        "DJANGO_EMAIL_PORT",
+        "587",
+    )
+)
+EMAIL_HOST_USER = os.environ.get(
+    "DJANGO_EMAIL_HOST_USER",
+    "",
+).strip()
+EMAIL_HOST_PASSWORD = os.environ.get(
+    "DJANGO_EMAIL_HOST_PASSWORD",
+    "",
+)
+EMAIL_USE_TLS = env_bool(
+    "DJANGO_EMAIL_USE_TLS",
+    True,
+)
+EMAIL_USE_SSL = env_bool(
+    "DJANGO_EMAIL_USE_SSL",
+    False,
+)
+EMAIL_TIMEOUT = int(
+    os.environ.get(
+        "DJANGO_EMAIL_TIMEOUT",
+        "20",
+    )
+)
+
+if EMAIL_USE_TLS and EMAIL_USE_SSL:
+    raise RuntimeError(
+        "DJANGO_EMAIL_USE_TLS and DJANGO_EMAIL_USE_SSL "
+        "cannot both be true."
+    )
+
 if RUNNING_TESTS:
     EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
 
 DEFAULT_FROM_EMAIL = os.environ.get(
     "DJANGO_DEFAULT_FROM_EMAIL",
     "Heartly <noreply@heartly.local>",
+)
+
+HEARTLY_REQUIRE_VERIFIED_EMAIL = env_bool(
+    "HEARTLY_REQUIRE_VERIFIED_EMAIL",
+    False,
 )
 
 

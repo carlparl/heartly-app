@@ -1,0 +1,119 @@
+{% extends "heartly/base.html" %}
+
+{% block title %}Verify Email - Heartly{% endblock %}
+
+{% block content %}
+<main class="email-gate-page">
+    <section class="email-gate-card">
+        <div class="email-gate-icon" aria-hidden="true">✉</div>
+        <span>Account safety</span>
+        <h1>Verify your email</h1>
+        <p>
+            Heartly requires a verified email before Discover and matching
+            actions become available.
+        </p>
+
+        <div class="email-gate-address">
+            {{ request.user.email }}
+        </div>
+
+        <a
+            href="{% url 'settings_account' %}"
+            class="email-gate-action heartly-btn-primary"
+        >
+            Send verification code
+        </a>
+
+        <a
+            href="{% url 'profiles:profile_home' %}"
+            class="email-gate-back"
+        >
+            Return to profile
+        </a>
+    </section>
+</main>
+{% endblock %}
+
+{% block extra_css %}
+.email-gate-page {
+    min-height: 100vh;
+    padding: 34px 16px 110px;
+    display: grid;
+    place-items: start center;
+    color: var(--heartly-text, #111827);
+}
+
+.email-gate-card {
+    width: min(100%, 540px);
+    padding: 30px 24px;
+    border: 1px solid var(--heartly-border, #e5e7eb);
+    border-radius: 30px;
+    background: var(--heartly-card, #ffffff);
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.1);
+    text-align: center;
+}
+
+.email-gate-icon {
+    width: 68px;
+    height: 68px;
+    margin: 0 auto 16px;
+    border-radius: 24px;
+    display: grid;
+    place-items: center;
+    color: var(--heartly-primary, #ec297b);
+    background: color-mix(
+        in srgb,
+        var(--heartly-primary, #ec297b) 12%,
+        transparent
+    );
+    font-size: 1.8rem;
+    font-weight: 950;
+}
+
+.email-gate-card > span {
+    color: var(--heartly-primary, #ec297b);
+    font-size: 0.75rem;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.email-gate-card h1 {
+    margin: 8px 0;
+    font-size: clamp(1.9rem, 8vw, 2.55rem);
+    letter-spacing: -0.05em;
+    line-height: 1.04;
+}
+
+.email-gate-card p {
+    color: var(--heartly-muted, #6b7280);
+    line-height: 1.55;
+}
+
+.email-gate-address {
+    margin: 20px 0;
+    padding: 14px;
+    border-radius: 16px;
+    color: var(--heartly-text, #111827);
+    background: var(--heartly-card-soft, #f8fafc);
+    font-weight: 900;
+    overflow-wrap: anywhere;
+}
+
+.email-gate-action,
+.email-gate-back {
+    display: block;
+    text-decoration: none;
+    font-weight: 900;
+}
+
+.email-gate-action {
+    padding: 15px 18px;
+    border-radius: 16px;
+}
+
+.email-gate-back {
+    margin-top: 15px;
+    color: var(--heartly-muted, #6b7280);
+}
+{% endblock %}
