@@ -44,17 +44,24 @@ class ChatThread(models.Model):
 
     @classmethod
     def get_or_create_between(cls, user_a, user_b):
+        if user_a == user_b:
+            raise ValueError("A chat requires two different users.")
+
         existing_thread = cls.between(user_a, user_b)
 
         if existing_thread:
             return existing_thread
 
-        first_user, second_user = sorted([user_a, user_b], key=lambda user: user.id)
+        first_user, second_user = sorted(
+            [user_a, user_b],
+            key=lambda user: user.id,
+        )
 
-        return cls.objects.create(
+        thread, _created = cls.objects.get_or_create(
             user_one=first_user,
             user_two=second_user,
         )
+        return thread
 
 
 class ChatMessage(models.Model):

@@ -57,10 +57,20 @@ class ThreadConsumer(AsyncJsonWebsocketConsumer):
             await self.channel_layer.group_discard(self.group_name, self.channel_name)
 
     async def receive_json(self, content, **kwargs):
+        if not await self.user_can_access_thread():
+            await self.close()
+            return
+
         event_type = content.get("type")
 
         if event_type == "chat.message":
-            await self.handle_chat_message(content)
+            # HTTP is the only authoritative message-write path.
+            await self.send_json(
+                {
+                    "type": "chat.error",
+                    "message": "Send messages through the composer.",
+                }
+            )
         elif event_type == "typing.start":
             await self.relay_typing(True)
         elif event_type == "typing.stop":

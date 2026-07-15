@@ -29,6 +29,7 @@ except Exception:
     hidden_user_ids_for = None
     block_exists_between = None
 
+from matches.models import MutualMatch
 from profiles.models import Profile, UserBlock
 
 from .models import (
@@ -143,6 +144,13 @@ def respond_chat_error(request, message, thread=None, status=400):
     if thread:
         return redirect("chat:chat_room", thread_id=thread.id)
     return redirect("chat:chat_home")
+
+
+def users_have_mutual_match(user_a, user_b):
+    return MutualMatch.objects.filter(
+        Q(user_one=user_a, user_two=user_b)
+        | Q(user_one=user_b, user_two=user_a)
+    ).exists()
 
 
 def get_profile(user):
@@ -608,19 +616,44 @@ def chat_home(request):
 
 @login_required
 def start_chat(request, user_id):
-    other_user = get_object_or_404(User, id=user_id)
+    other_user = get_object_or_404(
+        User,
+        id=user_id,
+        is_active=True,
+    )
 
     if other_user == request.user:
-        messages.error(request, "You cannot start a chat with yourself.")
+        messages.error(
+            request,
+            "You cannot start a chat with yourself.",
+        )
         return redirect("chat:chat_home")
 
     if user_hidden_for(request.user, other_user):
-        messages.error(request, "This user is not available for chat.")
+        messages.error(
+            request,
+            "This user is not available for chat.",
+        )
         return redirect("matches:discover")
 
-    thread = ChatThread.get_or_create_between(request.user, other_user)
-    return redirect("chat:chat_room", thread.id)
+    if not users_have_mutual_match(
+        request.user,
+        other_user,
+    ):
+        messages.error(
+            request,
+            "You can start chatting after you both match.",
+        )
+        return redirect("matches:discover")
 
+    thread = ChatThread.get_or_create_between(
+        request.user,
+        other_user,
+    )
+    return redirect(
+        "chat:chat_room",
+        thread_id=thread.id,
+    )
 
 @login_required
 def chat_room(request, thread_id):
@@ -1248,7 +1281,9 @@ def hide_messages_for_user(thread, user, message_ids=None):
         qs = qs.filter(id__in=message_ids)
 
     if MessageState is None:
-        return qs.delete()[0]
+        # Never delete shared messages as a fallback for
+        # a per-user hide operation.
+        return 0
 
     count = 0
     for message in qs:
@@ -1267,48 +1302,52 @@ def hide_messages_for_user(thread, user, message_ids=None):
 @login_required
 @require_POST
 def clear_chat_for_me(request, thread_id):
-    thread = get_object_or_404(ChatThread, id=thread_id)
+    thread = get_object_or_404(
+        ChatThread,
+        id=thread_id,
+    )
 
     if not thread.has_user(request.user):
-        messages.error(request, "This chat is not available.")
-        return redirect("chat:chat_home")
-
-    ThreadState = optional_chat_model("ChatThreadUserState")
-
-    if ThreadState is not None:
-        state, created = ThreadState.objects.get_or_create(thread=thread, user=request.user)
-        set_available_boolean_fields(
-            state,
-            ["cleared_for_me", "hidden_for_me", "deleted_for_me", "is_cleared", "is_hidden", "is_deleted"],
+        return respond_chat_error(
+            request,
+            "This chat is not available.",
+            status=403,
         )
 
-    hidden_count = hide_messages_for_user(thread, request.user)
-    messages.success(request, "Chat cleared." if hidden_count else "Chat is already clear.")
-    return redirect("chat:chat_room", thread_id=thread.id)
-
+    return respond_chat_error(
+        request,
+        (
+            "Clear for me is temporarily disabled "
+            "while private message-state storage is rebuilt."
+        ),
+        thread=thread,
+        status=409,
+    )
 
 @login_required
 @require_POST
 def delete_chat_for_me(request, thread_id):
-    thread = get_object_or_404(ChatThread, id=thread_id)
+    thread = get_object_or_404(
+        ChatThread,
+        id=thread_id,
+    )
 
     if not thread.has_user(request.user):
-        messages.error(request, "This chat is not available.")
-        return redirect("chat:chat_home")
+        return respond_chat_error(
+            request,
+            "This chat is not available.",
+            status=403,
+        )
 
-    ThreadState = optional_chat_model("ChatThreadUserState")
-
-    if ThreadState is not None:
-        state, created = ThreadState.objects.get_or_create(thread=thread, user=request.user)
-        set_available_boolean_fields(state, ["deleted_for_me", "hidden_for_me", "is_deleted", "is_hidden"])
-        hide_messages_for_user(thread, request.user)
-        messages.success(request, "Chat deleted for you.")
-        return redirect("chat:chat_home")
-
-    thread.delete()
-    messages.success(request, "Chat deleted.")
-    return redirect("chat:chat_home")
-
+    return respond_chat_error(
+        request,
+        (
+            "Delete for me is temporarily disabled "
+            "while private message-state storage is rebuilt."
+        ),
+        thread=thread,
+        status=409,
+    )
 
 @login_required
 def open_message_attachment(request, message_id):
@@ -1351,32 +1390,22 @@ def open_message_attachment(request, message_id):
 @login_required
 @require_POST
 def delete_selected_messages_for_me(request):
-    selected_ids = request.POST.getlist("message_ids")
-    next_url = request.POST.get("next") or request.META.get("HTTP_REFERER") or reverse("chat:chat_home")
+    if wants_json(request):
+        return json_error(
+            "Delete for me is temporarily disabled.",
+            status=409,
+        )
 
-    if not selected_ids:
-        messages.error(request, "Select at least one message.")
-        return redirect(next_url)
-
-    messages_qs = ChatMessage.objects.filter(id__in=selected_ids).filter(
-        Q(thread__user_one=request.user) | Q(thread__user_two=request.user)
+    messages.info(
+        request,
+        "Delete for me is temporarily disabled.",
     )
-
-    grouped = {}
-    for message in messages_qs.select_related("thread"):
-        grouped.setdefault(message.thread, []).append(message.id)
-
-    deleted_count = 0
-    for thread, message_ids in grouped.items():
-        deleted_count += hide_messages_for_user(thread, request.user, message_ids)
-
-    if deleted_count:
-        messages.success(request, "Selected messages deleted for you.")
-    else:
-        messages.error(request, "No valid messages selected.")
-
+    next_url = (
+        request.POST.get("next")
+        or request.META.get("HTTP_REFERER")
+        or reverse("chat:chat_home")
+    )
     return redirect(next_url)
-
 
 @login_required
 @require_POST
@@ -1423,12 +1452,24 @@ def delete_selected_messages_for_everyone(request):
 @login_required
 @require_POST
 def delete_chat(request, thread_id):
-    thread = get_object_or_404(ChatThread, id=thread_id)
+    thread = get_object_or_404(
+        ChatThread,
+        id=thread_id,
+    )
 
     if not thread.has_user(request.user):
-        messages.error(request, "This chat is not available.")
-        return redirect("chat:chat_home")
+        return respond_chat_error(
+            request,
+            "This chat is not available.",
+            status=403,
+        )
 
-    thread.delete()
-    messages.success(request, "Chat deleted.")
-    return redirect("chat:chat_home")
+    return respond_chat_error(
+        request,
+        (
+            "Permanent shared chat deletion is "
+            "disabled during the rebuild."
+        ),
+        thread=thread,
+        status=409,
+    )
