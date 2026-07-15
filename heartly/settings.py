@@ -411,6 +411,15 @@ ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
 ACCOUNT_LOGOUT_ON_GET = False
 ACCOUNT_SESSION_REMEMBER = True
 
+ACCOUNT_PREVENT_ENUMERATION = True
+
+PASSWORD_RESET_TIMEOUT = int(
+    os.environ.get(
+        "DJANGO_PASSWORD_RESET_TIMEOUT",
+        "3600",
+    )
+)
+
 # ============================================================
 # EMAIL
 # ============================================================
