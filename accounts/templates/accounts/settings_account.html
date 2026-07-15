@@ -41,8 +41,59 @@
                 <div class="settings-info-item">
                     <span>Email</span>
                     <strong>{{ request.user.email|default:"No email added" }}</strong>
+                    <b class="email-status {% if email_verified %}verified{% else %}unverified{% endif %}">
+                        {% if email_verified %}Verified{% else %}Not verified{% endif %}
+                    </b>
                 </div>
             </div>
+        </article>
+
+        <article class="heartly-panel settings-card verification-card">
+            <div class="settings-card-head">
+                <div class="settings-card-icon">✉️</div>
+                <div>
+                    <h2>Email verification</h2>
+                    <p>Verify your email for account recovery and a trusted profile badge.</p>
+                </div>
+            </div>
+
+            {% if email_verified %}
+                <div class="verification-success">
+                    Your current email address is verified.
+                </div>
+            {% else %}
+                <form method="post" action="{% url 'send_email_code' %}" class="verification-send-form">
+                    {% csrf_token %}
+                    <button type="submit" class="heartly-btn-secondary verification-button">
+                        Send verification code
+                    </button>
+                </form>
+
+                <form method="post" action="{% url 'verify_email_code' %}" class="verification-code-form">
+                    {% csrf_token %}
+                    <label for="emailVerificationCode">Six-digit code</label>
+                    <div class="verification-code-row">
+                        <input
+                            id="emailVerificationCode"
+                            name="code"
+                            type="text"
+                            inputmode="numeric"
+                            autocomplete="one-time-code"
+                            pattern="[0-9]{6}"
+                            maxlength="6"
+                            placeholder="000000"
+                            required
+                        >
+                        <button type="submit" class="heartly-btn-primary verification-button">
+                            Verify
+                        </button>
+                    </div>
+                </form>
+
+                <p class="verification-help">
+                    Codes expire after 10 minutes. You can request a new code after one minute.
+                </p>
+            {% endif %}
         </article>
 
         <article class="heartly-panel settings-card">
@@ -178,6 +229,87 @@
     overflow-wrap: anywhere;
 }
 
+.email-status {
+    display: inline-flex;
+    width: fit-content;
+    margin-top: 8px;
+    padding: 5px 9px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 950;
+}
+
+.email-status.verified,
+.verification-success {
+    color: #166534;
+    background: #dcfce7;
+}
+
+.email-status.unverified {
+    color: #9a3412;
+    background: #ffedd5;
+}
+
+.verification-card {
+    gap: 16px;
+}
+
+.verification-success,
+.verification-help {
+    padding: 12px 14px;
+    border-radius: 16px;
+    font-size: 0.84rem;
+    font-weight: 800;
+    line-height: 1.45;
+}
+
+.verification-send-form,
+.verification-code-form {
+    display: grid;
+    gap: 8px;
+}
+
+.verification-code-form label {
+    color: var(--heartly-text, #111827);
+    font-size: 0.82rem;
+    font-weight: 900;
+}
+
+.verification-code-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+}
+
+.verification-code-row input {
+    min-width: 0;
+    min-height: 48px;
+    padding: 0 14px;
+    border: 1px solid var(--heartly-border, #d1d5db);
+    border-radius: 14px;
+    color: var(--heartly-text, #111827);
+    background: var(--heartly-card-soft, #f8fafc);
+    font: inherit;
+    font-size: 1.1rem;
+    font-weight: 900;
+    letter-spacing: 0.18em;
+}
+
+.verification-button {
+    min-height: 48px;
+    padding: 0 17px;
+    border: 0;
+    border-radius: 14px;
+    cursor: pointer;
+    font-weight: 900;
+}
+
+.verification-help {
+    margin: 0;
+    color: var(--heartly-muted, #6b7280);
+    background: var(--heartly-card-soft, rgba(255, 63, 114, 0.06));
+}
+
 .settings-item {
     min-width: 0;
     padding: 14px;
@@ -232,6 +364,10 @@
 }
 
 @media (max-width: 430px) {
+    .verification-code-row {
+        grid-template-columns: 1fr;
+    }
+
     .settings-item {
         grid-template-columns: 40px 1fr auto;
         gap: 10px;
