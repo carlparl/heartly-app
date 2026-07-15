@@ -13,6 +13,20 @@ from .models import MatchAction, MutualMatch
 User = get_user_model()
 
 
+PROFILE_GENDER_TO_USER_GENDER = {
+    Profile.GENDER_MAN: "male",
+    Profile.GENDER_WOMAN: "female",
+    Profile.GENDER_NON_BINARY: "non_binary",
+    Profile.GENDER_OTHER: "prefer_not_to_say",
+}
+
+PROFILE_PREFERENCE_TO_USER_PREFERENCE = {
+    Profile.INTERESTED_IN_MEN: "male",
+    Profile.INTERESTED_IN_WOMEN: "female",
+    Profile.INTERESTED_IN_EVERYONE: "both",
+}
+
+
 def date_of_birth_for_age(age):
     today = date.today()
 
@@ -50,6 +64,12 @@ class MatchTestBase(TestCase):
             email=f"{username}@example.com",
             password="StrongPass123!",
             date_of_birth=date_of_birth_for_age(age),
+            gender=PROFILE_GENDER_TO_USER_GENDER[gender],
+            interested_in=(
+                PROFILE_PREFERENCE_TO_USER_PREFERENCE[
+                    interested_in
+                ]
+            ),
             is_active=active,
             is_staff=staff,
         )

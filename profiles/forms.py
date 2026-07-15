@@ -1,10 +1,21 @@
-﻿import os
+import os
+from datetime import timedelta
 
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.db import transaction
 
+from .identity import (
+    MAXIMUM_LEGAL_AGE,
+    MINIMUM_LEGAL_AGE,
+    age_from_date_of_birth,
+    legal_birth_date_bounds,
+    mapped_profile_gender,
+    mapped_profile_preference,
+    mapped_user_gender,
+    mapped_user_preference,
+)
 from .models import Interest, Profile
 
 
@@ -230,6 +241,176 @@ class ProfileForm(forms.ModelForm):
 
         return profile
 
+
+class IdentityRepairForm(forms.Form):
+    display_name = forms.CharField(
+        label="Name shown on Heartly",
+        max_length=120,
+        required=True,
+        widget=forms.TextInput(
+            attrs={
+                "placeholder": "Your display name",
+                "autocomplete": "name",
+            }
+        ),
+    )
+    date_of_birth = forms.DateField(
+        label="Date of birth",
+        required=True,
+        widget=forms.DateInput(
+            format="%Y-%m-%d",
+            attrs={
+                "type": "date",
+                "autocomplete": "bday",
+            },
+        ),
+    )
+    gender = forms.ChoiceField(
+        label="Gender",
+        required=True,
+    )
+    interested_in = forms.ChoiceField(
+        label="Interested in",
+        required=True,
+    )
+
+    def __init__(self, *args, user, profile, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+        self.profile = profile
+
+        oldest_exclusive, youngest_inclusive = (
+            legal_birth_date_bounds()
+        )
+        oldest_inclusive = oldest_exclusive + timedelta(days=1)
+
+        self.fields["date_of_birth"].widget.attrs.update(
+            {
+                "min": oldest_inclusive.isoformat(),
+                "max": youngest_inclusive.isoformat(),
+            }
+        )
+        self.fields["gender"].choices = [
+            ("", "Choose gender"),
+            *Profile.GENDER_CHOICES,
+        ]
+        self.fields["interested_in"].choices = [
+            ("", "Choose who you want to meet"),
+            *Profile.INTERESTED_IN_CHOICES,
+        ]
+
+        if not self.is_bound:
+            self.initial.update(
+                {
+                    "display_name": (
+                        profile.display_name
+                        or user.full_name
+                        or user.get_full_name()
+                        or ""
+                    ),
+                    "date_of_birth": user.date_of_birth,
+                    "gender": (
+                        profile.gender
+                        or mapped_profile_gender(user.gender)
+                        or ""
+                    ),
+                    "interested_in": (
+                        profile.interested_in
+                        or mapped_profile_preference(
+                            user.interested_in
+                        )
+                        or ""
+                    ),
+                }
+            )
+
+    def clean_display_name(self):
+        display_name = (
+            self.cleaned_data.get("display_name") or ""
+        ).strip()
+
+        if not display_name:
+            raise forms.ValidationError(
+                "Enter the name you want people to see."
+            )
+
+        return display_name
+
+    def clean_date_of_birth(self):
+        date_of_birth = self.cleaned_data["date_of_birth"]
+        age = age_from_date_of_birth(date_of_birth)
+
+        if age is None or not (
+            MINIMUM_LEGAL_AGE
+            <= age
+            <= MAXIMUM_LEGAL_AGE
+        ):
+            raise forms.ValidationError(
+                "Heartly Discover is available only to confirmed "
+                "adults between 18 and 100."
+            )
+
+        return date_of_birth
+
+    def save(self):
+        display_name = self.cleaned_data["display_name"]
+        date_of_birth = self.cleaned_data["date_of_birth"]
+        profile_gender = self.cleaned_data["gender"]
+        profile_preference = self.cleaned_data["interested_in"]
+
+        user_gender = mapped_user_gender(profile_gender)
+        user_preference = mapped_user_preference(
+            profile_preference
+        )
+
+        if not user_gender or not user_preference:
+            raise ValueError(
+                "Identity selections could not be synchronized."
+            )
+
+        age = age_from_date_of_birth(date_of_birth)
+        name_parts = display_name.split()
+
+        with transaction.atomic():
+            self.profile.display_name = display_name
+            self.profile.age = age
+            self.profile.gender = profile_gender
+            self.profile.interested_in = profile_preference
+            self.profile.save(
+                update_fields=[
+                    "display_name",
+                    "age",
+                    "gender",
+                    "interested_in",
+                    "updated_at",
+                ]
+            )
+
+            self.user.full_name = display_name
+            self.user.first_name = (
+                name_parts[0] if name_parts else ""
+            )
+            self.user.last_name = (
+                " ".join(name_parts[1:])
+                if len(name_parts) > 1
+                else ""
+            )
+            self.user.date_of_birth = date_of_birth
+            self.user.gender = user_gender
+            self.user.interested_in = user_preference
+            self.user.save(
+                update_fields=[
+                    "full_name",
+                    "first_name",
+                    "last_name",
+                    "date_of_birth",
+                    "gender",
+                    "interested_in",
+                    "updated_at",
+                ]
+            )
+
+        return self.profile
 
 class InterestForm(forms.Form):
     interests = forms.ModelMultipleChoiceField(

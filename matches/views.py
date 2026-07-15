@@ -13,7 +13,8 @@ from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from profiles.identity import (
-    confirmed_legal_age,
+    identity_issue_messages,
+    identity_repair_issues,
     legal_birth_date_bounds,
 )
 from profiles.models import Profile
@@ -119,29 +120,9 @@ def profile_identity_is_complete(profile):
     if not profile:
         return False
 
-    if not (profile.display_name or "").strip():
-        return False
-
-    confirmed_age = confirmed_legal_age(profile.user)
-
-    if confirmed_age is None:
-        return False
-
-    if profile.age != confirmed_age:
-        return False
-
-    valid_genders = {
-        value
-        for value, _label in Profile.GENDER_CHOICES
-    }
-    valid_preferences = {
-        value
-        for value, _label in Profile.INTERESTED_IN_CHOICES
-    }
-
-    return (
-        profile.gender in valid_genders
-        and profile.interested_in in valid_preferences
+    return not identity_repair_issues(
+        profile.user,
+        profile,
     )
 
 
@@ -390,6 +371,26 @@ def notify_new_match(user_a, user_b):
 def discover(request):
     search_query = request.GET.get("q", "").strip()
     viewer_profile = get_profile(request.user)
+    viewer_issues = identity_repair_issues(
+        request.user,
+        viewer_profile,
+    )
+
+    if viewer_issues:
+        return render(
+            request,
+            "matches/discover_identity_required.html",
+            {
+                "profiles": Profile.objects.none(),
+                "viewer_profile": viewer_profile,
+                "viewer_profile_complete": False,
+                "identity_issues": identity_issue_messages(
+                    request.user,
+                    viewer_profile,
+                ),
+                "search_query": search_query,
+            },
+        )
 
     profiles = discoverable_profiles_for(request.user)
 
@@ -404,11 +405,8 @@ def discover(request):
         {
             "profiles": profiles,
             "viewer_profile": viewer_profile,
-            "viewer_profile_complete": (
-                profile_identity_is_complete(
-                    viewer_profile
-                )
-            ),
+            "viewer_profile_complete": True,
+            "identity_issues": [],
             "search_query": search_query,
         },
     )
@@ -424,6 +422,21 @@ def swipe(request, user_id, action):
         return match_error_response(
             request,
             "Invalid match action.",
+        )
+
+    viewer_profile = get_profile(request.user)
+
+    if identity_repair_issues(
+        request.user,
+        viewer_profile,
+    ):
+        return match_error_response(
+            request,
+            (
+                "Complete your identity details before "
+                "using Discover."
+            ),
+            status=403,
         )
 
     target_profile = (

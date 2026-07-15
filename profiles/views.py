@@ -4,10 +4,19 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
 from .blocking import block_exists_between, user_is_hidden_for
-from .forms import InterestForm, ProfileForm
+from .forms import (
+    IdentityRepairForm,
+    InterestForm,
+    ProfileForm,
+)
+from .identity import (
+    identity_issue_messages,
+    identity_repair_issues,
+)
 from .models import Interest, Profile, ProfileReport, UserBlock
 
 
@@ -291,6 +300,74 @@ def public_profile(request, user_id):
         },
     )
 
+
+@login_required
+def repair_identity(request):
+    profile = get_profile(request.user)
+    next_url = (
+        request.POST.get("next")
+        or request.GET.get("next")
+        or ""
+    ).strip()
+
+    if request.method == "POST":
+        form = IdentityRepairForm(
+            request.POST,
+            user=request.user,
+            profile=profile,
+        )
+
+        if form.is_valid():
+            form.save()
+            profile.refresh_from_db()
+            request.user.refresh_from_db()
+
+            remaining_issues = identity_repair_issues(
+                request.user,
+                profile,
+            )
+
+            if not remaining_issues:
+                messages.success(
+                    request,
+                    "Your identity details are confirmed.",
+                )
+
+                if (
+                    next_url
+                    and url_has_allowed_host_and_scheme(
+                        next_url,
+                        allowed_hosts={request.get_host()},
+                        require_https=request.is_secure(),
+                    )
+                ):
+                    return redirect(next_url)
+
+                return redirect("matches:discover")
+
+            messages.error(
+                request,
+                "Some identity details still need attention.",
+            )
+    else:
+        form = IdentityRepairForm(
+            user=request.user,
+            profile=profile,
+        )
+
+    return render(
+        request,
+        "profiles/identity_repair.html",
+        {
+            "form": form,
+            "profile": profile,
+            "identity_issues": identity_issue_messages(
+                request.user,
+                profile,
+            ),
+            "next_url": next_url,
+        },
+    )
 
 @login_required
 def edit_profile(request):

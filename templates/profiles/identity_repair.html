@@ -1,0 +1,214 @@
+{% extends "heartly/base.html" %}
+
+{% block title %}Confirm Identity - Heartly{% endblock %}
+
+{% block content %}
+<main class="identity-repair-page">
+    <section class="identity-repair-card">
+        <header class="identity-repair-header">
+            <span class="identity-repair-kicker">Account safety</span>
+            <h1>Confirm your identity details</h1>
+            <p>
+                Heartly Discover is limited to confirmed adults. Review these
+                details so matching uses consistent information.
+            </p>
+        </header>
+
+        {% if identity_issues %}
+            <div class="identity-repair-notice" role="status">
+                <strong>What needs attention</strong>
+                <ul>
+                    {% for issue in identity_issues %}
+                        <li>{{ issue }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+
+        <form method="post" class="identity-repair-form">
+            {% csrf_token %}
+            {% if next_url %}
+                <input type="hidden" name="next" value="{{ next_url }}">
+            {% endif %}
+
+            {% if form.non_field_errors %}
+                <div class="identity-form-errors">
+                    {{ form.non_field_errors }}
+                </div>
+            {% endif %}
+
+            <label class="identity-field">
+                <span>{{ form.display_name.label }}</span>
+                {{ form.display_name }}
+                {% if form.display_name.errors %}
+                    <small>{{ form.display_name.errors|striptags }}</small>
+                {% endif %}
+            </label>
+
+            <label class="identity-field">
+                <span>{{ form.date_of_birth.label }}</span>
+                {{ form.date_of_birth }}
+                <em>
+                    Your date of birth is used to confirm adult eligibility.
+                    It is not displayed as a public date.
+                </em>
+                {% if form.date_of_birth.errors %}
+                    <small>{{ form.date_of_birth.errors|striptags }}</small>
+                {% endif %}
+            </label>
+
+            <div class="identity-grid">
+                <label class="identity-field">
+                    <span>{{ form.gender.label }}</span>
+                    {{ form.gender }}
+                    {% if form.gender.errors %}
+                        <small>{{ form.gender.errors|striptags }}</small>
+                    {% endif %}
+                </label>
+
+                <label class="identity-field">
+                    <span>{{ form.interested_in.label }}</span>
+                    {{ form.interested_in }}
+                    {% if form.interested_in.errors %}
+                        <small>{{ form.interested_in.errors|striptags }}</small>
+                    {% endif %}
+                </label>
+            </div>
+
+            <button type="submit" class="identity-submit heartly-btn-primary">
+                Confirm and continue
+            </button>
+        </form>
+
+        <p class="identity-repair-footnote">
+            These details must be truthful. Accounts that cannot confirm adult
+            eligibility cannot use Discover or send match actions.
+        </p>
+    </section>
+</main>
+{% endblock %}
+
+{% block extra_css %}
+.identity-repair-page {
+    min-height: 100vh;
+    padding: 22px 14px 110px;
+    display: grid;
+    place-items: start center;
+    color: var(--heartly-text, #111827);
+}
+
+.identity-repair-card {
+    width: min(100%, 620px);
+    padding: 24px;
+    border: 1px solid var(--heartly-border, #e5e7eb);
+    border-radius: 28px;
+    background: var(--heartly-card, #ffffff);
+    box-shadow: 0 22px 55px rgba(15, 23, 42, 0.09);
+}
+
+.identity-repair-header h1 {
+    margin: 7px 0 8px;
+    font-size: clamp(1.8rem, 7vw, 2.35rem);
+    line-height: 1.05;
+    letter-spacing: -0.045em;
+}
+
+.identity-repair-header p,
+.identity-repair-footnote {
+    color: var(--heartly-muted, #6b7280);
+    line-height: 1.55;
+}
+
+.identity-repair-kicker {
+    color: var(--heartly-primary, #ec297b);
+    font-size: 0.75rem;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.identity-repair-notice {
+    margin: 20px 0;
+    padding: 16px 18px;
+    border-radius: 20px;
+    background: color-mix(
+        in srgb,
+        var(--heartly-primary, #ec297b) 10%,
+        var(--heartly-card, #ffffff)
+    );
+}
+
+.identity-repair-notice ul {
+    margin: 9px 0 0;
+    padding-left: 20px;
+    color: var(--heartly-muted, #6b7280);
+}
+
+.identity-repair-form {
+    display: grid;
+    gap: 16px;
+}
+
+.identity-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.identity-field {
+    display: grid;
+    gap: 7px;
+    font-weight: 850;
+}
+
+.identity-field input,
+.identity-field select {
+    width: 100%;
+    min-height: 50px;
+    padding: 0 14px;
+    border: 1px solid var(--heartly-border, #d1d5db);
+    border-radius: 15px;
+    background: var(--heartly-card-soft, #f8fafc);
+    color: var(--heartly-text, #111827);
+    font: inherit;
+}
+
+.identity-field em {
+    color: var(--heartly-muted, #6b7280);
+    font-size: 0.78rem;
+    font-style: normal;
+    font-weight: 650;
+    line-height: 1.45;
+}
+
+.identity-field small,
+.identity-form-errors {
+    color: #dc2626;
+    font-weight: 750;
+}
+
+.identity-submit {
+    min-height: 52px;
+    border: 0;
+    border-radius: 16px;
+    cursor: pointer;
+    font-weight: 900;
+}
+
+.identity-repair-footnote {
+    margin: 18px 0 0;
+    font-size: 0.8rem;
+    text-align: center;
+}
+
+@media (max-width: 560px) {
+    .identity-repair-card {
+        padding: 20px 16px;
+        border-radius: 24px;
+    }
+
+    .identity-grid {
+        grid-template-columns: 1fr;
+    }
+}
+{% endblock %}

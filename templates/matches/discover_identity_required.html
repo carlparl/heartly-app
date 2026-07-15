@@ -1,0 +1,120 @@
+{% extends "heartly/base.html" %}
+
+{% block title %}Complete Profile - Heartly{% endblock %}
+
+{% block content %}
+<main class="discover-repair-page">
+    <section class="discover-repair-card">
+        <div class="discover-repair-icon" aria-hidden="true">✓</div>
+        <span>Discover safety check</span>
+        <h1>Complete your identity details</h1>
+        <p>
+            Discover remains unavailable until your age, gender and matching
+            preference are confirmed and synchronized.
+        </p>
+
+        {% if identity_issues %}
+            <ul>
+                {% for issue in identity_issues %}
+                    <li>{{ issue }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
+        <a
+            href="{% url 'profiles:repair_identity' %}?next={% url 'matches:discover' %}"
+            class="discover-repair-action heartly-btn-primary"
+        >
+            Confirm details
+        </a>
+
+        <a href="{% url 'profiles:profile_home' %}" class="discover-repair-back">
+            Return to profile
+        </a>
+    </section>
+</main>
+{% endblock %}
+
+{% block extra_css %}
+.discover-repair-page {
+    min-height: 100vh;
+    padding: 34px 16px 110px;
+    display: grid;
+    place-items: start center;
+    color: var(--heartly-text, #111827);
+}
+
+.discover-repair-card {
+    width: min(100%, 540px);
+    padding: 30px 24px;
+    border: 1px solid var(--heartly-border, #e5e7eb);
+    border-radius: 30px;
+    background: var(--heartly-card, #ffffff);
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.1);
+    text-align: center;
+}
+
+.discover-repair-icon {
+    width: 68px;
+    height: 68px;
+    margin: 0 auto 16px;
+    border-radius: 24px;
+    display: grid;
+    place-items: center;
+    color: var(--heartly-primary, #ec297b);
+    background: color-mix(
+        in srgb,
+        var(--heartly-primary, #ec297b) 12%,
+        transparent
+    );
+    font-size: 1.8rem;
+    font-weight: 950;
+}
+
+.discover-repair-card > span {
+    color: var(--heartly-primary, #ec297b);
+    font-size: 0.75rem;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.discover-repair-card h1 {
+    margin: 8px 0;
+    font-size: clamp(1.9rem, 8vw, 2.55rem);
+    letter-spacing: -0.05em;
+    line-height: 1.04;
+}
+
+.discover-repair-card p,
+.discover-repair-card ul {
+    color: var(--heartly-muted, #6b7280);
+    line-height: 1.55;
+}
+
+.discover-repair-card ul {
+    margin: 20px 0;
+    padding: 16px 20px 16px 36px;
+    border-radius: 18px;
+    background: var(--heartly-card-soft, #f8fafc);
+    text-align: left;
+}
+
+.discover-repair-action,
+.discover-repair-back {
+    display: block;
+    text-decoration: none;
+    font-weight: 900;
+}
+
+.discover-repair-action {
+    margin-top: 20px;
+    padding: 15px 18px;
+    border-radius: 16px;
+}
+
+.discover-repair-back {
+    margin-top: 15px;
+    color: var(--heartly-muted, #6b7280);
+}
+{% endblock %}
