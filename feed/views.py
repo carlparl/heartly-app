@@ -6,6 +6,7 @@ from notifications.activity import (
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
+from django.db import IntegrityError, transaction
 from django.db.models import Prefetch
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -319,13 +320,144 @@ def render_post_card(request, post):
     )
 
 
-def render_comment_html(request, comment):
+def render_comment_html(
+    request,
+    comment,
+    *,
+    is_reply=False,
+):
     comment = decorate_comment(comment, request.user)
     return render_to_string(
         "feed/_comment_item.html",
-        {"comment": comment, "request": request},
+        {
+            "comment": comment,
+            "request": request,
+            "is_reply": is_reply,
+        },
         request=request,
     )
+
+
+def toggle_post_reaction(
+    *,
+    post,
+    user,
+    reaction_type,
+):
+    """
+    Toggle one user's reaction inside a transaction.
+
+    The retry handles two nearly simultaneous first reactions that
+    race against the database uniqueness constraint.
+    """
+    for attempt in range(2):
+        try:
+            with transaction.atomic():
+                reaction = (
+                    PostLike.objects
+                    .select_for_update()
+                    .filter(
+                        post=post,
+                        user=user,
+                    )
+                    .first()
+                )
+
+                if reaction is None:
+                    PostLike.objects.create(
+                        post=post,
+                        user=user,
+                        reaction_type=reaction_type,
+                    )
+                    return True
+
+                if reaction.reaction_type == reaction_type:
+                    reaction.delete()
+                    return False
+
+                reaction.reaction_type = reaction_type
+                reaction.save(
+                    update_fields=["reaction_type"]
+                )
+                return True
+        except IntegrityError:
+            if attempt == 1:
+                raise
+
+    return False
+
+
+def toggle_saved_post(*, post, user):
+    for attempt in range(2):
+        try:
+            with transaction.atomic():
+                saved_item = (
+                    PostSave.objects
+                    .select_for_update()
+                    .filter(
+                        post=post,
+                        user=user,
+                    )
+                    .first()
+                )
+
+                if saved_item is None:
+                    PostSave.objects.create(
+                        post=post,
+                        user=user,
+                    )
+                    return True
+
+                saved_item.delete()
+                return False
+        except IntegrityError:
+            if attempt == 1:
+                raise
+
+    return False
+
+
+def toggle_comment_reaction(
+    *,
+    comment,
+    user,
+    reaction_type,
+):
+    for attempt in range(2):
+        try:
+            with transaction.atomic():
+                reaction = (
+                    CommentReaction.objects
+                    .select_for_update()
+                    .filter(
+                        comment=comment,
+                        user=user,
+                    )
+                    .first()
+                )
+
+                if reaction is None:
+                    CommentReaction.objects.create(
+                        comment=comment,
+                        user=user,
+                        reaction_type=reaction_type,
+                    )
+                    return True
+
+                if reaction.reaction_type == reaction_type:
+                    reaction.delete()
+                    return False
+
+                reaction.reaction_type = reaction_type
+                reaction.save(
+                    update_fields=["reaction_type"]
+                )
+                return True
+        except IntegrityError:
+            if attempt == 1:
+                raise
+
+    return False
 
 
 @login_required
@@ -579,20 +711,11 @@ def like_post(request, post_id):
     post = get_object_or_404(Post, id=post_id)
     reaction_type = clean_reaction_type(request.POST.get("reaction_type"))
 
-    reaction, created = PostLike.objects.get_or_create(
+    reacted = toggle_post_reaction(
         post=post,
         user=request.user,
-        defaults={"reaction_type": reaction_type},
+        reaction_type=reaction_type,
     )
-
-    reacted = True
-
-    if not created and reaction.reaction_type == reaction_type:
-        reaction.delete()
-        reacted = False
-    else:
-        reaction.reaction_type = reaction_type
-        reaction.save(update_fields=["reaction_type"])
 
     notify_post_like(
         post,
@@ -608,7 +731,6 @@ def like_post(request, post_id):
             reacted=reacted,
             reaction_type=reaction_type if reacted else "",
             likes_count=post.likes_count,
-            post_html=render_post_card(request, post),
         )
 
     return redirect(request.POST.get("next") or reverse("feed:feed_home"))
@@ -619,16 +741,10 @@ def like_post(request, post_id):
 def save_post(request, post_id):
     post = get_object_or_404(Post, id=post_id)
 
-    saved_item, created = PostSave.objects.get_or_create(
+    saved = toggle_saved_post(
         post=post,
         user=request.user,
     )
-
-    saved = True
-
-    if not created:
-        saved_item.delete()
-        saved = False
 
     post = decorate_post(post, request.user)
 
@@ -637,7 +753,6 @@ def save_post(request, post_id):
             post_id=post.id,
             saved=saved,
             saves_count=post.saves_count,
-            post_html=render_post_card(request, post),
         )
 
     return redirect(request.POST.get("next") or reverse("feed:feed_home"))
@@ -658,13 +773,19 @@ def comment_post(request, post_id):
     if parent_id:
         parent = get_object_or_404(Comment, id=parent_id, post=post, parent__isnull=True)
 
-    comment = Comment.objects.create(
-        post=post,
-        user=request.user,
-        parent=parent,
-        content=content,
-    )
-    notify_post_comment(comment)
+    with transaction.atomic():
+        comment = Comment.objects.create(
+            post=post,
+            user=request.user,
+            parent=parent,
+            content=content,
+        )
+        transaction.on_commit(
+            lambda item=comment: notify_post_comment(
+                item
+            ),
+            robust=True,
+        )
 
     post = decorate_post(post, request.user)
 
@@ -672,8 +793,13 @@ def comment_post(request, post_id):
         return json_success(
             post_id=post.id,
             comment_id=comment.id,
+            parent_id=parent.id if parent else None,
             comments_count=post.comments_count,
-            post_html=render_post_card(request, post),
+            comment_html=render_comment_html(
+                request,
+                comment,
+                is_reply=bool(parent),
+            ),
         )
 
     return redirect("feed:feed_home")
@@ -689,22 +815,36 @@ def reply_comment(request, comment_id):
     if not content:
         return respond_error(request, "Reply cannot be empty.")
 
-    reply = Comment.objects.create(
-        post=post,
-        user=request.user,
-        parent=parent,
-        content=content,
-    )
-    notify_post_comment(reply)
+    with transaction.atomic():
+        reply = Comment.objects.create(
+            post=post,
+            user=request.user,
+            parent=parent,
+            content=content,
+        )
+        transaction.on_commit(
+            lambda item=reply: notify_post_comment(
+                item
+            ),
+            robust=True,
+        )
+
     post = decorate_post(post, request.user)
+    replies_count = parent.replies.count()
 
     if wants_json(request):
         return json_success(
             post_id=post.id,
             comment_id=parent.id,
+            parent_id=parent.id,
             reply_id=reply.id,
+            replies_count=replies_count,
             comments_count=post.comments_count,
-            post_html=render_post_card(request, post),
+            reply_html=render_comment_html(
+                request,
+                reply,
+                is_reply=True,
+            ),
         )
 
     return redirect("feed:feed_home")
@@ -718,22 +858,13 @@ def react_comment(request, comment_id):
     comment = get_object_or_404(Comment, id=comment_id)
     reaction_type = clean_reaction_type(request.POST.get("reaction_type"))
 
-    reaction, created = CommentReaction.objects.get_or_create(
+    reacted = toggle_comment_reaction(
         comment=comment,
         user=request.user,
-        defaults={"reaction_type": reaction_type},
+        reaction_type=reaction_type,
     )
-
-    reacted = True
-
-    if not created and reaction.reaction_type == reaction_type:
-        reaction.delete()
-        reacted = False
-    else:
-        reaction.reaction_type = reaction_type
-        reaction.save(update_fields=["reaction_type"])
-
-    post = decorate_post(comment.post, request.user)
+    reaction_count = comment.reactions.count()
+    post = comment.post
 
     if wants_json(request):
         return json_success(
@@ -741,7 +872,7 @@ def react_comment(request, comment_id):
             comment_id=comment.id,
             reacted=reacted,
             reaction_type=reaction_type if reacted else "",
-            post_html=render_post_card(request, post),
+            reaction_count=reaction_count,
         )
 
     return redirect("feed:feed_home")

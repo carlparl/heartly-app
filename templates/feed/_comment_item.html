@@ -10,7 +10,6 @@
     <div class="ig-sheet-comment-main">
         <div class="ig-sheet-comment-head">
             <strong>{{ comment.display_name }}</strong>
-            <span>{{ comment.created_at|timesince }}</span>
             {% if comment.user_id == comment.post.author_id %}
                 <span>· ❤️ by author</span>
             {% endif %}
@@ -27,19 +26,18 @@
                   id="reply-form-{{ comment.id }}"
                   data-feed-ajax
                   data-reply-form
+                  data-parent-comment-id="{{ comment.id }}"
                   hidden>
                 {% csrf_token %}
                 <input type="text" name="content" maxlength="500" placeholder="Reply to {{ comment.display_name }}..." autocomplete="off" required>
                 <button type="submit" aria-label="Send reply">➤</button>
             </form>
 
-            {% if comment.visible_replies %}
-                <div class="ig-sheet-replies">
-                    {% for reply in comment.visible_replies %}
-                        {% include "feed/_comment_item.html" with comment=reply is_reply=True %}
-                    {% endfor %}
-                </div>
-            {% endif %}
+            <div class="ig-sheet-replies" data-replies-list>
+                {% for reply in comment.visible_replies %}
+                    {% include "feed/_comment_item.html" with comment=reply is_reply=True %}
+                {% endfor %}
+            </div>
 
             {% if comment.more_replies_count %}
                 <button type="button" class="ig-view-more-replies" data-reply-toggle="reply-form-{{ comment.id }}">
@@ -49,18 +47,24 @@
         {% endif %}
     </div>
 
-    <form method="post" action="{% url 'feed:react_comment' comment.id %}" class="ig-sheet-comment-like" data-feed-ajax data-comment-reaction>
+    <form method="post"
+          action="{% url 'feed:react_comment' comment.id %}"
+          class="ig-sheet-comment-like"
+          data-feed-ajax
+          data-comment-reaction>
         {% csrf_token %}
         <input type="hidden" name="reaction_type" value="love">
-        <button type="submit" class="{% if comment.viewer_reaction %}is-active{% endif %}" aria-label="Like comment">
+        <button type="submit"
+                class="{% if comment.viewer_reaction %}is-active{% endif %}"
+                aria-label="Like comment"
+                aria-pressed="{% if comment.viewer_reaction %}true{% else %}false{% endif %}"
+                data-comment-like-button>
             {% if comment.viewer_reaction %}
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.08C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
             {% else %}
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             {% endif %}
         </button>
-        {% if comment.reaction_total %}
-            <span>{{ comment.reaction_total }}</span>
-        {% endif %}
+        <span data-comment-like-count {% if not comment.reaction_total %}hidden{% endif %}>{{ comment.reaction_total }}</span>
     </form>
 </div>

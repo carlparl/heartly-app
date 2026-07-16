@@ -56,10 +56,18 @@
 
     <div class="ig-action-bar" aria-label="Post actions">
         <div class="ig-action-left">
-            <form method="post" action="{% url 'feed:react_post' post.id %}" data-feed-ajax data-post-reaction>
+            <form method="post"
+                  action="{% url 'feed:react_post' post.id %}"
+                  data-feed-ajax
+                  data-post-reaction
+                  data-like-form>
                 {% csrf_token %}
                 <input type="hidden" name="reaction_type" value="love">
-                <button type="submit" class="ig-action-btn {% if post.is_liked_by_user %}is-active{% endif %}" aria-label="Like post">
+                <button type="submit"
+                        class="ig-action-btn {% if post.is_liked_by_user %}is-active{% endif %}"
+                        aria-label="Like post"
+                        aria-pressed="{% if post.is_liked_by_user %}true{% else %}false{% endif %}"
+                        data-like-button>
                     {% if post.is_liked_by_user %}
                         <svg class="ig-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.08C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
                     {% else %}
@@ -81,7 +89,8 @@
             <button type="submit"
                     class="ig-action-btn {% if post.is_saved_by_user %}is-active{% endif %}"
                     aria-label="{% if post.is_saved_by_user %}Unsave post{% else %}Save post{% endif %}"
-                    aria-pressed="{% if post.is_saved_by_user %}true{% else %}false{% endif %}">
+                    aria-pressed="{% if post.is_saved_by_user %}true{% else %}false{% endif %}"
+                    data-save-button>
                 {% if post.is_saved_by_user %}
                     <svg class="ig-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 {% else %}
@@ -92,7 +101,10 @@
     </div>
 
     {% if post.comments_count %}
-        <button type="button" class="ig-view-comments" data-comments-open="comments-sheet-{{ post.id }}">
+        <button type="button"
+                class="ig-view-comments"
+                data-comments-open="comments-sheet-{{ post.id }}"
+                data-view-comments-label>
             View all {{ post.comments_count }} comment{{ post.comments_count|pluralize }}
         </button>
     {% endif %}
