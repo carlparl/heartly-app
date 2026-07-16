@@ -409,9 +409,16 @@ def upload_voice_note_to_cloudinary(voice_file):
             overwrite=False,
         )
 
-        secure_url = upload_result.get("secure_url") or upload_result.get("url") or ""
-        secure_url = force_url_extension(secure_url, extension)
+        secure_url = (
+            upload_result.get("secure_url")
+            or upload_result.get("url")
+            or ""
+        )
 
+        # Cloudinary may normalize an iPhone audio/mp4 upload from an
+        # original .m4a filename to a valid .mp4 delivery URL. Rewriting
+        # that URL back to .m4a can create an invalid path such as
+        # voice-note.mp4.m4a. Always preserve Cloudinary's returned URL.
         if not secure_url:
             raise ValueError("Cloudinary did not return a URL for the voice note.")
 
@@ -449,11 +456,37 @@ def playable_file_url(attachment):
     if not url:
         return ""
 
-    name = attachment.original_filename or (attachment.file.name if attachment.file else "")
-    extension = Path(name).suffix.lower()
+    # Storage backends already return the canonical delivery URL.
+    # In particular, Cloudinary can legitimately return .mp4 for an
+    # iPhone recording whose original filename used .m4a.
+    #
+    # Phase 12A could previously persist URLs such as .mp4.m4a.
+    # Repair that known double-extension form at playback so voice notes
+    # created before this hotfix continue working.
+    if attachment.attachment_type == ChatAttachment.TYPE_AUDIO:
+        base, separator, query = url.partition("?")
+        audio_extensions = (
+            "webm",
+            "ogg",
+            "mp3",
+            "mp4",
+            "m4a",
+            "wav",
+            "aac",
+        )
+        lower_base = base.lower()
 
-    if attachment.attachment_type == ChatAttachment.TYPE_AUDIO and extension:
-        return force_url_extension(url, extension)
+        for first_extension in audio_extensions:
+            for second_extension in audio_extensions:
+                malformed_suffix = (
+                    f".{first_extension}.{second_extension}"
+                )
+                if lower_base.endswith(malformed_suffix):
+                    base = base[: -len(f".{second_extension}")]
+                    return (
+                        base
+                        + (separator + query if separator else "")
+                    )
 
     return url
 
