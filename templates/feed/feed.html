@@ -1103,10 +1103,13 @@ body.comments-sheet-open {
 
 .edit-panel-card {
     width: min(92vw, 520px);
+    max-height: min(90vh, 760px);
     padding: 16px;
     border-radius: 24px;
     background: var(--heartly-card, #fff);
     box-shadow: 0 24px 70px rgba(15, 23, 42, .24);
+    overflow-y: auto;
+    overscroll-behavior: contain;
 }
 
 .edit-panel-header {
@@ -1129,6 +1132,81 @@ body.comments-sheet-open {
     background: var(--heartly-card-soft, #f3f4f6);
     font-weight: 950;
     cursor: pointer;
+}
+
+.edit-live-preview {
+    margin-top: 12px;
+    padding: 12px;
+    border: 1px solid var(--heartly-border, rgba(17, 24, 39, .12));
+    border-radius: 18px;
+    background: var(--heartly-card-soft, #f3f4f6);
+}
+
+.edit-preview-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 9px;
+}
+
+.edit-preview-heading strong {
+    color: var(--heartly-text, #111827);
+    font-size: .92rem;
+    font-weight: 950;
+}
+
+.edit-preview-heading span {
+    color: var(--heartly-muted, #6b7280);
+    font-size: .76rem;
+    font-weight: 800;
+}
+
+.edit-preview-caption {
+    margin: 0 0 10px;
+    color: var(--heartly-text, #111827);
+    font-size: .92rem;
+    font-weight: 650;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.edit-preview-media {
+    min-height: 118px;
+    border-radius: 14px;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    background: color-mix(
+        in srgb,
+        var(--heartly-card, #ffffff) 86%,
+        var(--heartly-bg, #f8fafc)
+    );
+}
+
+.edit-preview-media img,
+.edit-preview-media video {
+    display: block;
+    width: 100%;
+    max-height: 300px;
+    object-fit: contain;
+    background: #000;
+}
+
+.edit-preview-empty {
+    padding: 22px 12px;
+    color: var(--heartly-muted, #6b7280);
+    font-size: .84rem;
+    font-weight: 800;
+    text-align: center;
+}
+
+.edit-preview-status {
+    margin: 9px 0 0;
+    color: var(--heartly-muted, #6b7280);
+    font-size: .8rem;
+    font-weight: 850;
 }
 
 .remove-media-row {

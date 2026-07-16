@@ -472,10 +472,177 @@
     }
   }
 
+  function revokeEditPreviewUrl(form) {
+    if (
+      !form ||
+      !form.dataset.editPreviewObjectUrl
+    ) {
+      return;
+    }
+
+    URL.revokeObjectURL(
+      form.dataset.editPreviewObjectUrl
+    );
+    delete form.dataset.editPreviewObjectUrl;
+  }
+
+  function updateEditCaptionPreview(form) {
+    if (!form) return;
+
+    const input = form.querySelector(
+      "[data-edit-caption-input]"
+    );
+    const preview = form.querySelector(
+      "[data-edit-preview-caption]"
+    );
+
+    if (!input || !preview) return;
+
+    const value = String(input.value || "").trim();
+    preview.textContent = value;
+    preview.hidden = !value;
+  }
+
+  function setEditPreviewStatus(
+    form,
+    message
+  ) {
+    const status = form && form.querySelector(
+      "[data-edit-preview-status]"
+    );
+
+    if (!status) return;
+
+    status.textContent = message || "";
+    status.hidden = !message;
+  }
+
+  function renderEditMediaPreview(form) {
+    if (!form) return;
+
+    const preview = form.querySelector(
+      "[data-edit-preview]"
+    );
+    const media = form.querySelector(
+      "[data-edit-preview-media]"
+    );
+    const imageInput = form.querySelector(
+      "[data-edit-image-input]"
+    );
+    const videoInput = form.querySelector(
+      "[data-edit-video-input]"
+    );
+    const removeImage = form.querySelector(
+      "[data-edit-remove-image]"
+    );
+    const removeVideo = form.querySelector(
+      "[data-edit-remove-video]"
+    );
+
+    if (!preview || !media) return;
+
+    revokeEditPreviewUrl(form);
+
+    const imageFile =
+      imageInput &&
+      imageInput.files &&
+      imageInput.files[0];
+    const videoFile =
+      videoInput &&
+      videoInput.files &&
+      videoInput.files[0];
+
+    let html = "";
+    let status = "";
+
+    if (imageFile) {
+      const url = URL.createObjectURL(imageFile);
+      form.dataset.editPreviewObjectUrl = url;
+      html =
+        '<img src="' +
+        url +
+        '" alt="Selected replacement photo">';
+      status = "New photo selected.";
+    } else if (videoFile) {
+      const url = URL.createObjectURL(videoFile);
+      form.dataset.editPreviewObjectUrl = url;
+      html =
+        '<video controls playsinline ' +
+        'preload="metadata">' +
+        '<source src="' +
+        url +
+        '">' +
+        "Your browser does not support " +
+        "video playback.</video>";
+      status = "New video selected.";
+    } else {
+      const currentImage =
+        preview.dataset.currentImageUrl || "";
+      const currentVideo =
+        preview.dataset.currentVideoUrl || "";
+      const imageRemoved = Boolean(
+        removeImage && removeImage.checked
+      );
+      const videoRemoved = Boolean(
+        removeVideo && removeVideo.checked
+      );
+
+      if (currentImage && !imageRemoved) {
+        html =
+          '<img src="' +
+          currentImage +
+          '" alt="Current post photo">';
+      } else if (
+        currentVideo &&
+        !videoRemoved
+      ) {
+        html =
+          '<video controls playsinline ' +
+          'preload="metadata">' +
+          '<source src="' +
+          currentVideo +
+          '">' +
+          "Your browser does not support " +
+          "video playback.</video>";
+      } else {
+        html =
+          '<div class="edit-preview-empty">' +
+          "No photo or video selected." +
+          "</div>";
+
+        if (
+          (currentImage && imageRemoved) ||
+          (currentVideo && videoRemoved)
+        ) {
+          status =
+            "Current media will be removed " +
+            "when you save.";
+        }
+      }
+    }
+
+    media.innerHTML = html;
+    setEditPreviewStatus(form, status);
+  }
+
+  function resetEditPreview(form) {
+    if (!form) return;
+
+    revokeEditPreviewUrl(form);
+    form.reset();
+    updateEditCaptionPreview(form);
+    renderEditMediaPreview(form);
+    clearInlineError(form);
+  }
+
   function closeEditPanel(form) {
+    if (!form) return;
+
     const panel = form.closest(
       ".edit-post-panel"
     );
+
+    revokeEditPreviewUrl(form);
     if (panel) panel.hidden = true;
   }
 
@@ -747,7 +914,17 @@
             "data-edit-open"
           )
         );
-        if (panel) panel.hidden = false;
+        if (panel) {
+          const form = panel.querySelector(
+            "form[data-edit-post]"
+          );
+
+          if (form) {
+            resetEditPreview(form);
+          }
+
+          panel.hidden = false;
+        }
       }
 
       const closeButton = event.target.closest(
@@ -760,15 +937,127 @@
             "data-edit-close"
           )
         );
-        if (panel) panel.hidden = true;
+
+        if (panel) {
+          const form = panel.querySelector(
+            "form[data-edit-post]"
+          );
+
+          if (form) {
+            resetEditPreview(form);
+          }
+
+          panel.hidden = true;
+        }
       }
 
       const panel = event.target.closest(
         ".edit-post-panel"
       );
       if (panel && event.target === panel) {
+        const form = panel.querySelector(
+          "form[data-edit-post]"
+        );
+
+        if (form) {
+          resetEditPreview(form);
+        }
+
         panel.hidden = true;
       }
+    }
+  );
+
+  document.addEventListener(
+    "input",
+    function (event) {
+      const input = event.target.closest(
+        "[data-edit-caption-input]"
+      );
+
+      if (!input) return;
+
+      updateEditCaptionPreview(
+        input.closest("form[data-edit-post]")
+      );
+    }
+  );
+
+  document.addEventListener(
+    "change",
+    function (event) {
+      const control = event.target.closest(
+        "[data-edit-image-input], " +
+        "[data-edit-video-input], " +
+        "[data-edit-remove-image], " +
+        "[data-edit-remove-video]"
+      );
+
+      if (!control) return;
+
+      const form = control.closest(
+        "form[data-edit-post]"
+      );
+      if (!form) return;
+
+      const imageInput = form.querySelector(
+        "[data-edit-image-input]"
+      );
+      const videoInput = form.querySelector(
+        "[data-edit-video-input]"
+      );
+      const removeImage = form.querySelector(
+        "[data-edit-remove-image]"
+      );
+      const removeVideo = form.querySelector(
+        "[data-edit-remove-video]"
+      );
+
+      if (
+        control.matches(
+          "[data-edit-image-input]"
+        ) &&
+        control.files &&
+        control.files[0]
+      ) {
+        if (videoInput) videoInput.value = "";
+        if (removeImage) removeImage.checked = false;
+        if (removeVideo) removeVideo.checked = false;
+      }
+
+      if (
+        control.matches(
+          "[data-edit-video-input]"
+        ) &&
+        control.files &&
+        control.files[0]
+      ) {
+        if (imageInput) imageInput.value = "";
+        if (removeImage) removeImage.checked = false;
+        if (removeVideo) removeVideo.checked = false;
+      }
+
+      if (
+        control.matches(
+          "[data-edit-remove-image]"
+        ) &&
+        control.checked &&
+        imageInput
+      ) {
+        imageInput.value = "";
+      }
+
+      if (
+        control.matches(
+          "[data-edit-remove-video]"
+        ) &&
+        control.checked &&
+        videoInput
+      ) {
+        videoInput.value = "";
+      }
+
+      renderEditMediaPreview(form);
     }
   );
 
@@ -777,6 +1066,22 @@
     function (event) {
       if (event.key === "Escape") {
         closeCommentsSheet();
+
+        const panel = document.querySelector(
+          ".edit-post-panel:not([hidden])"
+        );
+
+        if (panel) {
+          const form = panel.querySelector(
+            "form[data-edit-post]"
+          );
+
+          if (form) {
+            resetEditPreview(form);
+          }
+
+          panel.hidden = true;
+        }
       }
     }
   );
@@ -784,6 +1089,15 @@
   document.addEventListener(
     "DOMContentLoaded",
     function () {
+      document
+        .querySelectorAll(
+          "form[data-edit-post]"
+        )
+        .forEach(function (form) {
+          updateEditCaptionPreview(form);
+          renderEditMediaPreview(form);
+        });
+
       const imageInput = document.getElementById(
         "composerImageInput"
       );

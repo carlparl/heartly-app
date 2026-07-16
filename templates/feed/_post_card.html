@@ -183,19 +183,123 @@
                         <button type="button" data-edit-close="edit-post-{{ post.id }}" aria-label="Close edit panel">×</button>
                     </div>
 
-                    <textarea name="content" class="edit-textarea" rows="4">{{ post.content }}</textarea>
+                    <textarea
+                        name="content"
+                        class="edit-textarea"
+                        rows="4"
+                        data-edit-caption-input
+                    >{{ post.content }}</textarea>
+
+                    <section
+                        class="edit-live-preview"
+                        data-edit-preview
+                        data-current-image-url="{{ post.image_url|default:'' }}"
+                        data-current-video-url="{{ post.video_url|default:'' }}"
+                        aria-label="Post edit preview"
+                    >
+                        <div class="edit-preview-heading">
+                            <strong>Preview</strong>
+                            <span>Updates as you edit</span>
+                        </div>
+
+                        <p
+                            class="edit-preview-caption"
+                            data-edit-preview-caption
+                            {% if not post.content %}hidden{% endif %}
+                        >{{ post.content }}</p>
+
+                        <div
+                            class="edit-preview-media"
+                            data-edit-preview-media
+                        >
+                            {% if post.image_url %}
+                                <img
+                                    src="{{ post.image_url }}"
+                                    alt="Current post photo"
+                                >
+                            {% elif post.video_url %}
+                                <video
+                                    controls
+                                    playsinline
+                                    preload="metadata"
+                                >
+                                    <source src="{{ post.video_url }}">
+                                    Your browser does not support video playback.
+                                </video>
+                            {% else %}
+                                <div class="edit-preview-empty">
+                                    No photo or video selected.
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <p
+                            class="edit-preview-status"
+                            data-edit-preview-status
+                            hidden
+                        ></p>
+                    </section>
 
                     {% if post.image_url %}
-                        <label class="remove-media-row"><input type="checkbox" name="remove_image" value="1"> Remove photo</label>
+                        <label class="remove-media-row">
+                            <input
+                                type="checkbox"
+                                name="remove_image"
+                                value="1"
+                                data-edit-remove-image
+                            >
+                            Remove current photo
+                        </label>
+                    {% else %}
+                        <input
+                            type="checkbox"
+                            name="remove_image"
+                            value="1"
+                            data-edit-remove-image
+                            hidden
+                        >
                     {% endif %}
 
                     {% if post.video_url %}
-                        <label class="remove-media-row"><input type="checkbox" name="remove_video" value="1"> Remove video</label>
+                        <label class="remove-media-row">
+                            <input
+                                type="checkbox"
+                                name="remove_video"
+                                value="1"
+                                data-edit-remove-video
+                            >
+                            Remove current video
+                        </label>
+                    {% else %}
+                        <input
+                            type="checkbox"
+                            name="remove_video"
+                            value="1"
+                            data-edit-remove-video
+                            hidden
+                        >
                     {% endif %}
 
                     <div class="edit-media-row">
-                        <label class="media-chip"><input type="file" name="image" accept="image/jpeg,image/png,image/webp"> <span>Photo</span></label>
-                        <label class="media-chip"><input type="file" name="video" accept="video/mp4,video/quicktime,video/webm"> <span>Video</span></label>
+                        <label class="media-chip">
+                            <input
+                                type="file"
+                                name="image"
+                                accept="image/jpeg,image/png,image/webp"
+                                data-edit-image-input
+                            >
+                            <span>Choose photo</span>
+                        </label>
+
+                        <label class="media-chip">
+                            <input
+                                type="file"
+                                name="video"
+                                accept="video/mp4,video/quicktime,video/webm"
+                                data-edit-video-input
+                            >
+                            <span>Choose video</span>
+                        </label>
                     </div>
 
                     <div class="edit-actions">
