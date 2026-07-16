@@ -1,13 +1,28 @@
 {% extends "heartly/base.html" %}
+{% load static %}
 
 {% block title %}{{ story.display_name }}'s Story | Heartly{% endblock %}
 
 {% block content %}
 <main
     class="story-viewer"
+    data-story-viewer
     data-photo-play-ms="5000"
     data-story-next-url="{% if next_story_id %}{% url 'feed:story_detail' next_story_id %}{% else %}{% url 'feed:feed_home' %}{% endif %}"
+    data-story-previous-url="{% if previous_story_id %}{% url 'feed:story_detail' previous_story_id %}{% else %}{% url 'feed:feed_home' %}{% endif %}"
+    data-story-close-url="{% url 'feed:feed_home' %}"
 >
+    <div
+        class="story-progress"
+        role="progressbar"
+        aria-label="Story progress"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        aria-valuenow="0"
+    >
+        <span data-story-progress-fill></span>
+    </div>
+
     <header class="story-viewer-header">
         <a href="{% url 'feed:feed_home' %}" class="story-viewer-close" aria-label="Close Story">×</a>
 
@@ -32,21 +47,47 @@
         {% endif %}
     </header>
 
-    <section class="story-media-stage">
+    <section
+        class="story-media-stage"
+        data-story-media-stage
+    >
         {% if story.video and story.media_url %}
-            <video src="{{ story.media_url }}" controls autoplay playsinline preload="auto"></video>
+            <video
+                src="{{ story.media_url }}"
+                controls
+                autoplay
+                playsinline
+                preload="metadata"
+                data-story-video
+            ></video>
         {% elif story.image and story.media_url %}
-            <img src="{{ story.media_url }}" alt="{{ story.display_name }}'s Story">
+            <img
+                src="{{ story.media_url }}"
+                alt="{{ story.display_name }}'s Story"
+                loading="eager"
+                decoding="async"
+                fetchpriority="high"
+                data-story-image
+            >
         {% else %}
-            <div class="story-media-unavailable">This Story's media is unavailable.</div>
+            <div class="story-media-unavailable">
+                This Story's media is unavailable.
+            </div>
         {% endif %}
+
+        <p
+            class="story-playback-status"
+            data-story-status
+            hidden
+            role="status"
+        ></p>
     </section>
 
     {% if previous_story_id %}
-        <a href="{% url 'feed:story_detail' previous_story_id %}" class="story-nav story-nav-previous" aria-label="Previous Story">‹</a>
+        <a href="{% url 'feed:story_detail' previous_story_id %}" class="story-nav story-nav-previous" aria-label="Previous Story" data-story-previous>‹</a>
     {% endif %}
     {% if next_story_id %}
-        <a href="{% url 'feed:story_detail' next_story_id %}" class="story-nav story-nav-next" aria-label="Next Story">›</a>
+        <a href="{% url 'feed:story_detail' next_story_id %}" class="story-nav story-nav-next" aria-label="Next Story" data-story-next>›</a>
     {% endif %}
 
     <footer class="story-viewer-footer">
@@ -97,6 +138,28 @@
     overflow: hidden;
     background: #050609;
     color: #fff;
+}
+
+.story-progress {
+    position: fixed;
+    top: max(9px, env(safe-area-inset-top));
+    left: 12px;
+    right: 12px;
+    z-index: 4;
+    height: 4px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .28);
+}
+
+.story-progress span {
+    display: block;
+    width: 0;
+    height: 100%;
+    border-radius: inherit;
+    background: #ffffff;
+    transition: width .08s linear;
+    will-change: width;
 }
 
 .story-viewer-header {
@@ -201,6 +264,29 @@
     font-size: 13px;
 }
 
+.story-playback-status {
+    position: absolute;
+    left: 50%;
+    bottom: 18px;
+    z-index: 2;
+    width: min(calc(100% - 36px), 520px);
+    margin: 0;
+    padding: 10px 14px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, .68);
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 850;
+    text-align: center;
+    transform: translateX(-50%);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.story-playback-status[hidden] {
+    display: none;
+}
+
 .story-nav {
     position: fixed;
     top: 50%;
@@ -300,43 +386,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
-(function () {
-    "use strict";
-
-    const viewer = document.querySelector("[data-story-next-url]");
-    if (!viewer) return;
-
-    const video = viewer.querySelector("video");
-    const nextUrl = viewer.dataset.storyNextUrl;
-    const photoPlayMs = Number(viewer.dataset.photoPlayMs) || 5000;
-    let isAdvancing = false;
-
-    function advanceStory() {
-        if (isAdvancing || !nextUrl) return;
-        isAdvancing = true;
-        window.location.replace(nextUrl);
-    }
-
-    if (video) {
-        video.addEventListener("ended", advanceStory, { once: true });
-        video.addEventListener("error", function () {
-            window.setTimeout(advanceStory, photoPlayMs);
-        }, { once: true });
-
-        const playAttempt = video.play();
-        if (playAttempt && typeof playAttempt.catch === "function") {
-            // Keep the native controls available if this browser requires the
-            // viewer to tap Play before allowing audio/video playback.
-            playAttempt.catch(function () {});
-        }
-
-        if (video.error) {
-            window.setTimeout(advanceStory, photoPlayMs);
-        }
-    } else {
-        window.setTimeout(advanceStory, photoPlayMs);
-    }
-})();
-</script>
+<script src="{% static 'js/heartly-story-viewer.js' %}"></script>
 {% endblock %}
