@@ -36,7 +36,6 @@ from matches.models import MutualMatch
 from profiles.models import Profile, UserBlock
 
 from notifications.activity import (
-    mark_thread_message_notifications_read,
     notify_chat_message,
     notify_chat_report,
 )
@@ -48,6 +47,7 @@ from .models import (
     ChatReport,
     ChatThread,
 )
+from .realtime import mark_thread_read_for_user
 
 try:
     from notifications.models import Notification
@@ -711,16 +711,8 @@ def chat_room(request, thread_id):
         messages.error(request, "This chat is no longer available.")
         return redirect("chat:chat_home")
 
-    ChatMessage.objects.filter(
-        thread=thread,
-        is_read=False,
-    ).exclude(
-        sender=request.user,
-    ).update(
-        is_read=True,
-    )
-    mark_thread_message_notifications_read(
-        thread,
+    mark_thread_read_for_user(
+        thread.id,
         request.user,
     )
 

@@ -256,7 +256,7 @@ class ChatMessageReliabilityTests(TestCase):
         )
 
     @patch("chat.views.broadcast_message")
-    @patch("chat.views.create_message_notification")
+    @patch("chat.views.notify_chat_message")
     def test_retry_with_same_client_id_creates_one_message(
         self,
         create_notification,
@@ -366,7 +366,7 @@ class ChatMessageReliabilityTests(TestCase):
         self.assertEqual(ChatMessage.objects.count(), 1)
 
     @patch("chat.views.broadcast_message")
-    @patch("chat.views.create_message_notification")
+    @patch("chat.views.notify_chat_message")
     def test_valid_reply_is_saved(
         self,
         _create_notification,

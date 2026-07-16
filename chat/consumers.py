@@ -7,6 +7,10 @@ from django.utils import timezone
 from profiles.models import Profile, UserBlock
 
 from .models import CallSession, ChatMessage, ChatThread
+from .realtime import (
+    mark_message_read_for_user,
+    mark_thread_read_for_user,
+)
 
 try:
     from profiles.blocking import block_exists_between
@@ -49,9 +53,25 @@ class ThreadConsumer(AsyncJsonWebsocketConsumer):
             await self.close()
             return
 
-        await self.channel_layer.group_add(self.group_name, self.channel_name)
+        await self.channel_layer.group_add(
+            self.group_name,
+            self.channel_name,
+        )
         await self.accept()
-        await self.mark_messages_read()
+
+        read_ids = await self.mark_messages_read()
+        if read_ids:
+            await self.channel_layer.group_send(
+                self.group_name,
+                {
+                    "type": "chat.broadcast",
+                    "payload": {
+                        "type": "chat.read",
+                        "message_ids": read_ids,
+                        "reader_id": self.user.id,
+                    },
+                },
+            )
 
     async def disconnect(self, close_code):
         if hasattr(self, "group_name"):
@@ -268,7 +288,35 @@ class ThreadConsumer(AsyncJsonWebsocketConsumer):
         )
 
     async def chat_broadcast(self, event):
-        await self.send_json(event["payload"])
+        payload = event["payload"]
+
+        if (
+            payload.get("type") == "chat.message"
+            and int(payload.get("sender_id") or 0)
+            != self.user.id
+        ):
+            message_id = (
+                payload.get("message_id")
+                or payload.get("id")
+            )
+            changed_id = await self.mark_message_read(
+                message_id
+            )
+
+            if changed_id:
+                await self.channel_layer.group_send(
+                    self.group_name,
+                    {
+                        "type": "chat.broadcast",
+                        "payload": {
+                            "type": "chat.read",
+                            "message_ids": [changed_id],
+                            "reader_id": self.user.id,
+                        },
+                    },
+                )
+
+        await self.send_json(payload)
 
     @database_sync_to_async
     def user_can_access_thread(self):
@@ -314,10 +362,18 @@ class ThreadConsumer(AsyncJsonWebsocketConsumer):
 
     @database_sync_to_async
     def mark_messages_read(self):
-        ChatMessage.objects.filter(
-            thread_id=self.thread_id,
-            is_read=False,
-        ).exclude(sender=self.user).update(is_read=True)
+        return mark_thread_read_for_user(
+            self.thread_id,
+            self.user,
+        )
+
+    @database_sync_to_async
+    def mark_message_read(self, message_id):
+        return mark_message_read_for_user(
+            self.thread_id,
+            message_id,
+            self.user,
+        )
 
     @database_sync_to_async
     def save_message(self, text, reply_to_id=None):
