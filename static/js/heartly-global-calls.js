@@ -145,12 +145,30 @@
     stop: stopRingtone
   };
 
-  function hideCall() {
+  function activeCallMatches(callId) {
+    if (!activeCall || !callId) return false;
+
+    return (
+      String(activeCall.call_id) ===
+      String(callId)
+    );
+  }
+
+  function hideCall(expectedCallId) {
+    if (
+      expectedCallId &&
+      activeCall &&
+      !activeCallMatches(expectedCallId)
+    ) {
+      return false;
+    }
+
     stopRingtone();
     clearTimeout(callExpiryTimer);
     callExpiryTimer = null;
     activeCall = null;
     if (toast) toast.hidden = true;
+    return true;
   }
 
   function showIncomingCall(payload) {
@@ -187,8 +205,11 @@
 
     startRingtone();
     clearTimeout(callExpiryTimer);
+    const shownCallId = payload.call_id;
     callExpiryTimer = window.setTimeout(
-      hideCall,
+      function () {
+        hideCall(shownCallId);
+      },
       65000
     );
   }
@@ -274,7 +295,14 @@
       }
 
       if (payload.type === "call.none") {
-        hideCall();
+        /*
+         * The initial active-call lookup can race a newly arriving
+         * call event. Never let a delayed call.none clear a banner
+         * that is already displaying a concrete call.
+         */
+        if (!activeCall) {
+          hideCall();
+        }
         return;
       }
 
@@ -290,7 +318,17 @@
           "call.missed"
         ].includes(payload.type)
       ) {
-        hideCall();
+        /*
+         * Ignore delayed terminal events from an older call. Only
+         * the event for the currently displayed call may clear it.
+         */
+        if (
+          activeCall &&
+          payload.call_id &&
+          activeCallMatches(payload.call_id)
+        ) {
+          hideCall(payload.call_id);
+        }
       }
     };
 
@@ -353,7 +391,7 @@
           );
         } catch (error) {}
 
-        hideCall();
+        hideCall(call.call_id);
       }
     );
   }

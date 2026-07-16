@@ -40,6 +40,11 @@
     let missedTimer = null;
     let iceRestartTimer = null;
     let redirectTimer = null;
+    let offerRetryTimer = null;
+    let offerAttempt = 0;
+    let lastOfferAt = 0;
+    let answerReceived = false;
+    let receiverReadyPending = false;
 
     const statusBadge =
       document.getElementById("callStatusBadge");
@@ -240,10 +245,12 @@
       clearTimeout(missedTimer);
       clearTimeout(iceRestartTimer);
       clearTimeout(redirectTimer);
+      clearTimeout(offerRetryTimer);
       clearInterval(statusPollTimer);
       missedTimer = null;
       iceRestartTimer = null;
       redirectTimer = null;
+      offerRetryTimer = null;
       statusPollTimer = null;
     }
 
@@ -337,7 +344,11 @@
 
         if (state === "connected") {
           clearTimeout(iceRestartTimer);
+          clearTimeout(offerRetryTimer);
           iceRestartTimer = null;
+          offerRetryTimer = null;
+          offerAttempt = 0;
+          answerReceived = true;
           setBadge("accepted");
           setLiveStatus("Connected");
           unlockRemoteMedia();
@@ -479,6 +490,63 @@
       }
     }
 
+    function announceReceiverReady() {
+      if (
+        terminal ||
+        !isReceiver ||
+        currentStatus !== "accepted" ||
+        !localStream
+      ) {
+        return false;
+      }
+
+      const sent = sendSocket({
+        type: "call.ready",
+        call_id: callId
+      });
+
+      receiverReadyPending = !sent;
+      return sent;
+    }
+
+    function scheduleOfferRetry() {
+      clearTimeout(offerRetryTimer);
+      offerRetryTimer = null;
+
+      if (
+        terminal ||
+        !isCaller ||
+        currentStatus !== "accepted" ||
+        answerReceived ||
+        offerAttempt >= 4
+      ) {
+        return;
+      }
+
+      offerRetryTimer = window.setTimeout(
+        async function () {
+          offerRetryTimer = null;
+
+          if (
+            terminal ||
+            answerReceived ||
+            currentStatus !== "accepted"
+          ) {
+            return;
+          }
+
+          offerAttempt += 1;
+          closePeerConnection();
+
+          await createCallerOffer({
+            force: true,
+            retry: true
+          });
+        },
+        2600
+      );
+    }
+
     async function createCallerOffer(options) {
       options = options || {};
 
@@ -505,6 +573,14 @@
         const stream = await startLocalMedia();
         if (!stream) return;
 
+        if (
+          options.force &&
+          peerConnection &&
+          peerConnection.signalingState !== "stable"
+        ) {
+          closePeerConnection();
+        }
+
         const pc = await ensurePeerConnection();
 
         if (
@@ -521,12 +597,23 @@
         );
         await pc.setLocalDescription(offer);
 
-        sendSocket({
+        const sent = sendSocket({
           type: "webrtc.offer",
           call_id: callId,
           sdp: pc.localDescription,
           ice_restart: Boolean(options.iceRestart)
         });
+
+        if (!sent) {
+          closePeerConnection();
+          connectSocket();
+          scheduleOfferRetry();
+          return;
+        }
+
+        answerReceived = false;
+        lastOfferAt = Date.now();
+        scheduleOfferRetry();
 
         setLiveStatus(
           options.iceRestart
@@ -556,6 +643,7 @@
       const stream = await startLocalMedia();
       if (stream) {
         setLiveStatus("Waiting for caller signal...");
+        announceReceiverReady();
       }
     }
 
@@ -621,6 +709,10 @@
         await peerConnection.setRemoteDescription(
           new RTCSessionDescription(data.sdp)
         );
+        answerReceived = true;
+        offerAttempt = 0;
+        clearTimeout(offerRetryTimer);
+        offerRetryTimer = null;
         await flushPendingIceCandidates();
         setLiveStatus("Connecting...");
       } catch (error) {
@@ -796,7 +888,21 @@
         setBadge("accepted");
 
         if (isCaller) {
-          await createCallerOffer();
+          const connected = Boolean(
+            peerConnection &&
+            peerConnection.connectionState === "connected"
+          );
+          const offerIsStale = (
+            lastOfferAt > 0 &&
+            Date.now() - lastOfferAt > 3200 &&
+            !answerReceived
+          );
+
+          if (!connected) {
+            await createCallerOffer({
+              force: offerIsStale
+            });
+          }
         } else {
           await prepareReceiver();
         }
@@ -883,6 +989,14 @@
           type: "call.sync",
           call_id: callId
         });
+
+        if (
+          isReceiver &&
+          currentStatus === "accepted" &&
+          localStream
+        ) {
+          announceReceiverReady();
+        }
       };
 
       socket.onmessage = async function (event) {
@@ -926,6 +1040,27 @@
         ) {
           const status = data.type.split(".")[1];
           finishCall(status, true);
+          return;
+        }
+
+        if (data.type === "call.ready") {
+          if (
+            isCaller &&
+            String(data.sender_id) !== currentUserId &&
+            currentStatus === "accepted"
+          ) {
+            const connected = Boolean(
+              peerConnection &&
+              peerConnection.connectionState === "connected"
+            );
+
+            if (!connected) {
+              offerAttempt = 0;
+              await createCallerOffer({
+                force: true
+              });
+            }
+          }
           return;
         }
 

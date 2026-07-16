@@ -113,7 +113,12 @@ class ThreadConsumer(AsyncJsonWebsocketConsumer):
             await self.handle_call_end(content)
         elif event_type == "call.missed":
             await self.handle_call_missed(content)
-        elif event_type in ["webrtc.offer", "webrtc.answer", "webrtc.ice"]:
+        elif event_type in [
+            "call.ready",
+            "webrtc.offer",
+            "webrtc.answer",
+            "webrtc.ice",
+        ]:
             await self.relay_call_signal(content)
 
     async def handle_chat_message(self, content):
