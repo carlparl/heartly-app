@@ -97,7 +97,14 @@ class ThreadConsumer(AsyncJsonWebsocketConsumer):
         elif event_type == "typing.stop":
             await self.relay_typing(False)
         elif event_type == "call.start":
-            await self.handle_call_start(content)
+            await self.send_json(
+                {
+                    "type": "chat.error",
+                    "message": "Start calls through the call button.",
+                }
+            )
+        elif event_type == "call.sync":
+            await self.handle_call_sync(content)
         elif event_type == "call.accept":
             await self.handle_call_accept(content)
         elif event_type == "call.decline":
@@ -178,11 +185,32 @@ class ThreadConsumer(AsyncJsonWebsocketConsumer):
             },
         )
 
+    async def handle_call_sync(self, content):
+        call_id = content.get("call_id")
+        state = await self.get_call_state(call_id)
+
+        if state is None:
+            await self.send_json(
+                {
+                    "type": "call.error",
+                    "call_id": call_id,
+                    "message": "Call is not available.",
+                }
+            )
+            return
+
+        await self.send_json(
+            {
+                "type": "call.state",
+                **state,
+            }
+        )
+
     async def handle_call_accept(self, content):
         call_id = content.get("call_id")
-        updated = await self.answer_call(call_id)
+        status = await self.answer_call(call_id)
 
-        if not updated:
+        if status != CallSession.STATUS_ACCEPTED:
             return
 
         await self.channel_layer.group_send(
@@ -358,7 +386,70 @@ class ThreadConsumer(AsyncJsonWebsocketConsumer):
             Q(caller=self.user) | Q(receiver=self.user),
             id=call_id,
             thread_id=self.thread_id,
+            status=CallSession.STATUS_ACCEPTED,
         ).exists()
+
+    @database_sync_to_async
+    def get_call_state(self, call_id):
+        if not call_id:
+            return None
+
+        call = (
+            CallSession.objects
+            .select_related(
+                "caller",
+                "receiver",
+                "thread",
+            )
+            .filter(
+                Q(caller=self.user) | Q(receiver=self.user),
+                id=call_id,
+                thread_id=self.thread_id,
+            )
+            .first()
+        )
+
+        if call is None:
+            return None
+
+        call_url = reverse(
+            "chat:call_room",
+            args=[call.id],
+        )
+
+        return {
+            "call_id": call.id,
+            "thread_id": call.thread_id,
+            "call_type": call.call_type,
+            "status": call.status,
+            "started_at": call.started_at.isoformat(),
+            "caller_id": call.caller_id,
+            "receiver_id": call.receiver_id,
+            "caller_name": display_name_for(call.caller),
+            "receiver_name": display_name_for(call.receiver),
+            "url": call_url,
+            "accept_url": call_url,
+            "accept_post_url": reverse(
+                "chat:accept_call",
+                args=[call.id],
+            ),
+            "decline_url": reverse(
+                "chat:decline_call",
+                args=[call.id],
+            ),
+            "end_url": reverse(
+                "chat:end_call",
+                args=[call.id],
+            ),
+            "miss_url": reverse(
+                "chat:miss_call",
+                args=[call.id],
+            ),
+            "status_url": reverse(
+                "chat:call_status",
+                args=[call.id],
+            ),
+        }
 
     @database_sync_to_async
     def mark_messages_read(self):
@@ -465,18 +556,28 @@ class ThreadConsumer(AsyncJsonWebsocketConsumer):
     @database_sync_to_async
     def answer_call(self, call_id):
         if not call_id:
-            return False
+            return None
 
-        updated = CallSession.objects.filter(
+        call = CallSession.objects.filter(
             id=call_id,
             thread_id=self.thread_id,
             receiver=self.user,
-            status=CallSession.STATUS_RINGING,
-        ).update(
-            status=CallSession.STATUS_ACCEPTED,
-            accepted_at=timezone.now(),
-        )
-        return bool(updated)
+        ).first()
+
+        if call is None:
+            return None
+
+        if call.status == CallSession.STATUS_RINGING:
+            call.status = CallSession.STATUS_ACCEPTED
+            call.accepted_at = timezone.now()
+            call.save(
+                update_fields=[
+                    "status",
+                    "accepted_at",
+                ]
+            )
+
+        return call.status
 
     @database_sync_to_async
     def close_call(self, call_id, status):
@@ -622,12 +723,75 @@ class GlobalCallConsumer(AsyncJsonWebsocketConsumer):
             return
 
         self.group_name = f"heartly_user_{self.user.id}"
-        await self.channel_layer.group_add(self.group_name, self.channel_name)
+        await self.channel_layer.group_add(
+            self.group_name,
+            self.channel_name,
+        )
         await self.accept()
+
+        active_call = await self.active_incoming_call()
+        if active_call:
+            await self.send_json(active_call)
+        else:
+            await self.send_json(
+                {"type": "call.none"}
+            )
 
     async def disconnect(self, close_code):
         if hasattr(self, "group_name"):
             await self.channel_layer.group_discard(self.group_name, self.channel_name)
+
+    @database_sync_to_async
+    def active_incoming_call(self):
+        call = (
+            CallSession.objects
+            .select_related(
+                "caller",
+                "receiver",
+                "thread",
+            )
+            .filter(
+                receiver=self.user,
+                status=CallSession.STATUS_RINGING,
+            )
+            .order_by("-started_at")
+            .first()
+        )
+
+        if call is None:
+            return None
+
+        call_url = reverse(
+            "chat:call_room",
+            args=[call.id],
+        )
+
+        return {
+            "type": "incoming_call",
+            "call_id": call.id,
+            "thread_id": call.thread_id,
+            "call_type": call.call_type,
+            "status": call.status,
+            "started_at": call.started_at.isoformat(),
+            "caller_id": call.caller_id,
+            "receiver_id": call.receiver_id,
+            "caller_name": display_name_for(call.caller),
+            "receiver_name": display_name_for(call.receiver),
+            "url": call_url,
+            "accept_url": call_url,
+            "accept_post_url": reverse(
+                "chat:accept_call",
+                args=[call.id],
+            ),
+            "decline_url": reverse(
+                "chat:decline_call",
+                args=[call.id],
+            ),
+            "end_url": reverse(
+                "chat:end_call",
+                args=[call.id],
+            ),
+        }
 
     async def notification_event(self, event):
         await self.send_json(event.get("payload", {}))

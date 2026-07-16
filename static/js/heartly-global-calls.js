@@ -1,91 +1,143 @@
 (function () {
   "use strict";
 
-  const root = document.querySelector("[data-heartly-global-calls]");
+  const root = document.querySelector(
+    "[data-heartly-global-calls]"
+  );
   if (!root) return;
 
   const userId = Number(root.dataset.userId || "0");
-  const isAuthenticated = root.dataset.authenticated === "1";
-  if (!isAuthenticated || !userId || !("WebSocket" in window)) return;
+  const isAuthenticated =
+    root.dataset.authenticated === "1";
 
-  const toast = document.getElementById("heartlyGlobalCallToast");
-  const avatar = document.getElementById("heartlyGlobalCallAvatar");
-  const title = document.getElementById("heartlyGlobalCallTitle");
-  const text = document.getElementById("heartlyGlobalCallText");
-  const answerBtn = document.getElementById("heartlyGlobalCallAnswer");
-  const declineBtn = document.getElementById("heartlyGlobalCallDecline");
+  if (
+    !isAuthenticated ||
+    !userId ||
+    !("WebSocket" in window)
+  ) {
+    return;
+  }
+
+  const toast =
+    document.getElementById("heartlyGlobalCallToast");
+  const avatar =
+    document.getElementById("heartlyGlobalCallAvatar");
+  const title =
+    document.getElementById("heartlyGlobalCallTitle");
+  const text =
+    document.getElementById("heartlyGlobalCallText");
+  const answerBtn =
+    document.getElementById("heartlyGlobalCallAnswer");
+  const declineBtn =
+    document.getElementById("heartlyGlobalCallDecline");
 
   let socket = null;
   let reconnectTimer = null;
+  let reconnectAttempt = 0;
+  let socketClosing = false;
   let activeCall = null;
   let ringtoneContext = null;
   let ringtoneNodes = [];
   let callExpiryTimer = null;
 
   function getCookie(name) {
-    const cookies = document.cookie ? document.cookie.split(";") : [];
-    for (const cookie of cookies) {
-      const trimmed = cookie.trim();
-      if (trimmed.startsWith(name + "=")) {
-        return decodeURIComponent(trimmed.slice(name.length + 1));
-      }
-    }
-    return "";
+    const match = document.cookie.match(
+      new RegExp("(?:^|;\\s*)" + name + "=([^;]+)")
+    );
+    return match ? decodeURIComponent(match[1]) : "";
   }
 
   function ensureRingtoneContext() {
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    const AudioContextClass =
+      window.AudioContext || window.webkitAudioContext;
+
     if (!AudioContextClass) return null;
-    if (!ringtoneContext) ringtoneContext = new AudioContextClass();
-    if (ringtoneContext.state === "suspended") ringtoneContext.resume().catch(function () {});
+
+    if (!ringtoneContext) {
+      ringtoneContext = new AudioContextClass();
+    }
+
+    if (ringtoneContext.state === "suspended") {
+      ringtoneContext.resume().catch(function () {});
+    }
+
     return ringtoneContext;
   }
 
-  function scheduleTone(ctx, startAt, duration, frequency) {
+  function scheduleTone(
+    context,
+    startsAt,
+    duration,
+    frequency
+  ) {
     try {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(frequency, startAt);
-      gain.gain.setValueAtTime(0.0001, startAt);
-      gain.gain.exponentialRampToValueAtTime(0.2, startAt + 0.025);
-      gain.gain.exponentialRampToValueAtTime(0.0001, startAt + duration);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(startAt);
-      osc.stop(startAt + duration + 0.02);
-      ringtoneNodes.push({ osc: osc, gain: gain });
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+
+      oscillator.type = "sine";
+      oscillator.frequency.setValueAtTime(
+        frequency,
+        startsAt
+      );
+      gain.gain.setValueAtTime(0.0001, startsAt);
+      gain.gain.exponentialRampToValueAtTime(
+        0.2,
+        startsAt + 0.025
+      );
+      gain.gain.exponentialRampToValueAtTime(
+        0.0001,
+        startsAt + duration
+      );
+
+      oscillator.connect(gain);
+      gain.connect(context.destination);
+      oscillator.start(startsAt);
+      oscillator.stop(
+        startsAt + duration + 0.02
+      );
+      ringtoneNodes.push({
+        oscillator: oscillator,
+        gain: gain
+      });
     } catch (error) {}
-  }
-
-  function startRingtone() {
-    stopRingtone();
-    const ctx = ensureRingtoneContext();
-    if (!ctx) return;
-
-    const schedulePattern = function () {
-      const startsAt = ctx.currentTime + 0.05;
-      for (let index = 0; index < 40; index += 1) {
-        const cycle = startsAt + (index * 1.45);
-        scheduleTone(ctx, cycle, 0.24, 760);
-        scheduleTone(ctx, cycle + 0.3, 0.22, 620);
-      }
-    };
-
-    if (ctx.state === "suspended") {
-      ctx.resume().then(schedulePattern).catch(function () {});
-    } else {
-      schedulePattern();
-    }
   }
 
   function stopRingtone() {
     ringtoneNodes.forEach(function (node) {
-      try { node.osc.stop(); } catch (error) {}
-      try { node.osc.disconnect(); } catch (error) {}
+      try { node.oscillator.stop(); } catch (error) {}
+      try { node.oscillator.disconnect(); } catch (error) {}
       try { node.gain.disconnect(); } catch (error) {}
     });
     ringtoneNodes = [];
+  }
+
+  function startRingtone() {
+    stopRingtone();
+    const context = ensureRingtoneContext();
+    if (!context) return;
+
+    const schedulePattern = function () {
+      const startsAt = context.currentTime + 0.05;
+
+      for (let index = 0; index < 40; index += 1) {
+        const cycle = startsAt + (index * 1.45);
+        scheduleTone(context, cycle, 0.24, 760);
+        scheduleTone(
+          context,
+          cycle + 0.3,
+          0.22,
+          620
+        );
+      }
+    };
+
+    if (context.state === "suspended") {
+      context.resume()
+        .then(schedulePattern)
+        .catch(function () {});
+    } else {
+      schedulePattern();
+    }
   }
 
   window.HeartlyCallAudio = {
@@ -95,86 +147,267 @@
 
   function hideCall() {
     stopRingtone();
-    if (callExpiryTimer) window.clearTimeout(callExpiryTimer);
+    clearTimeout(callExpiryTimer);
     callExpiryTimer = null;
     activeCall = null;
     if (toast) toast.hidden = true;
   }
 
   function showIncomingCall(payload) {
-    if (!payload || Number(payload.caller_id) === userId) return;
+    if (
+      !payload ||
+      Number(payload.caller_id) === userId
+    ) {
+      return;
+    }
 
     activeCall = payload;
-    const caller = payload.caller_name || "Heartly User";
-    const type = String(payload.call_type || "audio").toLowerCase();
+    const caller =
+      payload.caller_name || "Heartly User";
+    const type = String(
+      payload.call_type || "audio"
+    ).toLowerCase();
 
-    if (avatar) avatar.textContent = type === "video" ? "🎥" : "☎";
+    if (avatar) {
+      avatar.textContent =
+        type === "video" ? "🎥" : "☎";
+    }
     if (title) title.textContent = caller;
-    if (text) text.textContent = (type === "video" ? "Video" : "Audio") + " call incoming";
-    if (answerBtn) answerBtn.href = payload.accept_url || payload.url || ("/chat/call/" + payload.call_id + "/");
+    if (text) {
+      text.textContent =
+        (type === "video" ? "Video" : "Audio") +
+        " call incoming";
+    }
+    if (answerBtn) {
+      answerBtn.href =
+        payload.url ||
+        ("/chat/call/" + payload.call_id + "/");
+    }
     if (toast) toast.hidden = false;
 
     startRingtone();
-    if (callExpiryTimer) window.clearTimeout(callExpiryTimer);
-    callExpiryTimer = window.setTimeout(hideCall, 45000);
+    clearTimeout(callExpiryTimer);
+    callExpiryTimer = window.setTimeout(
+      hideCall,
+      65000
+    );
+  }
+
+  function websocketUrl() {
+    const scheme =
+      window.location.protocol === "https:" ? "wss:" : "ws:";
+    return (
+      scheme +
+      "//" +
+      window.location.host +
+      "/ws/heartly/calls/"
+    );
+  }
+
+  function scheduleReconnect() {
+    if (
+      socketClosing ||
+      reconnectTimer ||
+      navigator.onLine === false
+    ) {
+      return;
+    }
+
+    const delay = Math.min(
+      30000,
+      1000 * Math.pow(2, reconnectAttempt)
+    );
+    reconnectAttempt += 1;
+
+    reconnectTimer = window.setTimeout(
+      function () {
+        reconnectTimer = null;
+        connect();
+      },
+      delay
+    );
   }
 
   function connect() {
-    const scheme = window.location.protocol === "https:" ? "wss" : "ws";
-    socket = new WebSocket(scheme + "://" + window.location.host + "/ws/heartly/calls/");
+    if (
+      socketClosing ||
+      navigator.onLine === false
+    ) {
+      return;
+    }
+
+    if (
+      socket &&
+      (
+        socket.readyState === WebSocket.OPEN ||
+        socket.readyState === WebSocket.CONNECTING
+      )
+    ) {
+      return;
+    }
+
+    socket = new WebSocket(websocketUrl());
+
+    socket.onopen = function () {
+      reconnectAttempt = 0;
+      clearTimeout(reconnectTimer);
+      reconnectTimer = null;
+    };
 
     socket.onmessage = function (event) {
       let payload = null;
-      try { payload = JSON.parse(event.data); } catch (error) { return; }
+
+      try {
+        payload = JSON.parse(event.data);
+      } catch (error) {
+        return;
+      }
+
       if (!payload || !payload.type) return;
 
-      if (payload.type === "incoming_call" || payload.type === "call.incoming") {
+      if (
+        payload.type === "incoming_call" ||
+        payload.type === "call.incoming"
+      ) {
         showIncomingCall(payload);
         return;
       }
 
-      if (["call_accepted", "call_declined", "call_ended", "missed_call", "call.accepted", "call.declined", "call.ended", "call.missed"].includes(payload.type)) {
-        hideCall();
-      }
-    };
-
-    socket.onclose = function () {
-      if (reconnectTimer) window.clearTimeout(reconnectTimer);
-      reconnectTimer = window.setTimeout(connect, 2500);
-    };
-  }
-
-  document.addEventListener("pointerdown", ensureRingtoneContext, { once: true });
-  document.addEventListener("keydown", ensureRingtoneContext, { once: true });
-
-  if (declineBtn) {
-    declineBtn.addEventListener("click", async function () {
-      if (!activeCall || !activeCall.call_id) {
+      if (payload.type === "call.none") {
         hideCall();
         return;
       }
 
-      try {
-        await fetch(activeCall.decline_url || ("/chat/call/" + activeCall.call_id + "/decline/"), {
-          method: "POST",
-          headers: {
-            "X-CSRFToken": getCookie("csrftoken"),
-            "X-Requested-With": "XMLHttpRequest",
-            "Accept": "application/json"
-          },
-          credentials: "same-origin"
-        });
-      } catch (error) {}
+      if (
+        [
+          "call_accepted",
+          "call_declined",
+          "call_ended",
+          "missed_call",
+          "call.accepted",
+          "call.declined",
+          "call.ended",
+          "call.missed"
+        ].includes(payload.type)
+      ) {
+        hideCall();
+      }
+    };
 
-      hideCall();
+    socket.onerror = function () {
+      try { socket.close(); } catch (error) {}
+    };
+
+    socket.onclose = function () {
+      socket = null;
+      scheduleReconnect();
+    };
+  }
+
+  async function postCallAction(url) {
+    if (!url) return false;
+
+    const response = await fetch(url, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {
+        "X-CSRFToken": getCookie("csrftoken"),
+        "X-Requested-With": "XMLHttpRequest",
+        "Accept": "application/json"
+      }
     });
+
+    return response.ok;
+  }
+
+  document.addEventListener(
+    "pointerdown",
+    ensureRingtoneContext,
+    { once: true }
+  );
+  document.addEventListener(
+    "keydown",
+    ensureRingtoneContext,
+    { once: true }
+  );
+
+  if (declineBtn) {
+    declineBtn.addEventListener(
+      "click",
+      async function () {
+        const call = activeCall;
+
+        if (!call || !call.call_id) {
+          hideCall();
+          return;
+        }
+
+        try {
+          await postCallAction(
+            call.decline_url ||
+            (
+              "/chat/call/" +
+              call.call_id +
+              "/decline/"
+            )
+          );
+        } catch (error) {}
+
+        hideCall();
+      }
+    );
   }
 
   if (answerBtn) {
-    answerBtn.addEventListener("click", function () {
-      stopRingtone();
-    });
+    answerBtn.addEventListener(
+      "click",
+      async function (event) {
+        const call = activeCall;
+        if (!call) return;
+
+        event.preventDefault();
+        stopRingtone();
+
+        const destination =
+          call.url ||
+          ("/chat/call/" + call.call_id + "/");
+
+        try {
+          await postCallAction(
+            call.accept_post_url || ""
+          );
+        } catch (error) {
+          /*
+           * The call room keeps a GET acceptance fallback for
+           * older clients and temporary network races.
+           */
+        }
+
+        window.location.href = destination;
+      }
+    );
   }
+
+  window.addEventListener("online", connect);
+
+  document.addEventListener(
+    "visibilitychange",
+    function () {
+      if (
+        document.visibilityState === "visible"
+      ) {
+        connect();
+      }
+    }
+  );
+
+  window.addEventListener("beforeunload", function () {
+    socketClosing = true;
+    clearTimeout(reconnectTimer);
+    if (socket) {
+      try { socket.close(); } catch (error) {}
+    }
+  });
 
   connect();
 })();

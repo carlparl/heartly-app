@@ -12,9 +12,11 @@ urlpatterns = [
 
     path("<int:thread_id>/call/start/<str:call_type>/", views.start_call, name="start_call"),
     path("call/<int:call_id>/", views.call_room, name="call_room"),
+    path("call/<int:call_id>/status/", views.call_status, name="call_status"),
     path("call/<int:call_id>/accept/", views.accept_call, name="accept_call"),
     path("call/<int:call_id>/decline/", views.decline_call, name="decline_call"),
     path("call/<int:call_id>/end/", views.end_call, name="end_call"),
+    path("call/<int:call_id>/miss/", views.miss_call, name="miss_call"),
 
     path("<int:thread_id>/clear/", views.clear_chat_for_me, name="clear_chat_for_me"),
     path("<int:thread_id>/delete/", views.delete_chat_for_me, name="delete_chat_for_me"),

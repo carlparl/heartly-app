@@ -1,6 +1,7 @@
 import logging
 import mimetypes
 import re
+from datetime import timedelta
 from pathlib import Path
 
 from asgiref.sync import async_to_sync
@@ -16,7 +17,7 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_GET, require_POST
 
 try:
     import cloudinary
@@ -1248,14 +1249,44 @@ def build_call_payload(call):
         "call_id": call.id,
         "thread_id": call.thread_id,
         "call_type": call.call_type,
+        "status": call.status,
+        "started_at": call.started_at.isoformat(),
+        "accepted_at": (
+            call.accepted_at.isoformat()
+            if call.accepted_at
+            else None
+        ),
+        "ended_at": (
+            call.ended_at.isoformat()
+            if call.ended_at
+            else None
+        ),
         "caller_id": call.caller_id,
         "receiver_id": call.receiver_id,
         "caller_name": get_display_name(call.caller),
         "receiver_name": get_display_name(call.receiver),
         "url": call_url,
         "accept_url": call_url,
-        "decline_url": reverse("chat:decline_call", args=[call.id]),
-        "end_url": reverse("chat:end_call", args=[call.id]),
+        "accept_post_url": reverse(
+            "chat:accept_call",
+            args=[call.id],
+        ),
+        "decline_url": reverse(
+            "chat:decline_call",
+            args=[call.id],
+        ),
+        "end_url": reverse(
+            "chat:end_call",
+            args=[call.id],
+        ),
+        "miss_url": reverse(
+            "chat:miss_call",
+            args=[call.id],
+        ),
+        "status_url": reverse(
+            "chat:call_status",
+            args=[call.id],
+        ),
     }
 
 
@@ -1325,26 +1356,208 @@ def resolve_call_notification(call, recipient):
     ).update(is_read=True, is_resolved=True)
 
 
+CALL_RINGING_TIMEOUT_SECONDS = 75
+CALL_ACCEPTED_STALE_SECONDS = 6 * 60 * 60
+
+
+def _transition_call(
+    call_id,
+    allowed_statuses,
+    new_status,
+):
+    with transaction.atomic():
+        call = (
+            CallSession.objects
+            .select_for_update()
+            .select_related(
+                "thread",
+                "caller",
+                "receiver",
+            )
+            .get(id=call_id)
+        )
+
+        if call.status not in allowed_statuses:
+            return call, False
+
+        update_fields = ["status"]
+        call.status = new_status
+
+        if new_status == CallSession.STATUS_ACCEPTED:
+            call.accepted_at = timezone.now()
+            update_fields.append("accepted_at")
+
+        if new_status in {
+            CallSession.STATUS_DECLINED,
+            CallSession.STATUS_ENDED,
+            CallSession.STATUS_MISSED,
+        }:
+            call.ended_at = timezone.now()
+            update_fields.append("ended_at")
+
+        call.save(update_fields=update_fields)
+        return call, True
+
+
+def _create_missed_call_notification(call):
+    if Notification is None:
+        return None
+
+    return Notification.objects.get_or_create(
+        recipient=call.receiver,
+        notification_type=(
+            Notification.TYPE_MISSED_CALL
+        ),
+        related_object_type="chat.callsession",
+        related_object_id=call.id,
+        defaults={
+            "actor": call.caller,
+            "title": (
+                "Missed video call"
+                if call.call_type == CallSession.CALL_VIDEO
+                else "Missed audio call"
+            ),
+            "message": (
+                f"You missed a {call.call_type} call from "
+                f"{get_display_name(call.caller)}."
+            ),
+            "url": reverse(
+                "chat:call_room",
+                args=[call.id],
+            ),
+        },
+    )[0]
+
+
+def _expire_stale_calls(thread):
+    now = timezone.now()
+    ringing_cutoff = now - timedelta(
+        seconds=CALL_RINGING_TIMEOUT_SECONDS
+    )
+    accepted_cutoff = now - timedelta(
+        seconds=CALL_ACCEPTED_STALE_SECONDS
+    )
+
+    stale_ringing_ids = list(
+        CallSession.objects.filter(
+            thread=thread,
+            status=CallSession.STATUS_RINGING,
+            started_at__lt=ringing_cutoff,
+        ).values_list("id", flat=True)
+    )
+
+    for call_id in stale_ringing_ids:
+        call, changed = _transition_call(
+            call_id,
+            {CallSession.STATUS_RINGING},
+            CallSession.STATUS_MISSED,
+        )
+        if changed:
+            _create_missed_call_notification(call)
+            resolve_call_notification(
+                call,
+                call.receiver,
+            )
+            broadcast_call_event(
+                call,
+                "call.missed",
+            )
+
+    stale_accepted_ids = list(
+        CallSession.objects.filter(
+            thread=thread,
+            status=CallSession.STATUS_ACCEPTED,
+            started_at__lt=accepted_cutoff,
+        ).values_list("id", flat=True)
+    )
+
+    for call_id in stale_accepted_ids:
+        call, changed = _transition_call(
+            call_id,
+            {CallSession.STATUS_ACCEPTED},
+            CallSession.STATUS_ENDED,
+        )
+        if changed:
+            broadcast_call_event(
+                call,
+                "call.ended",
+            )
+
+
+def _active_call_for_thread(thread):
+    return (
+        CallSession.objects
+        .select_related(
+            "thread",
+            "caller",
+            "receiver",
+        )
+        .filter(
+            thread=thread,
+            status__in=[
+                CallSession.STATUS_RINGING,
+                CallSession.STATUS_ACCEPTED,
+            ],
+        )
+        .order_by("-started_at")
+        .first()
+    )
+
+
 @login_required
 def start_call(request, thread_id, call_type):
     thread = get_object_or_404(
-        ChatThread.objects.select_related("user_one", "user_two"),
+        ChatThread.objects.select_related(
+            "user_one",
+            "user_two",
+        ),
         id=thread_id,
     )
 
     if not thread.has_user(request.user):
-        messages.error(request, "You do not have access to this chat.")
+        messages.error(
+            request,
+            "You do not have access to this chat.",
+        )
         return redirect("chat:chat_home")
 
     other_user = thread.other_user(request.user)
 
     if blocked_between(request.user, other_user):
-        messages.error(request, "This call is not available.")
+        messages.error(
+            request,
+            "This call is not available.",
+        )
         return redirect("chat:chat_home")
 
-    if call_type not in [CallSession.CALL_AUDIO, CallSession.CALL_VIDEO]:
+    if call_type not in [
+        CallSession.CALL_AUDIO,
+        CallSession.CALL_VIDEO,
+    ]:
         messages.error(request, "Invalid call type.")
-        return redirect("chat:chat_room", thread_id=thread.id)
+        return redirect(
+            "chat:chat_room",
+            thread_id=thread.id,
+        )
+
+    _expire_stale_calls(thread)
+
+    active_call = _active_call_for_thread(thread)
+    if active_call is not None:
+        if wants_json(request):
+            return json_success(
+                message="An active call already exists.",
+                call=build_call_payload(active_call),
+                call_url=reverse(
+                    "chat:call_room",
+                    args=[active_call.id],
+                ),
+            )
+
+        return redirect(
+            "chat:call_room",
+            call_id=active_call.id,
+        )
 
     call = CallSession.objects.create(
         thread=thread,
@@ -1366,8 +1579,14 @@ def start_call(request, thread_id, call_type):
                 if call_type == CallSession.CALL_VIDEO
                 else "Incoming audio call"
             ),
-            message=f"{get_display_name(request.user)} is calling you.",
-            url=reverse("chat:call_room", args=[call.id]),
+            message=(
+                f"{get_display_name(request.user)} "
+                "is calling you."
+            ),
+            url=reverse(
+                "chat:call_room",
+                args=[call.id],
+            ),
             related_object_type="chat.callsession",
             related_object_id=call.id,
         )
@@ -1376,35 +1595,61 @@ def start_call(request, thread_id, call_type):
         return json_success(
             message="Call started.",
             call=build_call_payload(call),
-            call_url=reverse("chat:call_room", args=[call.id]),
+            call_url=reverse(
+                "chat:call_room",
+                args=[call.id],
+            ),
         )
 
-    return redirect("chat:call_room", call_id=call.id)
+    return redirect(
+        "chat:call_room",
+        call_id=call.id,
+    )
 
 
 @login_required
 def call_room(request, call_id):
     call = get_object_or_404(
-        CallSession.objects.select_related("thread", "caller", "receiver"),
+        CallSession.objects.select_related(
+            "thread",
+            "caller",
+            "receiver",
+        ),
         id=call_id,
     )
-
     thread = call.thread
 
     if not thread.has_user(request.user):
-        messages.error(request, "You do not have access to this call.")
+        messages.error(
+            request,
+            "You do not have access to this call.",
+        )
         return redirect("chat:chat_home")
 
-    # Receiver accepts by opening the call room from the global incoming-call
-    # banner. This notifies the caller wherever they currently are.
-    if request.user == call.receiver and call.status == CallSession.STATUS_RINGING:
-        call.status = CallSession.STATUS_ACCEPTED
-        call.accepted_at = timezone.now()
-        call.save(update_fields=["status", "accepted_at"])
-        broadcast_call_event(call, "call.accepted")
-        resolve_call_notification(call, request.user)
+    if (
+        request.user == call.receiver
+        and call.status == CallSession.STATUS_RINGING
+    ):
+        call, changed = _transition_call(
+            call.id,
+            {CallSession.STATUS_RINGING},
+            CallSession.STATUS_ACCEPTED,
+        )
+        if changed:
+            broadcast_call_event(
+                call,
+                "call.accepted",
+            )
+            resolve_call_notification(
+                call,
+                request.user,
+            )
 
-    other_user = call.receiver if request.user == call.caller else call.caller
+    other_user = (
+        call.receiver
+        if request.user == call.caller
+        else call.caller
+    )
 
     return render(
         request,
@@ -1414,10 +1659,37 @@ def call_room(request, call_id):
             "thread": thread,
             "call_type": call.call_type,
             "other_user": other_user,
-            "other_user_name": get_display_name(other_user),
-            "other_user_photo": get_photo_url(other_user),
+            "other_user_name": get_display_name(
+                other_user
+            ),
+            "other_user_photo": get_photo_url(
+                other_user
+            ),
             "ice_servers": settings.HEARTLY_ICE_SERVERS,
         },
+    )
+
+
+@login_required
+@require_GET
+def call_status(request, call_id):
+    call = get_object_or_404(
+        CallSession.objects.select_related(
+            "thread",
+            "caller",
+            "receiver",
+        ),
+        id=call_id,
+    )
+
+    if not call.thread.has_user(request.user):
+        return json_error(
+            "You do not have access to this call.",
+            status=403,
+        )
+
+    return json_success(
+        call=build_call_payload(call),
     )
 
 
@@ -1425,82 +1697,212 @@ def call_room(request, call_id):
 @require_POST
 def accept_call(request, call_id):
     call = get_object_or_404(
-        CallSession.objects.select_related("thread", "caller", "receiver"),
+        CallSession.objects.select_related(
+            "thread",
+            "caller",
+            "receiver",
+        ),
         id=call_id,
     )
 
     if request.user != call.receiver:
         if wants_json(request):
-            return json_error("Only the receiver can accept this call.", status=403)
+            return json_error(
+                "Only the receiver can accept this call.",
+                status=403,
+            )
 
-        messages.error(request, "Only the receiver can accept this call.")
-        return redirect("chat:chat_room", thread_id=call.thread.id)
+        messages.error(
+            request,
+            "Only the receiver can accept this call.",
+        )
+        return redirect(
+            "chat:chat_room",
+            thread_id=call.thread.id,
+        )
 
-    if call.status == CallSession.STATUS_RINGING:
-        call.status = CallSession.STATUS_ACCEPTED
-        call.accepted_at = timezone.now()
-        call.save(update_fields=["status", "accepted_at"])
-        broadcast_call_event(call, "call.accepted")
-        resolve_call_notification(call, request.user)
+    call, changed = _transition_call(
+        call.id,
+        {CallSession.STATUS_RINGING},
+        CallSession.STATUS_ACCEPTED,
+    )
+
+    if changed:
+        broadcast_call_event(
+            call,
+            "call.accepted",
+        )
+        resolve_call_notification(
+            call,
+            request.user,
+        )
 
     if wants_json(request):
-        return json_success(call=build_call_payload(call))
+        return json_success(
+            call=build_call_payload(call),
+            changed=changed,
+        )
 
-    return redirect("chat:call_room", call_id=call.id)
+    return redirect(
+        "chat:call_room",
+        call_id=call.id,
+    )
 
 
 @login_required
 @require_POST
 def decline_call(request, call_id):
     call = get_object_or_404(
-        CallSession.objects.select_related("thread", "caller", "receiver"),
+        CallSession.objects.select_related(
+            "thread",
+            "caller",
+            "receiver",
+        ),
         id=call_id,
     )
 
-    if request.user not in [call.caller, call.receiver]:
+    if request.user not in [
+        call.caller,
+        call.receiver,
+    ]:
         if wants_json(request):
-            return json_error("You do not have access to this call.", status=403)
+            return json_error(
+                "You do not have access to this call.",
+                status=403,
+            )
 
-        messages.error(request, "You do not have access to this call.")
+        messages.error(
+            request,
+            "You do not have access to this call.",
+        )
         return redirect("chat:chat_home")
 
-    call.status = CallSession.STATUS_DECLINED
-    call.ended_at = timezone.now()
-    call.save(update_fields=["status", "ended_at"])
-    broadcast_call_event(call, "call.declined")
-    resolve_call_notification(call, call.receiver)
+    call, changed = _transition_call(
+        call.id,
+        {CallSession.STATUS_RINGING},
+        CallSession.STATUS_DECLINED,
+    )
+
+    if changed:
+        broadcast_call_event(
+            call,
+            "call.declined",
+        )
+        resolve_call_notification(
+            call,
+            call.receiver,
+        )
 
     if wants_json(request):
-        return json_success(call=build_call_payload(call))
+        return json_success(
+            call=build_call_payload(call),
+            changed=changed,
+        )
 
-    return redirect("chat:chat_room", thread_id=call.thread.id)
+    return redirect(
+        "chat:chat_room",
+        thread_id=call.thread.id,
+    )
 
 
 @login_required
 @require_POST
 def end_call(request, call_id):
     call = get_object_or_404(
-        CallSession.objects.select_related("thread", "caller", "receiver"),
+        CallSession.objects.select_related(
+            "thread",
+            "caller",
+            "receiver",
+        ),
         id=call_id,
     )
 
-    if request.user not in [call.caller, call.receiver]:
+    if request.user not in [
+        call.caller,
+        call.receiver,
+    ]:
         if wants_json(request):
-            return json_error("You do not have access to this call.", status=403)
+            return json_error(
+                "You do not have access to this call.",
+                status=403,
+            )
 
-        messages.error(request, "You do not have access to this call.")
+        messages.error(
+            request,
+            "You do not have access to this call.",
+        )
         return redirect("chat:chat_home")
 
-    call.status = CallSession.STATUS_ENDED
-    call.ended_at = timezone.now()
-    call.save(update_fields=["status", "ended_at"])
-    broadcast_call_event(call, "call.ended")
-    resolve_call_notification(call, call.receiver)
+    call, changed = _transition_call(
+        call.id,
+        {
+            CallSession.STATUS_RINGING,
+            CallSession.STATUS_ACCEPTED,
+        },
+        CallSession.STATUS_ENDED,
+    )
+
+    if changed:
+        broadcast_call_event(
+            call,
+            "call.ended",
+        )
+        resolve_call_notification(
+            call,
+            call.receiver,
+        )
 
     if wants_json(request):
-        return json_success(call=build_call_payload(call))
+        return json_success(
+            call=build_call_payload(call),
+            changed=changed,
+        )
 
-    return redirect("chat:chat_room", thread_id=call.thread.id)
+    return redirect(
+        "chat:chat_room",
+        thread_id=call.thread.id,
+    )
+
+
+@login_required
+@require_POST
+def miss_call(request, call_id):
+    call = get_object_or_404(
+        CallSession.objects.select_related(
+            "thread",
+            "caller",
+            "receiver",
+        ),
+        id=call_id,
+    )
+
+    if request.user != call.caller:
+        return json_error(
+            "Only the caller can mark this call missed.",
+            status=403,
+        )
+
+    call, changed = _transition_call(
+        call.id,
+        {CallSession.STATUS_RINGING},
+        CallSession.STATUS_MISSED,
+    )
+
+    if changed:
+        _create_missed_call_notification(call)
+        resolve_call_notification(
+            call,
+            call.receiver,
+        )
+        broadcast_call_event(
+            call,
+            "call.missed",
+        )
+
+    return json_success(
+        call=build_call_payload(call),
+        changed=changed,
+    )
 
 
 @login_required
