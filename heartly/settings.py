@@ -650,6 +650,49 @@ VAPID_SUBJECT = os.environ.get(
     "mailto:admin@example.com",
 ).strip()
 
+HEARTLY_PUSH_DEFAULT_TTL_SECONDS = int(
+    os.environ.get(
+        "HEARTLY_PUSH_DEFAULT_TTL_SECONDS",
+        "86400",
+    )
+)
+HEARTLY_PUSH_MESSAGE_TTL_SECONDS = int(
+    os.environ.get(
+        "HEARTLY_PUSH_MESSAGE_TTL_SECONDS",
+        "7200",
+    )
+)
+HEARTLY_PUSH_CALL_TTL_SECONDS = int(
+    os.environ.get(
+        "HEARTLY_PUSH_CALL_TTL_SECONDS",
+        "90",
+    )
+)
+HEARTLY_PUSH_TIMEOUT_SECONDS = int(
+    os.environ.get(
+        "HEARTLY_PUSH_TIMEOUT_SECONDS",
+        "8",
+    )
+)
+HEARTLY_PUSH_RETRY_ATTEMPTS = int(
+    os.environ.get(
+        "HEARTLY_PUSH_RETRY_ATTEMPTS",
+        "2",
+    )
+)
+HEARTLY_PUSH_RETRY_DELAY_SECONDS = float(
+    os.environ.get(
+        "HEARTLY_PUSH_RETRY_DELAY_SECONDS",
+        "0.4",
+    )
+)
+HEARTLY_PUSH_WORKERS = int(
+    os.environ.get(
+        "HEARTLY_PUSH_WORKERS",
+        "4",
+    )
+)
+
 HEARTLY_ICE_SERVERS = [{"urls": "stun:stun.l.google.com:19302"}]
 HEARTLY_TURN_URLS = env_list("HEARTLY_TURN_URLS", "")
 HEARTLY_TURN_USERNAME = os.environ.get("HEARTLY_TURN_USERNAME", "").strip()

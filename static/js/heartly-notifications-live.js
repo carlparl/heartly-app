@@ -291,6 +291,27 @@
         fetchSnapshot();
     });
 
+    if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.addEventListener(
+            "message",
+            (event) => {
+                const data = event.data || {};
+
+                if (data.type === "heartly.push.received") {
+                    fetchSnapshot();
+                    window.dispatchEvent(
+                        new CustomEvent(
+                            "heartly:push-received",
+                            {
+                                detail: data.payload || {},
+                            }
+                        )
+                    );
+                }
+            }
+        );
+    }
+
     connect();
     fetchSnapshot();
     startPollingFallback();

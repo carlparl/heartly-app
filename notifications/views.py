@@ -343,13 +343,29 @@ def clear_all_notifications(request):
 @login_required
 @require_GET
 def push_config(request):
-    public_key = getattr(settings, "VAPID_PUBLIC_KEY", "")
+    public_key = getattr(
+        settings,
+        "VAPID_PUBLIC_KEY",
+        "",
+    )
+    enabled = bool(
+        public_key
+        and getattr(settings, "VAPID_PRIVATE_KEY", "")
+        and getattr(settings, "VAPID_SUBJECT", "")
+    )
+    subscription_count = (
+        PushSubscription.objects.filter(
+            user=request.user,
+            enabled=True,
+        ).count()
+    )
+
     return JsonResponse(
         {
-            "enabled": bool(
-                public_key and getattr(settings, "VAPID_PRIVATE_KEY", "")
-            ),
+            "enabled": enabled,
             "public_key": public_key,
+            "has_subscription": subscription_count > 0,
+            "subscription_count": subscription_count,
         }
     )
 
