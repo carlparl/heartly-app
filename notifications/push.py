@@ -69,6 +69,26 @@ def notification_open_url(notification):
     return f"/notifications/{notification.pk}/open/"
 
 
+def notification_dedupe_key(notification):
+    if (
+        notification.notification_type
+        in {
+            Notification.TYPE_CALL,
+            Notification.TYPE_MISSED_CALL,
+        }
+        and notification.related_object_id
+    ):
+        return (
+            f"heartly-call-"
+            f"{notification.related_object_id}"
+        )
+
+    return (
+        f"heartly-{notification.notification_type}-"
+        f"{notification.pk}"
+    )
+
+
 def notification_push_payload(notification):
     created_at = getattr(notification, "created_at", None)
     timestamp = (
@@ -89,9 +109,8 @@ def notification_push_payload(notification):
             or "You have a new Heartly update."
         )[:240],
         "url": notification_open_url(notification),
-        "tag": (
-            f"heartly-{notification.notification_type}-"
-            f"{notification.pk}"
+        "tag": notification_dedupe_key(
+            notification
         ),
         "icon": "/pwa/icon-192.png",
         "badge": "/pwa/icon-192.png",
@@ -149,7 +168,7 @@ def notification_urgency(notification):
 
 
 def notification_topic(notification):
-    return f"heartly-{notification.pk}"[:32]
+    return notification_dedupe_key(notification)[:32]
 
 
 def _status_code(exc):

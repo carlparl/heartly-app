@@ -1139,24 +1139,6 @@
 
 </div>
 
-{% if request.user.is_authenticated %}
-    <div id="globalIncomingCall" class="global-call-pop" hidden>
-        <div class="global-call-card">
-            <div class="global-call-avatar">📞</div>
-
-            <div>
-                <strong id="globalCallTitle">Incoming call</strong>
-                <p id="globalCallText">Someone is calling you.</p>
-            </div>
-
-            <div class="global-call-actions">
-                <button type="button" id="globalAcceptCall">Accept</button>
-                <button type="button" id="globalDeclineCall">Decline</button>
-            </div>
-        </div>
-    </div>
-{% endif %}
-
 <script>
     function applyHeartlyTheme(theme) {
         const normalizedTheme = theme === "dark" ? "dark" : "light";
@@ -1243,27 +1225,7 @@
 {% if request.user.is_authenticated %}
 <script>
     let globalNotificationSocket = null;
-    let activeGlobalCall = null;
-    let globalCallExpiryTimer = null;
-
-    function hideGlobalIncomingCall() {
-        const callBox = document.getElementById("globalIncomingCall");
-
-        if (window.HeartlyCallAudio) {
-            window.HeartlyCallAudio.stop();
-        }
-
-        if (globalCallExpiryTimer) {
-            clearTimeout(globalCallExpiryTimer);
-        }
-
-        globalCallExpiryTimer = null;
-        activeGlobalCall = null;
-
-        if (callBox) {
-            callBox.hidden = true;
-        }
-    }
+    let globalNotificationReconnectTimer = null;
 
     function playHeartlyNotificationCue() {
         if (navigator.vibrate) {
@@ -1282,8 +1244,14 @@
             oscillator.type = "sine";
             oscillator.frequency.setValueAtTime(740, context.currentTime);
             gain.gain.setValueAtTime(0.0001, context.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.12, context.currentTime + 0.015);
-            gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.16);
+            gain.gain.exponentialRampToValueAtTime(
+                0.12,
+                context.currentTime + 0.015
+            );
+            gain.gain.exponentialRampToValueAtTime(
+                0.0001,
+                context.currentTime + 0.16
+            );
             oscillator.connect(gain);
             gain.connect(context.destination);
             oscillator.start();
@@ -1292,17 +1260,25 @@
                 context.close();
             });
         } catch (error) {
-            // Some browsers require a recent interaction before playing sound.
+            // Some browsers require recent interaction before sound.
         }
     }
 
     function showHeartlyToast(type, title, message, url) {
         const toast = document.createElement("a");
         toast.href = url || "/";
-        toast.className = type === "match" ? "heartly-live-match-toast" : "heartly-feed-toast";
+        toast.className = (
+            type === "match"
+                ? "heartly-live-match-toast"
+                : "heartly-feed-toast"
+        );
 
         const icon = document.createElement("div");
-        icon.className = type === "match" ? "heartly-live-match-icon" : "heartly-feed-toast-icon";
+        icon.className = (
+            type === "match"
+                ? "heartly-live-match-icon"
+                : "heartly-feed-toast-icon"
+        );
         icon.textContent = type === "match" ? "💞" : "🔔";
 
         const copy = document.createElement("div");
@@ -1321,49 +1297,56 @@
         }, 6000);
     }
 
+    function scheduleGlobalNotificationReconnect() {
+        if (globalNotificationReconnectTimer) {
+            return;
+        }
+
+        globalNotificationReconnectTimer = setTimeout(
+            function () {
+                globalNotificationReconnectTimer = null;
+                openGlobalNotificationSocket();
+            },
+            1500
+        );
+    }
+
     function openGlobalNotificationSocket() {
         if (!window.WebSocket) {
             return;
         }
 
-        const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-        const socketUrl = protocol + "://" + window.location.host + "/ws/notifications/";
+        if (
+            globalNotificationSocket &&
+            (
+                globalNotificationSocket.readyState === WebSocket.OPEN ||
+                globalNotificationSocket.readyState === WebSocket.CONNECTING
+            )
+        ) {
+            return;
+        }
+
+        const protocol = (
+            window.location.protocol === "https:"
+                ? "wss"
+                : "ws"
+        );
+        const socketUrl = (
+            protocol +
+            "://" +
+            window.location.host +
+            "/ws/notifications/"
+        );
 
         globalNotificationSocket = new WebSocket(socketUrl);
 
         globalNotificationSocket.onmessage = function (event) {
-            const data = JSON.parse(event.data);
+            let data = null;
 
-            if (data.type === "incoming_call") {
-                activeGlobalCall = data;
-
-                const titleEl = document.getElementById("globalCallTitle");
-                const textEl = document.getElementById("globalCallText");
-                const callBox = document.getElementById("globalIncomingCall");
-
-                if (titleEl) {
-                    titleEl.textContent = data.call_type === "video" ? "Incoming video call" : "Incoming audio call";
-                }
-
-                if (textEl) {
-                    textEl.textContent = (data.caller_name || "Someone") + " is calling you.";
-                }
-
-                if (callBox) {
-                    callBox.hidden = false;
-                }
-
-                if (window.HeartlyCallAudio) {
-                    window.HeartlyCallAudio.start();
-                }
-
-                if (globalCallExpiryTimer) {
-                    clearTimeout(globalCallExpiryTimer);
-                }
-                globalCallExpiryTimer = setTimeout(
-                    hideGlobalIncomingCall,
-                    45000
-                );
+            try {
+                data = JSON.parse(event.data);
+            } catch (error) {
+                return;
             }
 
             if (data.type === "feed_notification") {
@@ -1384,65 +1367,46 @@
                 );
             }
 
-            if (data.type === "notification.created" && data.notification) {
+            if (
+                data.type === "notification.created" &&
+                data.notification
+            ) {
                 const item = data.notification;
-                showHeartlyToast(
-                    item.type === "match" ? "match" : "feed",
-                    item.title || "Heartly update",
-                    item.message || "You have a new notification.",
-                    item.open_url || item.url || "/notifications/"
-                );
-            }
+                const callTypes = ["call", "missed_call"];
 
-            if ([
-                "call_accepted",
-                "call_declined",
-                "call_ended",
-                "missed_call",
-                "call.accepted",
-                "call.declined",
-                "call.ended",
-                "call.missed"
-            ].includes(data.type)) {
-                hideGlobalIncomingCall();
+                /*
+                 * Calls use the dedicated global call listener.
+                 * Never create a second generic toast for them.
+                 */
+                if (!callTypes.includes(item.type)) {
+                    showHeartlyToast(
+                        item.type === "match" ? "match" : "feed",
+                        item.title || "Heartly update",
+                        item.message || "You have a new notification.",
+                        item.open_url || item.url || "/notifications/"
+                    );
+                }
             }
         };
 
         globalNotificationSocket.onclose = function () {
-            setTimeout(openGlobalNotificationSocket, 1500);
+            globalNotificationSocket = null;
+            scheduleGlobalNotificationReconnect();
+        };
+
+        globalNotificationSocket.onerror = function () {
+            try {
+                globalNotificationSocket.close();
+            } catch (error) {}
         };
     }
 
     document.addEventListener("DOMContentLoaded", function () {
         openGlobalNotificationSocket();
+    });
 
-        const acceptBtn = document.getElementById("globalAcceptCall");
-        const declineBtn = document.getElementById("globalDeclineCall");
-
-        if (acceptBtn) {
-            acceptBtn.addEventListener("click", function () {
-                const acceptUrl = activeGlobalCall && activeGlobalCall.accept_url;
-                hideGlobalIncomingCall();
-
-                if (acceptUrl) {
-                    window.location.href = acceptUrl;
-                }
-            });
-        }
-
-        if (declineBtn) {
-            declineBtn.addEventListener("click", function () {
-                if (activeGlobalCall && globalNotificationSocket) {
-                    globalNotificationSocket.send(JSON.stringify({
-                        type: "call.decline",
-                        call_id: activeGlobalCall.call_id,
-                        thread_id: activeGlobalCall.thread_id
-                    }));
-                }
-
-                hideGlobalIncomingCall();
-            });
-        }
+    window.addEventListener("online", function () {
+        openGlobalNotificationSocket();
     });
 </script>
 {% endif %}

@@ -179,6 +179,24 @@
       return;
     }
 
+    const sameIncomingCallVisible = Boolean(
+      payload.call_id &&
+      activeCall &&
+      activeCallMatches(payload.call_id) &&
+      toast &&
+      !toast.hidden
+    );
+
+    if (sameIncomingCallVisible) {
+      /*
+       * The active-call recovery query and the live broadcast can
+       * deliver the same call within milliseconds. Refresh the
+       * payload without restarting the ringtone or popup.
+       */
+      activeCall = Object.assign({}, activeCall, payload);
+      return;
+    }
+
     activeCall = payload;
     const caller =
       payload.caller_name || "Heartly User";

@@ -5,6 +5,7 @@
   const SUBSCRIBE_URL = "/notifications/push/subscribe/";
   const UNSUBSCRIBE_URL = "/notifications/push/unsubscribe/";
   const DEFER_KEY = "heartlyPushPromptDeferredUntil";
+  const INSTALLATION_KEY = "heartlyPushInstallationId";
   const WEEK = 7 * 24 * 60 * 60 * 1000;
 
   let currentConfig = null;
@@ -19,6 +20,35 @@
     return item
       ? decodeURIComponent(item.slice(name.length + 1))
       : "";
+  }
+
+  function getInstallationId() {
+    let value = localStorage.getItem(INSTALLATION_KEY);
+
+    if (
+      value &&
+      /^[A-Za-z0-9_-]{16,80}$/.test(value)
+    ) {
+      return value;
+    }
+
+    if (
+      window.crypto &&
+      typeof window.crypto.randomUUID === "function"
+    ) {
+      value = window.crypto
+        .randomUUID()
+        .replace(/-/g, "");
+    } else {
+      value = (
+        Date.now().toString(36) +
+        Math.random().toString(36).slice(2) +
+        Math.random().toString(36).slice(2)
+      ).slice(0, 48);
+    }
+
+    localStorage.setItem(INSTALLATION_KEY, value);
+    return value;
   }
 
   function base64ToUint8Array(value) {
@@ -127,9 +157,12 @@
   }
 
   async function saveSubscription(subscription) {
+    const payload = subscription.toJSON();
+    payload.installation_id = getInstallationId();
+
     await postJson(
       SUBSCRIBE_URL,
-      subscription.toJSON()
+      payload
     );
   }
 

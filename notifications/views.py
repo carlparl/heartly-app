@@ -1,4 +1,5 @@
 import json
+import re
 import secrets
 from urllib.parse import urlparse
 
@@ -8,6 +9,7 @@ from django.contrib.auth.decorators import login_required
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
+from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -409,18 +411,74 @@ def push_subscribe(request):
             status=400,
         )
 
-    subscription, created = PushSubscription.objects.update_or_create(
-        endpoint=endpoint,
-        defaults={
-            "user": request.user,
-            "p256dh": p256dh,
-            "auth": auth,
-            "user_agent": request.headers.get("user-agent", "")[:500],
-            "enabled": True,
-        },
+    installation_id = str(
+        payload.get("installation_id") or ""
+    ).strip()
+    if not re.fullmatch(
+        r"[A-Za-z0-9_-]{16,80}",
+        installation_id,
+    ):
+        installation_id = ""
+
+    raw_user_agent = request.headers.get(
+        "user-agent",
+        "",
+    )[:420]
+    installation_marker = (
+        f"heartly-installation:{installation_id}"
+        if installation_id
+        else ""
     )
+    stored_user_agent = raw_user_agent
+    if installation_marker:
+        stored_user_agent = (
+            f"{raw_user_agent} | {installation_marker}"
+        )[:500]
+
+    with transaction.atomic():
+        duplicate_query = Q(user_agent=raw_user_agent)
+        if raw_user_agent:
+            duplicate_query |= Q(
+                user_agent__startswith=(
+                    raw_user_agent
+                    + " | heartly-installation:"
+                )
+            )
+        if installation_marker:
+            duplicate_query |= Q(
+                user_agent__endswith=installation_marker
+            )
+
+        removed_duplicates, _ = (
+            PushSubscription.objects
+            .filter(
+                user=request.user,
+            )
+            .exclude(endpoint=endpoint)
+            .filter(duplicate_query)
+            .delete()
+        )
+
+        subscription, created = (
+            PushSubscription.objects.update_or_create(
+                endpoint=endpoint,
+                defaults={
+                    "user": request.user,
+                    "p256dh": p256dh,
+                    "auth": auth,
+                    "user_agent": stored_user_agent,
+                    "enabled": True,
+                },
+            )
+        )
+
     return JsonResponse(
-        {"ok": True, "created": created, "subscription_id": subscription.id}
+        {
+            "ok": True,
+            "created": created,
+            "subscription_id": subscription.id,
+            "removed_duplicates": removed_duplicates,
+        }
     )
 
 
