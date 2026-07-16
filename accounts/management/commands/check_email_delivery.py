@@ -67,6 +67,35 @@ class Command(BaseCommand):
                     + ", ".join(missing)
                 )
 
+        if backend.endswith("BrevoAPIEmailBackend"):
+            api_key = getattr(settings, "BREVO_API_KEY", "")
+            sender_email = getattr(settings, "BREVO_SENDER_EMAIL", "")
+            sender_name = getattr(settings, "BREVO_SENDER_NAME", "")
+            api_url = getattr(settings, "BREVO_API_URL", "")
+
+            self.stdout.write(
+                f"Brevo API key configured: {bool(api_key)}"
+            )
+            self.stdout.write(
+                f"Brevo sender email configured: {bool(sender_email)}"
+            )
+            self.stdout.write(f"Brevo sender name: {sender_name}")
+            self.stdout.write(f"Brevo endpoint: {api_url}")
+
+            missing = []
+            if not api_key:
+                missing.append("BREVO_API_KEY")
+            if not sender_email:
+                missing.append("BREVO_SENDER_EMAIL")
+            if not api_url:
+                missing.append("BREVO_API_URL")
+
+            if missing:
+                raise CommandError(
+                    "Brevo API email configuration is incomplete. Missing: "
+                    + ", ".join(missing)
+                )
+
         if not should_send:
             self.stdout.write(
                 self.style.SUCCESS(

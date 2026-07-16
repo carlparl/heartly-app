@@ -56,3 +56,16 @@ class EmailDeliveryCommandTests(SimpleTestCase):
             "SMTP configuration is incomplete",
         ):
             call_command("check_email_delivery")
+
+    @override_settings(
+        EMAIL_BACKEND="heartly.email_backends.BrevoAPIEmailBackend",
+        BREVO_API_KEY="",
+        BREVO_SENDER_EMAIL="",
+        BREVO_API_URL="https://api.brevo.com/v3/smtp/email",
+    )
+    def test_incomplete_brevo_configuration_fails(self):
+        with self.assertRaisesMessage(
+            CommandError,
+            "Brevo API email configuration is incomplete",
+        ):
+            call_command("check_email_delivery")

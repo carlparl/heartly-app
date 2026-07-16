@@ -462,6 +462,36 @@ EMAIL_TIMEOUT = int(
     )
 )
 
+BREVO_API_KEY = os.environ.get(
+    "BREVO_API_KEY",
+    "",
+).strip()
+BREVO_SENDER_EMAIL = os.environ.get(
+    "BREVO_SENDER_EMAIL",
+    "",
+).strip()
+BREVO_SENDER_NAME = (
+    os.environ.get(
+        "BREVO_SENDER_NAME",
+        "Heartly",
+    ).strip()
+    or "Heartly"
+)
+BREVO_API_URL = os.environ.get(
+    "BREVO_API_URL",
+    "https://api.brevo.com/v3/smtp/email",
+).strip()
+BREVO_API_TIMEOUT = max(
+    1,
+    int(
+        os.environ.get(
+            "BREVO_API_TIMEOUT",
+            "20",
+        )
+    ),
+)
+
+
 if EMAIL_USE_TLS and EMAIL_USE_SSL:
     raise RuntimeError(
         "DJANGO_EMAIL_USE_TLS and DJANGO_EMAIL_USE_SSL "
