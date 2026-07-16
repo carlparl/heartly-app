@@ -29,3 +29,5 @@ Thumbs.db
 heartly-render-backup.json
 .env.render-backup
 db.sqlite3.backup
+
+.heartly-backups/
