@@ -1,6 +1,8 @@
 from django.conf import settings
-from notifications.models import Notification
-from notifications.services import notify, notify_once
+from notifications.activity import (
+    notify_post_comment,
+    notify_post_like,
+)
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
@@ -592,25 +594,11 @@ def like_post(request, post_id):
         reaction.reaction_type = reaction_type
         reaction.save(update_fields=["reaction_type"])
 
-    if post.author_id != request.user.id:
-        notification_filter = {
-            "recipient_id": post.author_id,
-            "actor": request.user,
-            "notification_type": Notification.TYPE_LIKE,
-            "related_object_type": "feed.post",
-            "related_object_id": post.id,
-        }
-        if reacted:
-            Notification.objects.get_or_create(
-                **notification_filter,
-                defaults={
-                    "title": f"{username_for(request.user)} liked your post"[:120],
-                    "message": "Tap to view your post.",
-                    "url": reverse("feed:feed_home"),
-                },
-            )
-        else:
-            Notification.objects.filter(**notification_filter).delete()
+    notify_post_like(
+        post,
+        request.user,
+        reacted,
+    )
 
     post = decorate_post(post, request.user)
 
@@ -676,6 +664,7 @@ def comment_post(request, post_id):
         parent=parent,
         content=content,
     )
+    notify_post_comment(comment)
 
     post = decorate_post(post, request.user)
 
@@ -700,7 +689,13 @@ def reply_comment(request, comment_id):
     if not content:
         return respond_error(request, "Reply cannot be empty.")
 
-    reply = Comment.objects.create(post=post, user=request.user, parent=parent, content=content)
+    reply = Comment.objects.create(
+        post=post,
+        user=request.user,
+        parent=parent,
+        content=content,
+    )
+    notify_post_comment(reply)
     post = decorate_post(post, request.user)
 
     if wants_json(request):

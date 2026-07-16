@@ -20,6 +20,11 @@ from profiles.identity import (
 )
 from profiles.models import Profile
 
+from notifications.activity import (
+    notify_mutual_match,
+    notify_profile_like,
+)
+
 from .models import MatchAction, MutualMatch
 
 
@@ -504,6 +509,7 @@ def swipe(request, user_id, action):
 
     matched = False
     match_created = False
+    match = None
 
     with transaction.atomic():
         MatchAction.objects.update_or_create(
@@ -529,8 +535,22 @@ def swipe(request, user_id, action):
                 )
                 matched = match is not None
 
+    if action == MatchAction.LIKE:
+        notify_profile_like(
+            request.user,
+            target_user,
+            active=not match_created,
+        )
+    else:
+        notify_profile_like(
+            request.user,
+            target_user,
+            active=False,
+        )
+
     if match_created:
-        notify_new_match(
+        notify_mutual_match(
+            match,
             request.user,
             target_user,
         )

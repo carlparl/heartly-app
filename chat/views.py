@@ -35,6 +35,12 @@ except Exception:
 from matches.models import MutualMatch
 from profiles.models import Profile, UserBlock
 
+from notifications.activity import (
+    mark_thread_message_notifications_read,
+    notify_chat_message,
+    notify_chat_report,
+)
+
 from .models import (
     CallSession,
     ChatAttachment,
@@ -705,7 +711,18 @@ def chat_room(request, thread_id):
         messages.error(request, "This chat is no longer available.")
         return redirect("chat:chat_home")
 
-    ChatMessage.objects.filter(thread=thread, is_read=False).exclude(sender=request.user).update(is_read=True)
+    ChatMessage.objects.filter(
+        thread=thread,
+        is_read=False,
+    ).exclude(
+        sender=request.user,
+    ).update(
+        is_read=True,
+    )
+    mark_thread_message_notifications_read(
+        thread,
+        request.user,
+    )
 
     chat_messages = list(
         thread.messages
@@ -1094,7 +1111,7 @@ def send_message(request, thread_id):
     )
 
     if created_message:
-        create_message_notification(message)
+        notify_chat_message(message)
         broadcast_message(message)
 
     if wants_json(request):
@@ -1486,7 +1503,7 @@ def report_thread_user(request, thread_id):
         details=details,
     )
 
-    create_chat_report_staff_alert(report)
+    notify_chat_report(report)
 
     if wants_json(request):
         return json_success(message="Chat reported.")
