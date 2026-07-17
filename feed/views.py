@@ -2,12 +2,13 @@ from django.conf import settings
 from notifications.activity import (
     notify_post_comment,
     notify_post_like,
+    notify_story_reaction,
 )
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db import IntegrityError, transaction
-from django.db.models import Prefetch
+from django.db.models import Count, Prefetch
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
@@ -18,11 +19,25 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 from profiles.blocking import hidden_user_ids_for
 
 from .forms import EditPostForm, PostForm, StoryForm
-from .models import Comment, CommentReaction, Post, PostLike, PostSave, Story, StoryView
+from .models import (
+    Comment,
+    CommentReaction,
+    Post,
+    PostLike,
+    PostSave,
+    Story,
+    StoryReaction,
+    StoryView,
+)
 
 
 POSTS_PER_PAGE = 12
 VALID_REACTIONS = {"like", "love", "funny", "cute", "support", "wow"}
+STORY_REACTION_EMOJIS = {
+    StoryReaction.REACTION_LOVE: "❤️",
+    StoryReaction.REACTION_LAUGH: "😂",
+    StoryReaction.REACTION_WOW: "😮",
+}
 
 
 def clean_reaction_type(value):
@@ -266,9 +281,61 @@ def visible_active_stories(viewer):
     return queryset
 
 
-def decorate_story(story):
+def decorate_story(
+    story,
+    viewer=None,
+    *,
+    include_reactions=False,
+):
     decorate_user_identity(story, story.author)
-    story.media_url = _safe_file_url(story.video or story.image)
+    story.media_url = _safe_file_url(
+        story.video or story.image
+    )
+    story.viewer_reaction = ""
+    story.reaction_counts = {
+        reaction_type: 0
+        for reaction_type
+        in STORY_REACTION_EMOJIS
+    }
+    story.reaction_total = 0
+
+    if include_reactions:
+        rows = (
+            story.reactions
+            .values("reaction_type")
+            .annotate(total=Count("id"))
+        )
+
+        for row in rows:
+            reaction_type = row["reaction_type"]
+
+            if (
+                reaction_type
+                in story.reaction_counts
+            ):
+                story.reaction_counts[
+                    reaction_type
+                ] = row["total"]
+
+        story.reaction_total = sum(
+            story.reaction_counts.values()
+        )
+
+        if (
+            viewer is not None
+            and viewer.is_authenticated
+        ):
+            reaction = (
+                story.reactions
+                .filter(user=viewer)
+                .first()
+            )
+
+            if reaction is not None:
+                story.viewer_reaction = (
+                    reaction.reaction_type
+                )
+
     return story
 
 
@@ -431,6 +498,85 @@ def toggle_post_reaction(
     return False
 
 
+def set_story_reaction(
+    *,
+    story,
+    user,
+    reaction_type,
+):
+    for attempt in range(2):
+        try:
+            with transaction.atomic():
+                reaction = (
+                    StoryReaction.objects
+                    .select_for_update()
+                    .filter(
+                        story=story,
+                        user=user,
+                    )
+                    .first()
+                )
+
+                if reaction is None:
+                    reaction = (
+                        StoryReaction.objects
+                        .create(
+                            story=story,
+                            user=user,
+                            reaction_type=(
+                                reaction_type
+                            ),
+                        )
+                    )
+                    return reaction, True
+
+                if (
+                    reaction.reaction_type
+                    == reaction_type
+                ):
+                    return reaction, False
+
+                reaction.reaction_type = (
+                    reaction_type
+                )
+                reaction.save(
+                    update_fields=[
+                        "reaction_type",
+                        "updated_at",
+                    ]
+                )
+                return reaction, True
+        except IntegrityError:
+            if attempt == 1:
+                raise
+
+    raise IntegrityError(
+        "Story reaction could not be saved."
+    )
+
+
+def story_reaction_counts(story):
+    counts = {
+        reaction_type: 0
+        for reaction_type
+        in STORY_REACTION_EMOJIS
+    }
+
+    rows = (
+        story.reactions
+        .values("reaction_type")
+        .annotate(total=Count("id"))
+    )
+
+    for row in rows:
+        reaction_type = row["reaction_type"]
+
+        if reaction_type in counts:
+            counts[reaction_type] = row["total"]
+
+    return counts
+
+
 def toggle_saved_post(*, post, user):
     for attempt in range(2):
         try:
@@ -577,7 +723,11 @@ def story_detail(request, story_id):
         visible_active_stories(request.user),
         id=story_id,
     )
-    decorate_story(story)
+    decorate_story(
+        story,
+        request.user,
+        include_reactions=True,
+    )
 
     if story.author_id != request.user.id:
         StoryView.objects.get_or_create(
@@ -635,6 +785,70 @@ def story_detail(request, story_id):
             "story_total": story_total,
             "story_viewers": viewers,
         },
+    )
+
+
+@login_required
+@require_POST
+def react_story(request, story_id):
+    story = get_object_or_404(
+        visible_active_stories(request.user),
+        id=story_id,
+    )
+
+    if story.author_id == request.user.id:
+        return json_error(
+            "You cannot react to your own Story.",
+            status=400,
+        )
+
+    reaction_type = (
+        request.POST.get("reaction_type")
+        or ""
+    ).strip().lower()
+
+    if (
+        reaction_type
+        not in STORY_REACTION_EMOJIS
+    ):
+        return json_error(
+            "Choose a valid Story reaction.",
+            status=400,
+        )
+
+    reaction, changed = set_story_reaction(
+        story=story,
+        user=request.user,
+        reaction_type=reaction_type,
+    )
+
+    if changed:
+        notify_story_reaction(
+            story,
+            request.user,
+            emoji=STORY_REACTION_EMOJIS[
+                reaction.reaction_type
+            ],
+        )
+
+    counts = story_reaction_counts(story)
+
+    if wants_json(request):
+        return json_success(
+            story_id=story.id,
+            reaction_type=(
+                reaction.reaction_type
+            ),
+            reaction_counts=counts,
+            reaction_total=sum(
+                counts.values()
+            ),
+            changed=changed,
+        )
+
+    return redirect(
+        "feed:story_detail",
+        story_id=story.id,
     )
 
 

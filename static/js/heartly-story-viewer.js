@@ -45,6 +45,7 @@
   let hiddenPausedVideo = false;
   let holdPausedVideo = false;
   let holdPausedTimer = false;
+  let externalPauseDepth = 0;
   let lastVideoProgress = 0;
 
   function clamp(value, minimum, maximum) {
@@ -103,6 +104,14 @@
     document.removeEventListener(
       "visibilitychange",
       handleVisibilityChange
+    );
+    document.removeEventListener(
+      "heartly:story-interaction-start",
+      pauseForExternalInteraction
+    );
+    document.removeEventListener(
+      "heartly:story-interaction-end",
+      resumeAfterExternalInteraction
     );
   }
 
@@ -469,6 +478,24 @@
     }
   }
 
+  function pauseForExternalInteraction() {
+    externalPauseDepth += 1;
+
+    if (externalPauseDepth === 1) {
+      holdPlayback();
+    }
+  }
+
+  function resumeAfterExternalInteraction() {
+    if (externalPauseDepth <= 0) return;
+
+    externalPauseDepth -= 1;
+
+    if (externalPauseDepth === 0) {
+      releasePlayback();
+    }
+  }
+
   function isInteractiveTarget(target) {
     return Boolean(
       target &&
@@ -491,6 +518,16 @@
   document.addEventListener(
     "visibilitychange",
     handleVisibilityChange
+  );
+
+  document.addEventListener(
+    "heartly:story-interaction-start",
+    pauseForExternalInteraction
+  );
+
+  document.addEventListener(
+    "heartly:story-interaction-end",
+    resumeAfterExternalInteraction
   );
 
   window.addEventListener(

@@ -349,6 +349,74 @@ class Story(models.Model):
         return f"Story by {self.author} - {self.created_at:%Y-%m-%d %H:%M}"
 
 
+class StoryReaction(models.Model):
+    REACTION_LOVE = "love"
+    REACTION_LAUGH = "laugh"
+    REACTION_WOW = "wow"
+
+    REACTION_CHOICES = [
+        (REACTION_LOVE, "Love"),
+        (REACTION_LAUGH, "Laugh"),
+        (REACTION_WOW, "Wow"),
+    ]
+
+    story = models.ForeignKey(
+        Story,
+        on_delete=models.CASCADE,
+        related_name="reactions",
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="story_reactions",
+    )
+    reaction_type = models.CharField(
+        max_length=20,
+        choices=REACTION_CHOICES,
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+    )
+
+    class Meta:
+        ordering = ["-updated_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["story", "user"],
+                name=(
+                    "unique_story_reaction_per_user"
+                ),
+            )
+        ]
+        indexes = [
+            models.Index(
+                fields=[
+                    "story",
+                    "reaction_type",
+                ],
+                name=(
+                    "feed_storyr_story_type_idx"
+                ),
+            ),
+            models.Index(
+                fields=["user", "updated_at"],
+                name=(
+                    "feed_storyr_user_time_idx"
+                ),
+            ),
+        ]
+
+    def __str__(self):
+        return (
+            f"{self.user} reacted "
+            f"{self.reaction_type} to "
+            f"story {self.story_id}"
+        )
+
+
 class StoryView(models.Model):
     story = models.ForeignKey(
         Story,

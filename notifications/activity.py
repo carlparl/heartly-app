@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from django.contrib.auth import get_user_model
+from django.db import transaction
 from django.urls import reverse
 
 from .models import Notification
@@ -49,6 +50,80 @@ def notify_post_like(post, actor, active):
         related_object_type="feed.post",
         related_object_id=post.id,
     )
+
+
+def notify_story_reaction(
+    story,
+    actor,
+    *,
+    emoji,
+):
+    if (
+        story is None
+        or actor is None
+        or story.author_id == actor.id
+    ):
+        return None
+
+    title = (
+        f"{display_name_for(actor)} "
+        f"reacted {emoji} to your Story"
+    )[:120]
+    message = "Tap to view your Story."
+    url = reverse(
+        "feed:story_detail",
+        args=[story.id],
+    )
+    lookup = {
+        "recipient": story.author,
+        "actor": actor,
+        "notification_type": (
+            Notification.TYPE_LIKE
+        ),
+        "related_object_type": (
+            "feed.story_reaction"
+        ),
+        "related_object_id": story.id,
+        "is_resolved": False,
+    }
+
+    with transaction.atomic():
+        existing = (
+            Notification.objects
+            .select_for_update()
+            .filter(**lookup)
+            .order_by("-created_at")
+            .first()
+        )
+
+        if existing is not None:
+            (
+                Notification.objects
+                .filter(pk=existing.pk)
+                .update(
+                    title=title,
+                    message=message,
+                    url=url,
+                    is_read=False,
+                )
+            )
+            existing.refresh_from_db()
+            return existing
+
+        return notify_once(
+            recipient=story.author,
+            actor=actor,
+            notification_type=(
+                Notification.TYPE_LIKE
+            ),
+            title=title,
+            message=message,
+            url=url,
+            related_object_type=(
+                "feed.story_reaction"
+            ),
+            related_object_id=story.id,
+        )
 
 
 def notify_post_comment(comment):

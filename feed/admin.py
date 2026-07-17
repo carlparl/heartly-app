@@ -2,7 +2,14 @@ from django.contrib import admin
 
 from django.utils import timezone
 
-from .models import Comment, Post, PostLike, Story, StoryView
+from .models import (
+    Comment,
+    Post,
+    PostLike,
+    Story,
+    StoryReaction,
+    StoryView,
+)
 
 
 @admin.register(Post)
@@ -114,6 +121,41 @@ class StoryAdmin(admin.ModelAdmin):
     @admin.action(description="Delete selected expired Stories")
     def delete_expired_stories(self, request, queryset):
         queryset.filter(expires_at__lte=timezone.now()).delete()
+
+
+@admin.register(StoryReaction)
+class StoryReactionAdmin(admin.ModelAdmin):
+    list_display = (
+        "story",
+        "user",
+        "reaction_type",
+        "updated_at",
+    )
+    list_filter = (
+        "reaction_type",
+        "updated_at",
+    )
+    search_fields = (
+        "story__author__username",
+        "story__author__email",
+        "user__username",
+        "user__email",
+    )
+    ordering = ("-updated_at",)
+    list_select_related = (
+        "story",
+        "user",
+    )
+    readonly_fields = (
+        "story",
+        "user",
+        "reaction_type",
+        "created_at",
+        "updated_at",
+    )
+
+    def has_add_permission(self, request):
+        return False
 
 
 @admin.register(StoryView)

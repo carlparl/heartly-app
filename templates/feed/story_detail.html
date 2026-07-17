@@ -95,6 +95,78 @@
             <p class="story-caption">{{ story.caption }}</p>
         {% endif %}
 
+        {% if story.author_id != request.user.id %}
+            <form
+                method="post"
+                action="{% url 'feed:react_story' story.id %}"
+                class="story-reaction-form"
+                data-story-reaction-form
+            >
+                {% csrf_token %}
+                <span class="story-reaction-label">
+                    React
+                </span>
+
+                <div class="story-reaction-buttons">
+                    <button
+                        type="submit"
+                        name="reaction_type"
+                        value="love"
+                        data-story-reaction-button
+                        class="{% if story.viewer_reaction == 'love' %}is-active{% endif %}"
+                        aria-label="React with love"
+                        aria-pressed="{% if story.viewer_reaction == 'love' %}true{% else %}false{% endif %}"
+                    >❤️</button>
+
+                    <button
+                        type="submit"
+                        name="reaction_type"
+                        value="laugh"
+                        data-story-reaction-button
+                        class="{% if story.viewer_reaction == 'laugh' %}is-active{% endif %}"
+                        aria-label="React with laughter"
+                        aria-pressed="{% if story.viewer_reaction == 'laugh' %}true{% else %}false{% endif %}"
+                    >😂</button>
+
+                    <button
+                        type="submit"
+                        name="reaction_type"
+                        value="wow"
+                        data-story-reaction-button
+                        class="{% if story.viewer_reaction == 'wow' %}is-active{% endif %}"
+                        aria-label="React with surprise"
+                        aria-pressed="{% if story.viewer_reaction == 'wow' %}true{% else %}false{% endif %}"
+                    >😮</button>
+                </div>
+
+                <p
+                    class="story-reaction-status"
+                    data-story-reaction-status
+                    role="status"
+                    hidden
+                ></p>
+            </form>
+        {% else %}
+            <section
+                class="story-reaction-summary"
+                aria-label="Story reaction totals"
+            >
+                <strong>
+                    {{ story.reaction_total }}
+                    reaction{{ story.reaction_total|pluralize }}
+                </strong>
+                <span>
+                    ❤️ {{ story.reaction_counts.love }}
+                </span>
+                <span>
+                    😂 {{ story.reaction_counts.laugh }}
+                </span>
+                <span>
+                    😮 {{ story.reaction_counts.wow }}
+                </span>
+            </section>
+        {% endif %}
+
         {% if story.author_id == request.user.id %}
             <details class="story-viewers-panel">
                 <summary>👁 {{ story_viewers|length }} viewer{{ story_viewers|length|pluralize }}</summary>
@@ -115,8 +187,6 @@
                     {% endfor %}
                 </div>
             </details>
-        {% else %}
-            <p class="story-read-only">Story updates are view-only.</p>
         {% endif %}
     </footer>
 </main>
@@ -323,11 +393,96 @@
     overflow-wrap: anywhere;
 }
 
-.story-read-only {
-    margin: 0;
-    color: rgba(255, 255, 255, .64);
+.story-reaction-form,
+.story-reaction-summary {
+    width: min(100%, 460px);
+    margin: 0 auto 10px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, .12);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.story-reaction-form {
+    padding: 9px 12px;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 9px 12px;
+}
+
+.story-reaction-label {
+    color: rgba(255, 255, 255, .74);
     font-size: 11px;
+    font-weight: 900;
+}
+
+.story-reaction-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 9px;
+}
+
+.story-reaction-buttons button {
+    width: 42px;
+    height: 42px;
+    display: grid;
+    place-items: center;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .12);
+    font: inherit;
+    font-size: 21px;
+    line-height: 1;
+    cursor: pointer;
+    transition:
+        transform .14s ease,
+        background .14s ease,
+        border-color .14s ease;
+}
+
+.story-reaction-buttons button.is-active {
+    border-color: rgba(255, 255, 255, .88);
+    background: rgba(255, 255, 255, .28);
+    transform: scale(1.08);
+}
+
+.story-reaction-buttons button:disabled {
+    cursor: wait;
+    opacity: .66;
+}
+
+.story-reaction-status {
+    grid-column: 1 / -1;
+    margin: 0;
+    color: #fecaca;
+    font-size: 10px;
+    font-weight: 850;
     text-align: center;
+}
+
+.story-reaction-status[hidden] {
+    display: none;
+}
+
+.story-reaction-summary {
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    font-size: 12px;
+}
+
+.story-reaction-summary strong {
+    width: 100%;
+    text-align: center;
+    font-size: 11px;
+}
+
+.story-reaction-summary span {
+    font-weight: 900;
 }
 
 .story-viewers-panel {
@@ -387,4 +542,5 @@
 
 {% block extra_js %}
 <script src="{% static 'js/heartly-story-viewer.js' %}"></script>
+<script src="{% static 'js/heartly-story-reactions.js' %}"></script>
 {% endblock %}
