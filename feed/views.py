@@ -290,6 +290,8 @@ def story_groups_for(viewer):
             groups[story.author_id] = {
                 "author_id": story.author_id,
                 "latest_story": story,
+                "entry_story": story,
+                "stories": [],
                 "story_count": 0,
                 "has_unseen": False,
                 "is_owner": story.author_id == viewer.id,
@@ -297,8 +299,13 @@ def story_groups_for(viewer):
             order.append(story.author_id)
 
         group = groups[story.author_id]
+        group["stories"].append(story)
         group["story_count"] += 1
-        if story.author_id != viewer.id and story.id not in seen_ids:
+
+        if (
+            story.author_id != viewer.id
+            and story.id not in seen_ids
+        ):
             group["has_unseen"] = True
 
     order.sort(
@@ -308,7 +315,44 @@ def story_groups_for(viewer):
         ),
         reverse=True,
     )
-    return [groups[author_id] for author_id in order]
+
+    ordered_groups = []
+
+    for author_id in order:
+        group = groups[author_id]
+        group["stories"].sort(
+            key=lambda item: (
+                item.created_at,
+                item.id,
+            )
+        )
+
+        unseen_stories = [
+            item
+            for item in group["stories"]
+            if (
+                item.author_id == viewer.id
+                or item.id not in seen_ids
+            )
+        ]
+
+        group["entry_story"] = (
+            unseen_stories[0]
+            if unseen_stories
+            else group["stories"][0]
+        )
+        ordered_groups.append(group)
+
+    return ordered_groups
+
+
+def story_playlist_for(viewer):
+    playlist = []
+
+    for group in story_groups_for(viewer):
+        playlist.extend(group["stories"])
+
+    return playlist
 
 
 def render_post_card(request, post):
@@ -541,23 +585,27 @@ def story_detail(request, story_id):
             viewer=request.user,
         )
 
-    author_stories = list(
-        visible_active_stories(request.user)
-        .filter(author_id=story.author_id)
-        .order_by("created_at")
-        .values_list("id", flat=True)
+    story_playlist = story_playlist_for(
+        request.user
     )
-    current_index = author_stories.index(story.id)
+    story_ids = [
+        playlist_story.id
+        for playlist_story in story_playlist
+    ]
+    current_index = story_ids.index(story.id)
+
     previous_story_id = (
-        author_stories[current_index - 1]
+        story_ids[current_index - 1]
         if current_index > 0
         else None
     )
     next_story_id = (
-        author_stories[current_index + 1]
-        if current_index + 1 < len(author_stories)
+        story_ids[current_index + 1]
+        if current_index + 1 < len(story_ids)
         else None
     )
+    story_position = current_index + 1
+    story_total = len(story_ids)
 
     viewers = []
     if story.author_id == request.user.id:
@@ -583,6 +631,8 @@ def story_detail(request, story_id):
             "story": story,
             "previous_story_id": previous_story_id,
             "next_story_id": next_story_id,
+            "story_position": story_position,
+            "story_total": story_total,
             "story_viewers": viewers,
         },
     )

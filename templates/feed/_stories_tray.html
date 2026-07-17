@@ -22,7 +22,7 @@
 
         {% for group in story_groups %}
             <a
-                href="{% url 'feed:story_detail' group.latest_story.id %}"
+                href="{% url 'feed:story_detail' group.entry_story.id %}"
                 class="story-tray-item"
                 aria-label="Open {{ group.latest_story.display_name }}'s Story"
             >
