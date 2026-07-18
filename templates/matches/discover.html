@@ -72,8 +72,8 @@
                 <article class="discover-card">
 
                     <a href="{% url 'profiles:public_profile' profile.user.id %}" class="discover-photo">
-                        {% if profile.profile_picture %}
-                            <img src="{{ profile.profile_picture.url }}" alt="{% if profile.display_name %}{{ profile.display_name }}{% else %}{{ profile.user.username }}{% endif %}" loading="lazy">
+                        {% if profile.primary_photo_url %}
+                            <img src="{{ profile.primary_photo_url }}" alt="{% if profile.display_name %}{{ profile.display_name }}{% else %}{{ profile.user.username }}{% endif %}" loading="lazy">
                         {% else %}
                             <div class="discover-photo-fallback">
                                 {% if profile.display_name %}

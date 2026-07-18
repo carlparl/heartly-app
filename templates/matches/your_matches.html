@@ -58,8 +58,8 @@
                 <article class="match-card">
 
                     <a href="{% url 'profiles:public_profile' card.other_user.id %}" class="match-avatar">
-                        {% if card.other_profile.profile_picture %}
-                            <img src="{{ card.other_profile.profile_picture.url }}" alt="">
+                        {% if card.other_profile.primary_photo_url %}
+                            <img src="{{ card.other_profile.primary_photo_url }}" alt="">
                         {% else %}
                             <span>
                                 {% if card.other_profile.display_name %}

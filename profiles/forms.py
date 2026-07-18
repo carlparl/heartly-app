@@ -16,7 +16,7 @@ from .identity import (
     mapped_user_gender,
     mapped_user_preference,
 )
-from .models import Interest, Profile
+from .models import Interest, Profile, ProfilePhoto
 
 
 MAX_PROFILE_PHOTO_SIZE = 5 * 1024 * 1024
@@ -41,6 +41,25 @@ def get_file_extension(uploaded_file):
     return os.path.splitext(filename.lower())[1]
 
 
+def validate_profile_photo(photo):
+    if not photo:
+        return photo
+
+    extension = get_file_extension(photo)
+
+    if extension not in IMAGE_EXTENSIONS:
+        raise forms.ValidationError(
+            "Unsupported image type. Use JPG, PNG, GIF, or WEBP."
+        )
+
+    if photo.size > MAX_PROFILE_PHOTO_SIZE:
+        raise forms.ValidationError(
+            "Profile photo is too large. Maximum size is 5MB."
+        )
+
+    return photo
+
+
 class ProfileForm(forms.ModelForm):
     username = forms.CharField(
         label="Username",
@@ -58,7 +77,6 @@ class ProfileForm(forms.ModelForm):
     class Meta:
         model = Profile
         fields = [
-            "profile_picture",
             "display_name",
             "username",
             "bio",
@@ -68,12 +86,6 @@ class ProfileForm(forms.ModelForm):
         ]
 
         widgets = {
-            "profile_picture": forms.FileInput(
-                attrs={
-                    "class": "heartly-file-input",
-                    "accept": "image/jpeg,image/png,image/webp,image/gif",
-                }
-            ),
             "display_name": forms.TextInput(
                 attrs={
                     "placeholder": "Full name",
@@ -106,7 +118,6 @@ class ProfileForm(forms.ModelForm):
         }
 
         labels = {
-            "profile_picture": "Profile photo",
             "display_name": "Full name",
             "bio": "Bio",
             "gender": "Gender",
@@ -139,26 +150,6 @@ class ProfileForm(forms.ModelForm):
         self.fields["interested_in"].choices = [
             ("", "Choose who you want to meet"),
         ] + list(Profile.INTERESTED_IN_CHOICES)
-
-    def clean_profile_picture(self):
-        photo = self.cleaned_data.get("profile_picture")
-
-        if not photo:
-            return photo
-
-        extension = get_file_extension(photo)
-
-        if extension not in IMAGE_EXTENSIONS:
-            raise forms.ValidationError(
-                "Unsupported image type. Use JPG, PNG, GIF, or WEBP."
-            )
-
-        if photo.size > MAX_PROFILE_PHOTO_SIZE:
-            raise forms.ValidationError(
-                "Profile photo is too large. Maximum size is 5MB."
-            )
-
-        return photo
 
     def clean_username(self):
         username = (self.cleaned_data.get("username") or "").strip()
@@ -251,6 +242,124 @@ class ProfileForm(forms.ModelForm):
             self.save_m2m()
 
         return profile
+
+
+def profile_photo_field(position):
+    return forms.ImageField(
+        label=f"Photo {position}",
+        required=False,
+        widget=forms.FileInput(
+            attrs={
+                "class": "heartly-file-input",
+                "accept": "image/jpeg,image/png,image/webp,image/gif",
+                "data-profile-photo-input": str(position),
+            }
+        ),
+    )
+
+
+class ProfilePhotoForm(forms.Form):
+    photo_1 = profile_photo_field(1)
+    photo_2 = profile_photo_field(2)
+    photo_3 = profile_photo_field(3)
+    photo_4 = profile_photo_field(4)
+
+    remove_1 = forms.BooleanField(required=False)
+    remove_2 = forms.BooleanField(required=False)
+    remove_3 = forms.BooleanField(required=False)
+    remove_4 = forms.BooleanField(required=False)
+
+    def __init__(self, *args, profile, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.profile = profile
+        self.existing_by_position = {
+            photo.position: photo
+            for photo in profile.photos.order_by("position", "id")
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        for position in range(1, ProfilePhoto.MAX_PHOTOS + 1):
+            photo_name = f"photo_{position}"
+            remove_name = f"remove_{position}"
+            photo = cleaned_data.get(photo_name)
+            remove = cleaned_data.get(remove_name)
+
+            if photo:
+                try:
+                    validate_profile_photo(photo)
+                except forms.ValidationError as error:
+                    self.add_error(photo_name, error)
+
+            if photo and remove:
+                self.add_error(
+                    photo_name,
+                    "Choose a replacement or remove this photo, not both.",
+                )
+
+        return cleaned_data
+
+    def save(self):
+        if not self.is_valid():
+            raise ValueError("Cannot save an invalid profile photo form.")
+
+        has_changes = any(
+            self.cleaned_data.get(f"photo_{position}")
+            or self.cleaned_data.get(f"remove_{position}")
+            for position in range(1, ProfilePhoto.MAX_PHOTOS + 1)
+        )
+
+        if not has_changes:
+            if not self.existing_by_position and self.profile.profile_picture:
+                ProfilePhoto.objects.get_or_create(
+                    profile=self.profile,
+                    position=1,
+                    defaults={"image": self.profile.profile_picture.name},
+                )
+            return list(self.profile.photos.order_by("position", "id"))
+
+        desired_photos = []
+
+        for position in range(1, ProfilePhoto.MAX_PHOTOS + 1):
+            upload = self.cleaned_data.get(f"photo_{position}")
+            remove = self.cleaned_data.get(f"remove_{position}")
+            existing = self.existing_by_position.get(position)
+
+            if upload:
+                desired_photos.append(upload)
+            elif remove:
+                continue
+            elif existing and existing.image:
+                desired_photos.append(existing.image.name)
+
+        with transaction.atomic():
+            self.profile.photos.all().delete()
+            saved_photos = [
+                ProfilePhoto.objects.create(
+                    profile=self.profile,
+                    image=image,
+                    position=position,
+                )
+                for position, image in enumerate(desired_photos, start=1)
+            ]
+
+            primary_name = (
+                saved_photos[0].image.name if saved_photos else ""
+            )
+            legacy_name = (
+                self.profile.profile_picture.name
+                if self.profile.profile_picture
+                else ""
+            )
+
+            if primary_name != legacy_name:
+                self.profile.profile_picture = primary_name or None
+                self.profile.save(
+                    update_fields=["profile_picture", "updated_at"]
+                )
+
+        return saved_photos
 
 
 class IdentityRepairForm(forms.Form):

@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -12,6 +13,7 @@ from .forms import (
     IdentityRepairForm,
     InterestForm,
     ProfileForm,
+    ProfilePhotoForm,
 )
 from .identity import (
     identity_issue_messages,
@@ -86,7 +88,7 @@ def attach_profile_template_fields(profile):
     profile.safe_display_name = display_name
 
     try:
-        profile.photo_url = profile.profile_picture.url if profile.profile_picture else ""
+        profile.photo_url = profile.primary_photo_url
     except Exception:
         profile.photo_url = ""
 
@@ -232,17 +234,41 @@ def profile_media(request):
     profile = context["profile"]
     media_items = []
 
-    profile_photo_url = safe_file_url(getattr(profile, "profile_picture", None))
-    if profile_photo_url:
-        media_items.append(
-            {
-                "type": "Profile photo",
-                "url": profile_photo_url,
-                "kind": "image",
-                "caption": "Current profile photo",
-                "created_at": getattr(profile, "updated_at", None),
-            }
+    gallery_photos = list(profile.photos.order_by("position", "id"))
+
+    if gallery_photos:
+        for photo in gallery_photos:
+            photo_url = safe_file_url(photo.image)
+            if not photo_url:
+                continue
+
+            media_items.append(
+                {
+                    "type": "Profile photo",
+                    "url": photo_url,
+                    "kind": "image",
+                    "caption": (
+                        "Primary profile photo"
+                        if photo.position == 1
+                        else f"Profile photo {photo.position}"
+                    ),
+                    "created_at": photo.created_at,
+                }
+            )
+    else:
+        profile_photo_url = safe_file_url(
+            getattr(profile, "profile_picture", None)
         )
+        if profile_photo_url:
+            media_items.append(
+                {
+                    "type": "Profile photo",
+                    "url": profile_photo_url,
+                    "kind": "image",
+                    "caption": "Primary profile photo",
+                    "created_at": getattr(profile, "updated_at", None),
+                }
+            )
 
     media_posts = visible_media_posts_for(request.user)
     for post in media_posts[:60]:
@@ -381,13 +407,24 @@ def edit_profile(request):
             instance=profile,
             user=request.user,
         )
+        photo_form = ProfilePhotoForm(
+            request.POST,
+            request.FILES,
+            profile=profile,
+        )
 
-        if form.is_valid():
-            form.save()
+        profile_is_valid = form.is_valid()
+        photos_are_valid = photo_form.is_valid()
+
+        if profile_is_valid and photos_are_valid:
+            with transaction.atomic():
+                form.save()
+                photo_form.save()
             messages.success(request, "Profile updated.")
             return redirect("profiles:profile_home")
     else:
         form = ProfileForm(instance=profile, user=request.user)
+        photo_form = ProfilePhotoForm(profile=profile)
 
     selected_interests = list(profile.interests.all().order_by("name")[:12])
     selected_interest_count = profile.interests.count()
@@ -398,11 +435,28 @@ def edit_profile(request):
     else:
         interest_chips = list(Interest.objects.all().order_by("name")[:10])
 
+    photos_by_position = {
+        photo.position: photo
+        for photo in profile.photos.order_by("position", "id")
+    }
+    photo_slots = [
+        {
+            "position": position,
+            "photo": photos_by_position.get(position),
+            "field": photo_form[f"photo_{position}"],
+            "remove_field": photo_form[f"remove_{position}"],
+        }
+        for position in range(1, 5)
+    ]
+
     return render(
         request,
         "profiles/edit_profile.html",
         {
             "form": form,
+            "photo_form": photo_form,
+            "photo_slots": photo_slots,
+            "profile_photo_url": profile.primary_photo_url,
             "profile": profile,
             "interest_chips": interest_chips,
             "selected_interest_count": selected_interest_count,

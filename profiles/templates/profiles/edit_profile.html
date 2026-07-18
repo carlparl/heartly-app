@@ -21,11 +21,14 @@
         {% if form.non_field_errors %}
             <div class="ep-error-card">{{ form.non_field_errors }}</div>
         {% endif %}
+        {% if photo_form.non_field_errors %}
+            <div class="ep-error-card">{{ photo_form.non_field_errors }}</div>
+        {% endif %}
 
         <section class="ep-hero-card">
             <div class="ep-avatar-shell">
-                {% if profile.profile_picture %}
-                    <img src="{{ profile.profile_picture.url }}" alt="Profile photo" class="ep-avatar-img" id="profilePhotoPreview">
+                {% if profile_photo_url %}
+                    <img src="{{ profile_photo_url }}" alt="Primary profile photo" class="ep-avatar-img" id="profilePhotoPreview">
                 {% else %}
                     <div class="ep-avatar-fallback" id="profileAvatarFallback">
                         {% if profile.display_name %}
@@ -37,8 +40,7 @@
                     <img src="" alt="Profile photo preview" class="ep-avatar-img hidden" id="profilePhotoPreview">
                 {% endif %}
 
-                <label for="{{ form.profile_picture.id_for_label }}" class="ep-camera-btn" aria-label="Change profile photo">ðŸ“·</label>
-                {{ form.profile_picture }}
+                <label for="{{ photo_form.photo_1.id_for_label }}" class="ep-camera-btn" aria-label="Change primary profile photo">ðŸ“·</label>
             </div>
 
             <h2 class="ep-hero-name" id="heroDisplayName">
@@ -61,22 +63,52 @@
             </div>
         </section>
 
-        <section class="ep-row-card ep-photo-card">
-            <div class="ep-section-icon">â–£</div>
-            <div class="ep-row-copy">
-                <h3>Profile photo</h3>
-                <p>JPG, PNG or WebP Â· Max 5MB</p>
+        <section class="ep-panel-card ep-gallery-card">
+            <div class="ep-card-head ep-between">
+                <div class="ep-head-left">
+                    <div class="ep-section-icon">â–£</div>
+                    <div>
+                        <h3>Profile photos</h3>
+                        <p class="ep-gallery-help">Add up to four images. Photo 1 is shown first.</p>
+                    </div>
+                </div>
+                <span class="ep-gallery-limit">4 max</span>
             </div>
-            <div class="ep-photo-stack" aria-hidden="true">
-                {% if profile.profile_picture %}
-                    <img src="{{ profile.profile_picture.url }}" alt="">
-                    <img src="{{ profile.profile_picture.url }}" alt="">
-                    <span>+1</span>
-                {% else %}
-                    <span class="ep-mini-fallback">{{ request.user.username|first|upper }}</span>
-                {% endif %}
+
+            <div class="ep-gallery-grid">
+                {% for slot in photo_slots %}
+                    <article class="ep-gallery-slot" data-photo-slot="{{ slot.position }}">
+                        <div class="ep-gallery-preview">
+                            {% if slot.photo %}
+                                <img src="{{ slot.photo.image.url }}" alt="Profile photo {{ slot.position }}" data-slot-preview>
+                            {% else %}
+                                <span data-slot-fallback>+</span>
+                            {% endif %}
+
+                            <label for="{{ slot.field.id_for_label }}" class="ep-gallery-choose">
+                                {% if slot.photo %}Replace{% else %}Add photo{% endif %}
+                            </label>
+                            {{ slot.field }}
+                        </div>
+
+                        <div class="ep-gallery-meta">
+                            <strong>Photo {{ slot.position }}</strong>
+                            {% if slot.position == 1 %}<em>Primary</em>{% endif %}
+                        </div>
+
+                        {% if slot.photo %}
+                            <label class="ep-gallery-remove">
+                                {{ slot.remove_field }}
+                                <span>Remove</span>
+                            </label>
+                        {% endif %}
+
+                        {% if slot.field.errors %}
+                            <small class="ep-gallery-error">{{ slot.field.errors|striptags }}</small>
+                        {% endif %}
+                    </article>
+                {% endfor %}
             </div>
-            <label for="{{ form.profile_picture.id_for_label }}" class="ep-chevron" aria-label="Choose photo">â€º</label>
         </section>
 
         <section class="ep-panel-card">
@@ -735,6 +767,114 @@
     margin: 0 0 14px;
 }
 
+.ep-gallery-help {
+    margin: 4px 0 0;
+    color: var(--ep-muted);
+    font-size: 12px;
+    font-weight: 750;
+}
+
+.ep-gallery-limit {
+    border-radius: 999px;
+    background: var(--ep-pink-soft);
+    color: var(--ep-pink);
+    padding: 7px 10px;
+    font-size: 12px;
+    font-weight: 950;
+}
+
+.ep-gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.ep-gallery-slot {
+    min-width: 0;
+}
+
+.ep-gallery-preview {
+    position: relative;
+    aspect-ratio: 3 / 4;
+    overflow: hidden;
+    border: 1px solid var(--ep-line);
+    border-radius: 18px;
+    background: var(--ep-card-soft);
+    display: grid;
+    place-items: center;
+}
+
+.ep-gallery-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.ep-gallery-preview > span {
+    color: var(--ep-pink);
+    font-size: 30px;
+    font-weight: 700;
+}
+
+.ep-gallery-choose {
+    position: absolute;
+    inset: auto 7px 7px;
+    min-height: 30px;
+    border-radius: 999px;
+    background: rgba(17, 24, 39, 0.78);
+    color: #ffffff;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 900;
+}
+
+.ep-gallery-preview input[type="file"] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.ep-gallery-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 5px;
+    margin-top: 7px;
+    color: var(--ep-text);
+    font-size: 11px;
+}
+
+.ep-gallery-meta em {
+    color: var(--ep-pink);
+    font-style: normal;
+    font-weight: 900;
+}
+
+.ep-gallery-remove {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 6px;
+    color: #ef4444;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 850;
+}
+
+.ep-gallery-error {
+    display: block;
+    margin-top: 6px;
+    color: #ef4444;
+    font-size: 11px;
+    font-weight: 800;
+}
+
 @media (max-width: 520px) {
     .edit-profile-screen {
         padding-left: 12px;
@@ -748,6 +888,10 @@
 
     .ep-chip-grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .ep-gallery-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .ep-hero-card {
@@ -789,7 +933,8 @@
 {% block extra_js %}
 <script>
     document.addEventListener("DOMContentLoaded", function () {
-        const photoInput = document.querySelector('input[name="profile_picture"]');
+        const photoInput = document.querySelector('input[name="photo_1"]');
+        const photoInputs = document.querySelectorAll('[data-profile-photo-input]');
         const preview = document.getElementById("profilePhotoPreview");
         const fallback = document.getElementById("profileAvatarFallback");
         const displayNameInput = document.querySelector('input[name="display_name"]');
@@ -843,6 +988,30 @@
                 }
             });
         }
+
+        photoInputs.forEach(function (input) {
+            input.addEventListener("change", function () {
+                const file = input.files && input.files[0];
+                const slot = input.closest("[data-photo-slot]");
+
+                if (!file || !slot) {
+                    return;
+                }
+
+                let slotPreview = slot.querySelector("[data-slot-preview]");
+                const slotFallback = slot.querySelector("[data-slot-fallback]");
+
+                if (!slotPreview) {
+                    slotPreview = document.createElement("img");
+                    slotPreview.setAttribute("data-slot-preview", "");
+                    slotPreview.alt = "Selected profile photo";
+                    slot.querySelector(".ep-gallery-preview").prepend(slotPreview);
+                }
+
+                slotPreview.src = URL.createObjectURL(file);
+                if (slotFallback) slotFallback.remove();
+            });
+        });
 
         [displayNameInput, usernameInput, bioInput].forEach(function (field) {
             if (field) {

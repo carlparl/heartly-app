@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
@@ -106,6 +107,65 @@ class Profile(models.Model):
     @property
     def name(self):
         return self.display_name or self.user.get_full_name() or self.user.username
+
+    @property
+    def primary_photo(self):
+        prefetched = getattr(self, "_prefetched_objects_cache", {}).get("photos")
+        if prefetched is not None:
+            return next(iter(prefetched), None)
+        return self.photos.order_by("position", "id").first()
+
+    @property
+    def primary_photo_url(self):
+        photo = self.primary_photo
+        if photo and photo.image:
+            try:
+                return photo.image.url
+            except Exception:
+                pass
+
+        if self.profile_picture:
+            try:
+                return self.profile_picture.url
+            except Exception:
+                pass
+
+        return ""
+
+
+class ProfilePhoto(models.Model):
+    MAX_PHOTOS = 4
+
+    profile = models.ForeignKey(
+        Profile,
+        on_delete=models.CASCADE,
+        related_name="photos",
+    )
+    image = models.ImageField(upload_to="profiles/photos/")
+    position = models.PositiveSmallIntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["position", "id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["profile", "position"],
+                name="unique_profile_photo_position",
+            ),
+            models.CheckConstraint(
+                condition=Q(position__gte=1, position__lte=4),
+                name="profile_photo_position_1_to_4",
+            ),
+        ]
+
+    def clean(self):
+        super().clean()
+        if not 1 <= self.position <= self.MAX_PHOTOS:
+            raise ValidationError({"position": "Profile photo position must be between 1 and 4."})
+
+    def __str__(self):
+        return f"{self.profile.name} photo {self.position}"
 
 
 class UserBlock(models.Model):

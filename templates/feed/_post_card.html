@@ -151,8 +151,8 @@
                 {% csrf_token %}
 
                 <div class="ig-sheet-viewer-avatar">
-                    {% if request.user.profile.profile_picture %}
-                        <img src="{{ request.user.profile.profile_picture.url }}" alt="{{ request.user.username }}">
+                    {% if request.user.profile.primary_photo_url %}
+                        <img src="{{ request.user.profile.primary_photo_url }}" alt="{{ request.user.username }}">
                     {% else %}
                         <span>{{ request.user.username|default:"U"|first|upper }}</span>
                     {% endif %}

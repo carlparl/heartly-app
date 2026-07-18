@@ -98,14 +98,7 @@ def get_display_name(user):
 
 def get_photo_url(user):
     profile = get_profile(user)
-
-    if profile.profile_picture:
-        try:
-            return profile.profile_picture.url
-        except Exception:
-            return ""
-
-    return ""
+    return profile.primary_photo_url
 
 
 def hidden_ids_for(user):

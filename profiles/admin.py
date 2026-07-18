@@ -1,7 +1,16 @@
 from django.contrib import admin
 from django.utils import timezone
 
-from .models import Interest, Profile, ProfileReport, UserBlock
+from .models import Interest, Profile, ProfilePhoto, ProfileReport, UserBlock
+
+
+class ProfilePhotoInline(admin.TabularInline):
+    model = ProfilePhoto
+    extra = 0
+    fields = ("position", "image", "created_at", "updated_at")
+    readonly_fields = ("created_at", "updated_at")
+    ordering = ("position", "id")
+    max_num = ProfilePhoto.MAX_PHOTOS
 
 
 @admin.register(Profile)
@@ -43,6 +52,8 @@ class ProfileAdmin(admin.ModelAdmin):
     )
 
     filter_horizontal = ("interests",)
+
+    inlines = (ProfilePhotoInline,)
 
     readonly_fields = (
         "created_at",
@@ -115,6 +126,14 @@ class ProfileAdmin(admin.ModelAdmin):
         queryset.update(hidden_by_moderation=False)
 
     restore_profiles.short_description = "Restore selected profiles to Heartly"
+
+
+@admin.register(ProfilePhoto)
+class ProfilePhotoAdmin(admin.ModelAdmin):
+    list_display = ("profile", "position", "created_at", "updated_at")
+    list_filter = ("position", "created_at", "updated_at")
+    search_fields = ("profile__user__username", "profile__user__email", "profile__display_name")
+    ordering = ("profile_id", "position", "id")
 
 
 @admin.register(Interest)
