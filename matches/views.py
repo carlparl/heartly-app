@@ -539,7 +539,7 @@ def swipe(request, user_id, action):
         notify_profile_like(
             request.user,
             target_user,
-            active=not match_created,
+            active=not matched,
         )
     else:
         notify_profile_like(

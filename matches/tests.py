@@ -349,10 +349,12 @@ class SwipeTests(MatchTestBase):
             MutualMatch.objects.exists()
         )
 
-    @patch("matches.views.notify_new_match")
+    @patch("matches.views.notify_profile_like")
+    @patch("matches.views.notify_mutual_match")
     def test_reciprocal_like_creates_one_match_and_notifies_once(
         self,
-        notify_new_match,
+        notify_mutual_match,
+        notify_profile_like,
     ):
         MatchAction.objects.create(
             from_user=self.target,
@@ -372,12 +374,19 @@ class SwipeTests(MatchTestBase):
             MutualMatch.objects.count(),
             1,
         )
-        notify_new_match.assert_called_once_with(
+        notify_mutual_match.assert_called_once_with(
+            MutualMatch.objects.get(),
             self.viewer,
             self.target,
         )
+        notify_profile_like.assert_called_once_with(
+            self.viewer,
+            self.target,
+            active=False,
+        )
 
-        notify_new_match.reset_mock()
+        notify_mutual_match.reset_mock()
+        notify_profile_like.reset_mock()
 
         second_response = self.ajax_post(
             MatchAction.LIKE
@@ -391,7 +400,12 @@ class SwipeTests(MatchTestBase):
             MutualMatch.objects.count(),
             1,
         )
-        notify_new_match.assert_not_called()
+        notify_mutual_match.assert_not_called()
+        notify_profile_like.assert_called_once_with(
+            self.viewer,
+            self.target,
+            active=False,
+        )
 
     def test_direct_swipe_cannot_bypass_compatibility(self):
         incompatible, _ = self.create_profile_user(

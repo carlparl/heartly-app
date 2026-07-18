@@ -66,7 +66,11 @@ class PasswordRecoveryTests(TestCase):
             known_response.status_code,
         )
         self.assertEqual(unknown_response.url, known_url)
-        self.assertEqual(len(mail.outbox), 0)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(
+            mail.outbox[0].to,
+            ["unknown@example.com"],
+        )
 
     def test_reset_done_page_is_generic(self):
         response = self.client.get(
