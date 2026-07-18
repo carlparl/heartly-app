@@ -13,6 +13,8 @@ from profiles.identity import (
     mapped_profile_preference,
 )
 
+from profiles.models import Profile
+
 from .models import CustomUser
 
 
@@ -57,6 +59,20 @@ class CustomSignupForm(forms.Form):
         ],
         required=True,
         label="Gender",
+        widget=forms.Select(
+            attrs={
+                "class": "heartly-input",
+            }
+        ),
+    )
+
+    connection_goal = forms.ChoiceField(
+        choices=[
+            ("", "What are you looking for?"),
+            *Profile.CONNECTION_GOAL_CHOICES,
+        ],
+        required=True,
+        label="Looking for",
         widget=forms.Select(
             attrs={
                 "class": "heartly-input",
@@ -144,10 +160,11 @@ class CustomSignupForm(forms.Form):
         return date_of_birth
 
     def signup(self, request, user):
-        from profiles.models import Profile
-
         full_name = self.cleaned_data["full_name"]
         gender = self.cleaned_data["gender"]
+        connection_goal = self.cleaned_data[
+            "connection_goal"
+        ]
         interested_in = self.cleaned_data[
             "interested_in"
         ]
@@ -201,12 +218,14 @@ class CustomSignupForm(forms.Form):
                 date_of_birth
             )
             profile.gender = profile_gender
+            profile.connection_goal = connection_goal
             profile.interested_in = profile_preference
             profile.save(
                 update_fields=[
                     "display_name",
                     "age",
                     "gender",
+                    "connection_goal",
                     "interested_in",
                     "updated_at",
                 ]

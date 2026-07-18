@@ -52,6 +52,7 @@ class MatchTestBase(TestCase):
         *,
         gender,
         interested_in,
+        connection_goal=Profile.CONNECTION_DATING,
         age=28,
         display_name=None,
         visible=True,
@@ -83,6 +84,7 @@ class MatchTestBase(TestCase):
         profile.age = age
         profile.gender = gender
         profile.interested_in = interested_in
+        profile.connection_goal = connection_goal
         profile.profile_visible = visible
         profile.hidden_by_moderation = moderated
         profile.save()
@@ -234,6 +236,32 @@ class DiscoverTests(MatchTestBase):
         self.assertTrue(
             returned_ids.isdisjoint(excluded_users)
         )
+
+    def test_discover_requires_compatible_connection_goals(self):
+        friendship_only, _ = self.create_profile_user(
+            "friendship_only",
+            gender=Profile.GENDER_MAN,
+            interested_in=Profile.INTERESTED_IN_WOMEN,
+            connection_goal=Profile.CONNECTION_FRIENDSHIP,
+        )
+        both_goals, _ = self.create_profile_user(
+            "both_goals",
+            gender=Profile.GENDER_MAN,
+            interested_in=Profile.INTERESTED_IN_WOMEN,
+            connection_goal=Profile.CONNECTION_BOTH,
+        )
+
+        response = self.client.get(
+            reverse("matches:discover")
+        )
+
+        returned_ids = {
+            profile.user_id
+            for profile in response.context["profiles"]
+        }
+
+        self.assertEqual(returned_ids, {both_goals.id})
+        self.assertNotIn(friendship_only.id, returned_ids)
 
     def test_incomplete_viewer_receives_no_candidates(self):
         self.viewer_profile.display_name = ""

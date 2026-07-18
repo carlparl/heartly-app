@@ -113,6 +113,14 @@
                 <h3>More about you</h3>
             </div>
 
+            <label class="ep-field ep-select-field ep-goal-field">
+                <span>Looking for</span>
+                {{ form.connection_goal }}
+                {% if form.connection_goal.errors %}
+                    <small>{{ form.connection_goal.errors|striptags }}</small>
+                {% endif %}
+            </label>
+
             <div class="ep-grid-two">
                 <label class="ep-field ep-select-field">
                     <span>Gender</span>
@@ -637,8 +645,13 @@
     color: #ffffff !important;
 }
 
-.ep-bio-field {
+.ep-bio-field,
+.ep-goal-field {
     margin-top: 12px;
+}
+
+.ep-goal-field {
+    margin-bottom: 12px;
 }
 
 .ep-bio-field em {

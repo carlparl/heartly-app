@@ -37,6 +37,16 @@ class Profile(models.Model):
         (INTERESTED_IN_EVERYONE, "Everyone"),
     ]
 
+    CONNECTION_DATING = "dating"
+    CONNECTION_FRIENDSHIP = "friendship"
+    CONNECTION_BOTH = "both"
+
+    CONNECTION_GOAL_CHOICES = [
+        (CONNECTION_DATING, "Dating"),
+        (CONNECTION_FRIENDSHIP, "Friendship"),
+        (CONNECTION_BOTH, "Dating and friendship"),
+    ]
+
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -56,6 +66,11 @@ class Profile(models.Model):
         max_length=20,
         choices=INTERESTED_IN_CHOICES,
         blank=True,
+    )
+    connection_goal = models.CharField(
+        max_length=20,
+        choices=CONNECTION_GOAL_CHOICES,
+        default=CONNECTION_DATING,
     )
 
     profile_picture = models.ImageField(

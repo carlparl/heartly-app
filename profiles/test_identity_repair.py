@@ -38,6 +38,9 @@ class IdentityRepairTests(TestCase):
         self.profile.display_name = ""
         self.profile.age = None
         self.profile.gender = ""
+        self.profile.connection_goal = (
+            Profile.CONNECTION_FRIENDSHIP
+        )
         self.profile.interested_in = ""
         self.profile.save()
         self.client.force_login(self.user)
@@ -68,6 +71,9 @@ class IdentityRepairTests(TestCase):
                 "display_name": "Repair User",
                 "date_of_birth": years_ago(17).isoformat(),
                 "gender": Profile.GENDER_MAN,
+                "connection_goal": (
+                    Profile.CONNECTION_FRIENDSHIP
+                ),
                 "interested_in": (
                     Profile.INTERESTED_IN_WOMEN
                 ),
@@ -96,6 +102,9 @@ class IdentityRepairTests(TestCase):
                 "display_name": "Repair User",
                 "date_of_birth": date_of_birth.isoformat(),
                 "gender": Profile.GENDER_WOMAN,
+                "connection_goal": (
+                    Profile.CONNECTION_FRIENDSHIP
+                ),
                 "interested_in": Profile.INTERESTED_IN_MEN,
             },
         )
@@ -129,6 +138,10 @@ class IdentityRepairTests(TestCase):
             Profile.GENDER_WOMAN,
         )
         self.assertEqual(
+            self.profile.connection_goal,
+            Profile.CONNECTION_FRIENDSHIP,
+        )
+        self.assertEqual(
             self.profile.interested_in,
             Profile.INTERESTED_IN_MEN,
         )
@@ -143,6 +156,9 @@ class IdentityRepairTests(TestCase):
                 "display_name": "Repair User",
                 "date_of_birth": date_of_birth.isoformat(),
                 "gender": Profile.GENDER_MAN,
+                "connection_goal": (
+                    Profile.CONNECTION_FRIENDSHIP
+                ),
                 "interested_in": (
                     Profile.INTERESTED_IN_WOMEN
                 ),

@@ -22,8 +22,6 @@ USER_TO_PROFILE_INTERESTED_IN = {
     "male": "men",
     "female": "women",
     "both": "everyone",
-    # Heartly currently has no separate friendship discovery mode.
-    "friends": "everyone",
 }
 
 SUMMARY_ORDER = [
@@ -39,6 +37,7 @@ SUMMARY_ORDER = [
     "gender_mismatch",
     "preference_mismatch",
     "legacy_friends_preference",
+    "invalid_connection_goal",
     "display_name_full_name_mismatch",
     "incomplete_identity_profiles",
     "profiles_without_photo",
@@ -76,6 +75,10 @@ class Command(BaseCommand):
         }
         valid_profile_preferences = {
             value for value, _label in Profile.INTERESTED_IN_CHOICES
+        }
+        valid_connection_goals = {
+            value
+            for value, _label in Profile.CONNECTION_GOAL_CHOICES
         }
 
         users = User.objects.all().select_related("profile").order_by("id")
@@ -185,6 +188,17 @@ class Command(BaseCommand):
                         "preference_mismatch",
                     )
 
+                if (
+                    profile.connection_goal
+                    not in valid_connection_goals
+                ):
+                    self._record(
+                        counters,
+                        issues,
+                        "invalid_connection_goal",
+                        "invalid_connection_goal",
+                    )
+
                 user_full_name = (
                     getattr(user, "full_name", "")
                     or user.get_full_name()
@@ -210,6 +224,7 @@ class Command(BaseCommand):
                     and 18 <= profile_age <= 100
                     and profile.gender in valid_profile_genders
                     and profile.interested_in in valid_profile_preferences
+                    and profile.connection_goal in valid_connection_goals
                 )
                 if not identity_complete:
                     self._record(

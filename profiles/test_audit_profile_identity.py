@@ -134,3 +134,32 @@ class AuditProfileIdentityCommandTests(TestCase):
             user_details[0]["user_id"],
             user.id,
         )
+
+    def test_command_reports_invalid_connection_goal(self):
+        user, profile = self.create_user(
+            "invalid_goal_audit"
+        )
+        profile.connection_goal = ""
+        profile.save(
+            update_fields=[
+                "connection_goal",
+                "updated_at",
+            ]
+        )
+
+        report = self.run_audit()
+        summary = report["summary"]
+        user_details = self.details_for_user(
+            report,
+            user,
+        )
+
+        self.assertGreaterEqual(
+            summary["invalid_connection_goal"],
+            1,
+        )
+        self.assertEqual(len(user_details), 1)
+        self.assertIn(
+            "invalid_connection_goal",
+            user_details[0]["issues"],
+        )

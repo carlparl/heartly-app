@@ -10,6 +10,7 @@ class ProfileAdmin(admin.ModelAdmin):
         "user",
         "display_name",
         "age",
+        "connection_goal",
         "location",
         "profile_visible",
         "hidden_by_moderation",
@@ -21,6 +22,7 @@ class ProfileAdmin(admin.ModelAdmin):
     )
 
     list_filter = (
+        "connection_goal",
         "profile_visible",
         "hidden_by_moderation",
         "show_online_status",
@@ -64,6 +66,9 @@ class ProfileAdmin(admin.ModelAdmin):
                     "age",
                     "location",
                     "bio",
+                    "gender",
+                    "connection_goal",
+                    "interested_in",
                     "profile_picture",
                     "interests",
                 )

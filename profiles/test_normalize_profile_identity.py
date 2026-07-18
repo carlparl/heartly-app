@@ -171,6 +171,10 @@ class NormalizeProfileIdentityCommandTests(TestCase):
             unresolved_profile.interested_in,
             Profile.INTERESTED_IN_WOMEN,
         )
+        self.assertEqual(
+            unresolved_profile.connection_goal,
+            Profile.CONNECTION_FRIENDSHIP,
+        )
         self.assertIsNone(unresolved_profile.age)
 
         second_report = self.run_command(apply_changes=True)

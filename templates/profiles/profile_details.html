@@ -204,9 +204,19 @@
         </div>
 
         <div class="details-row">
+            <div class="details-icon">🤝</div>
+            <div>
+                <p class="details-label">Looking for</p>
+                <p class="details-value">
+                    {{ profile.get_connection_goal_display }}
+                </p>
+            </div>
+        </div>
+
+        <div class="details-row">
             <div class="details-icon">💌</div>
             <div>
-                <p class="details-label">Interested in</p>
+                <p class="details-label">Who they want to meet</p>
                 <p class="details-value">{% if profile.interested_in %}{{ profile.get_interested_in_display }}{% else %}Not added{% endif %}</p>
             </div>
         </div>

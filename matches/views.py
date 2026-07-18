@@ -166,6 +166,29 @@ def preferences_accepting_gender(gender):
     return []
 
 
+def compatible_connection_goals(connection_goal):
+    if connection_goal == Profile.CONNECTION_DATING:
+        return [
+            Profile.CONNECTION_DATING,
+            Profile.CONNECTION_BOTH,
+        ]
+
+    if connection_goal == Profile.CONNECTION_FRIENDSHIP:
+        return [
+            Profile.CONNECTION_FRIENDSHIP,
+            Profile.CONNECTION_BOTH,
+        ]
+
+    if connection_goal == Profile.CONNECTION_BOTH:
+        return [
+            Profile.CONNECTION_DATING,
+            Profile.CONNECTION_FRIENDSHIP,
+            Profile.CONNECTION_BOTH,
+        ]
+
+    return []
+
+
 def discoverable_profiles_for(
     viewer,
     *,
@@ -199,8 +222,15 @@ def discoverable_profiles_for(
     accepting_preferences = preferences_accepting_gender(
         viewer_profile.gender
     )
+    compatible_goals = compatible_connection_goals(
+        viewer_profile.connection_goal
+    )
 
-    if not target_genders or not accepting_preferences:
+    if (
+        not target_genders
+        or not accepting_preferences
+        or not compatible_goals
+    ):
         return Profile.objects.none()
 
     profiles = (
@@ -222,6 +252,7 @@ def discoverable_profiles_for(
             age__lte=100,
             gender__in=target_genders,
             interested_in__in=accepting_preferences,
+            connection_goal__in=compatible_goals,
         )
         .exclude(user=viewer)
         .exclude(display_name="")

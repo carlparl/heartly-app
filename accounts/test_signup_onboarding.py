@@ -31,6 +31,7 @@ class SafeSignupTests(TestCase):
             "full_name": "New Heartly User",
             "phone_number": "+256700000000",
             "gender": "female",
+            "connection_goal": "both",
             "interested_in": "male",
             "date_of_birth": years_ago(24),
         }
@@ -86,6 +87,10 @@ class SafeSignupTests(TestCase):
         self.assertEqual(user.gender, "female")
         self.assertEqual(user.interested_in, "male")
         self.assertEqual(profile.gender, "woman")
+        self.assertEqual(
+            profile.connection_goal,
+            Profile.CONNECTION_BOTH,
+        )
         self.assertEqual(
             profile.interested_in,
             "men",

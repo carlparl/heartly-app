@@ -57,6 +57,19 @@
                 {% endif %}
             </label>
 
+            <label class="identity-field">
+                <span>{{ form.connection_goal.label }}</span>
+                {{ form.connection_goal }}
+                <em>
+                    Choose dating, friendship, or both.
+                </em>
+                {% if form.connection_goal.errors %}
+                    <small>
+                        {{ form.connection_goal.errors|striptags }}
+                    </small>
+                {% endif %}
+            </label>
+
             <div class="identity-grid">
                 <label class="identity-field">
                     <span>{{ form.gender.label }}</span>

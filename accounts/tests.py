@@ -89,6 +89,7 @@ class CustomSignupFormTests(TestCase):
                 "full_name": "New Heartly User",
                 "phone_number": "+256700000000",
                 "gender": "female",
+                "connection_goal": "both",
                 "interested_in": "male",
                 "date_of_birth": date(2000, 1, 1),
             }
@@ -112,4 +113,5 @@ class CustomSignupFormTests(TestCase):
         self.assertEqual(profile.display_name, "New Heartly User")
         self.assertEqual(profile.age, user.age)
         self.assertEqual(profile.gender, "woman")
+        self.assertEqual(profile.connection_goal, "both")
         self.assertEqual(profile.interested_in, "men")

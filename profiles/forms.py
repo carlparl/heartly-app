@@ -63,6 +63,7 @@ class ProfileForm(forms.ModelForm):
             "username",
             "bio",
             "gender",
+            "connection_goal",
             "interested_in",
         ]
 
@@ -92,6 +93,11 @@ class ProfileForm(forms.ModelForm):
                     "class": "profile-select",
                 }
             ),
+            "connection_goal": forms.Select(
+                attrs={
+                    "class": "profile-select",
+                }
+            ),
             "interested_in": forms.Select(
                 attrs={
                     "class": "profile-select",
@@ -104,7 +110,8 @@ class ProfileForm(forms.ModelForm):
             "display_name": "Full name",
             "bio": "Bio",
             "gender": "Gender",
-            "interested_in": "Interested in",
+            "connection_goal": "Looking for",
+            "interested_in": "Who you want to meet",
         }
 
         help_texts = {
@@ -125,8 +132,12 @@ class ProfileForm(forms.ModelForm):
             ("", "Choose gender"),
         ] + list(Profile.GENDER_CHOICES)
 
+        self.fields["connection_goal"].choices = [
+            ("", "Choose what you are looking for"),
+        ] + list(Profile.CONNECTION_GOAL_CHOICES)
+
         self.fields["interested_in"].choices = [
-            ("", "Choose preference"),
+            ("", "Choose who you want to meet"),
         ] + list(Profile.INTERESTED_IN_CHOICES)
 
     def clean_profile_picture(self):
@@ -269,8 +280,12 @@ class IdentityRepairForm(forms.Form):
         label="Gender",
         required=True,
     )
+    connection_goal = forms.ChoiceField(
+        label="Looking for",
+        required=True,
+    )
     interested_in = forms.ChoiceField(
-        label="Interested in",
+        label="Who you want to meet",
         required=True,
     )
 
@@ -294,12 +309,51 @@ class IdentityRepairForm(forms.Form):
             ("", "Choose gender"),
             *Profile.GENDER_CHOICES,
         ]
+        self.fields["connection_goal"].choices = [
+            ("", "Choose what you are looking for"),
+            *Profile.CONNECTION_GOAL_CHOICES,
+        ]
         self.fields["interested_in"].choices = [
             ("", "Choose who you want to meet"),
             *Profile.INTERESTED_IN_CHOICES,
         ]
 
         if not self.is_bound:
+            valid_genders = {
+                value for value, _label in Profile.GENDER_CHOICES
+            }
+            valid_preferences = {
+                value
+                for value, _label in Profile.INTERESTED_IN_CHOICES
+            }
+            valid_goals = {
+                value
+                for value, _label in Profile.CONNECTION_GOAL_CHOICES
+            }
+
+            profile_gender = (profile.gender or "").strip()
+            if profile_gender not in valid_genders:
+                profile_gender = (
+                    mapped_profile_gender(user.gender) or ""
+                )
+
+            profile_preference = (
+                profile.interested_in or ""
+            ).strip()
+            if profile_preference not in valid_preferences:
+                profile_preference = (
+                    mapped_profile_preference(
+                        user.interested_in
+                    )
+                    or ""
+                )
+
+            connection_goal = (
+                profile.connection_goal or ""
+            ).strip()
+            if connection_goal not in valid_goals:
+                connection_goal = ""
+
             self.initial.update(
                 {
                     "display_name": (
@@ -309,18 +363,9 @@ class IdentityRepairForm(forms.Form):
                         or ""
                     ),
                     "date_of_birth": user.date_of_birth,
-                    "gender": (
-                        profile.gender
-                        or mapped_profile_gender(user.gender)
-                        or ""
-                    ),
-                    "interested_in": (
-                        profile.interested_in
-                        or mapped_profile_preference(
-                            user.interested_in
-                        )
-                        or ""
-                    ),
+                    "gender": profile_gender,
+                    "connection_goal": connection_goal,
+                    "interested_in": profile_preference,
                 }
             )
 
@@ -356,6 +401,7 @@ class IdentityRepairForm(forms.Form):
         display_name = self.cleaned_data["display_name"]
         date_of_birth = self.cleaned_data["date_of_birth"]
         profile_gender = self.cleaned_data["gender"]
+        connection_goal = self.cleaned_data["connection_goal"]
         profile_preference = self.cleaned_data["interested_in"]
 
         user_gender = mapped_user_gender(profile_gender)
@@ -375,12 +421,14 @@ class IdentityRepairForm(forms.Form):
             self.profile.display_name = display_name
             self.profile.age = age
             self.profile.gender = profile_gender
+            self.profile.connection_goal = connection_goal
             self.profile.interested_in = profile_preference
             self.profile.save(
                 update_fields=[
                     "display_name",
                     "age",
                     "gender",
+                    "connection_goal",
                     "interested_in",
                     "updated_at",
                 ]

@@ -21,30 +21,51 @@ class AIFeaturesRoutesTests(TestCase):
         response = self.client.get(reverse("ai_features:ai_coach"))
         self.assertEqual(response.status_code, 200)
 
-    def test_ai_coach_message_creates_user_and_coach_message(self):
-        response = self.client.post(reverse("ai_features:ai_coach"), {
-            "message": "I need dating advice"
-        })
+    def test_ai_coach_send_creates_user_and_ai_message(self):
+        response = self.client.post(
+            reverse("ai_features:ai_coach_send"),
+            {
+                "message": "Help me plan a productive week",
+            },
+        )
 
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(HeartlyMessage.objects.filter(user=self.user).count(), 2)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["ok"])
+        self.assertEqual(
+            HeartlyMessage.objects.filter(
+                user=self.user
+            ).count(),
+            2,
+        )
 
-        user_message = HeartlyMessage.objects.filter(user=self.user, role="user").first()
-        coach_message = HeartlyMessage.objects.filter(user=self.user, role="coach").first()
+        user_message = HeartlyMessage.objects.filter(
+            user=self.user,
+            role="user",
+        ).first()
+        ai_message = HeartlyMessage.objects.filter(
+            user=self.user,
+            role="ai",
+        ).first()
 
         self.assertIsNotNone(user_message)
-        self.assertIsNotNone(coach_message)
+        self.assertIsNotNone(ai_message)
 
-    def test_ai_coach_reset_clears_messages(self):
+    def test_ai_coach_end_chat_preserves_hidden_memory(self):
         HeartlyMessage.objects.create(
             user=self.user,
             role="user",
-            text="Hello"
+            text="Hello",
         )
 
-        response = self.client.post(reverse("ai_features:ai_coach"), {
-            "action": "reset"
-        })
+        response = self.client.post(
+            reverse("ai_features:ai_coach_end_chat")
+        )
 
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(HeartlyMessage.objects.filter(user=self.user).count(), 0)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["ok"])
+        self.assertEqual(
+            HeartlyMessage.objects.filter(
+                user=self.user
+            ).count(),
+            1,
+        )

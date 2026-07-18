@@ -1,5 +1,7 @@
 from datetime import date
 
+from profiles.models import Profile
+
 
 MINIMUM_LEGAL_AGE = 18
 MAXIMUM_LEGAL_AGE = 100
@@ -46,6 +48,9 @@ IDENTITY_ISSUE_MESSAGES = {
     ),
     "missing_or_invalid_gender": "Choose your gender.",
     "missing_or_invalid_preference": "Choose who you want to meet.",
+    "missing_or_invalid_connection_goal": (
+        "Choose whether you are looking for dating, friendship, or both."
+    ),
     "gender_not_synchronized": (
         "Confirm your gender so your account and profile match."
     ),
@@ -178,6 +183,17 @@ def identity_repair_issues(user, profile):
         getattr(user, "gender", "") or ""
     ).strip() != expected_user_gender:
         issues.append("gender_not_synchronized")
+
+    connection_goal = (
+        getattr(profile, "connection_goal", "") or ""
+    ).strip()
+    valid_connection_goals = {
+        value
+        for value, _label in Profile.CONNECTION_GOAL_CHOICES
+    }
+
+    if connection_goal not in valid_connection_goals:
+        issues.append("missing_or_invalid_connection_goal")
 
     profile_preference = (
         getattr(profile, "interested_in", "") or ""

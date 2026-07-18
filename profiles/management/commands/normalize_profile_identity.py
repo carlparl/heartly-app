@@ -70,6 +70,7 @@ class Command(BaseCommand):
             "applied_profiles": 0,
             "gender_updates": 0,
             "preference_updates": 0,
+            "connection_goal_updates": 0,
             "age_updates": 0,
             "unresolved_profiles": 0,
         }
@@ -130,6 +131,14 @@ class Command(BaseCommand):
                             "to": target_preference,
                         }
                 elif getattr(user, "interested_in", "") == "friends":
+                    if (
+                        profile.connection_goal
+                        != Profile.CONNECTION_FRIENDSHIP
+                    ):
+                        changes["connection_goal"] = {
+                            "from": profile.connection_goal,
+                            "to": Profile.CONNECTION_FRIENDSHIP,
+                        }
                     unresolved.append("legacy_friends_preference")
                 elif getattr(user, "interested_in", ""):
                     unresolved.append("unsupported_user_preference")
@@ -154,6 +163,8 @@ class Command(BaseCommand):
                         summary["gender_updates"] += 1
                     if "interested_in" in changes:
                         summary["preference_updates"] += 1
+                    if "connection_goal" in changes:
+                        summary["connection_goal_updates"] += 1
                     if "age" in changes:
                         summary["age_updates"] += 1
 
@@ -208,6 +219,10 @@ class Command(BaseCommand):
             ("Applied profiles", "applied_profiles"),
             ("Gender updates", "gender_updates"),
             ("Preference updates", "preference_updates"),
+            (
+                "Connection goal updates",
+                "connection_goal_updates",
+            ),
             ("Age updates", "age_updates"),
             ("Unresolved profiles", "unresolved_profiles"),
         ]

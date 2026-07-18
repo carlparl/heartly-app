@@ -46,6 +46,21 @@
             {% endif %}
         </div>
 
+        <div class="heartly-field">
+            <label for="{{ form.connection_goal.id_for_label }}">
+                What are you looking for?
+            </label>
+            {{ form.connection_goal }}
+            <p class="heartly-field-help">
+                Choose dating, friendship, or both. You can update this later.
+            </p>
+            {% if form.connection_goal.errors %}
+                <div class="heartly-field-error">
+                    {{ form.connection_goal.errors }}
+                </div>
+            {% endif %}
+        </div>
+
         <div class="heartly-grid-2">
             <div class="heartly-field">
                 <label for="{{ form.gender.id_for_label }}">Gender</label>

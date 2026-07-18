@@ -11,9 +11,13 @@ class TestEnvironmentIsolationTests(SimpleTestCase):
             database["ENGINE"],
             "django.db.backends.sqlite3",
         )
-        self.assertEqual(
-            str(database["NAME"]),
-            ":memory:",
+        database_name = str(database["NAME"])
+        self.assertTrue(
+            database_name == ":memory:"
+            or (
+                database_name.startswith("file:memorydb_")
+                and "mode=memory" in database_name
+            )
         )
         self.assertEqual(
             str(database["TEST"]["NAME"]),
