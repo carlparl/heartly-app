@@ -152,6 +152,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "profiles.middleware.AdultIdentityRequiredMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 
@@ -509,6 +510,17 @@ DEFAULT_FROM_EMAIL = os.environ.get(
 HEARTLY_REQUIRE_VERIFIED_EMAIL = env_bool(
     "HEARTLY_REQUIRE_VERIFIED_EMAIL",
     False,
+)
+
+# Adult identity enforcement is mandatory in production. Existing unrelated
+# tests opt out globally; the dedicated access-gate tests explicitly enable it.
+HEARTLY_ENFORCE_ADULT_IDENTITY = (
+    True
+    if IS_PRODUCTION
+    else env_bool(
+        "HEARTLY_ENFORCE_ADULT_IDENTITY",
+        not RUNNING_TESTS,
+    )
 )
 
 
