@@ -2,6 +2,7 @@ import base64
 from datetime import date
 from importlib import import_module
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 from django.apps import apps as django_apps
 from django.contrib.auth import get_user_model
@@ -169,7 +170,11 @@ class ProfileGalleryEditingTests(TestCase):
         )
 
     def profile_data(self):
+        self.profile.refresh_from_db()
         return {
+            "profile_version": self.profile.updated_at.isoformat(
+                timespec="microseconds"
+            ),
             "display_name": "Gallery Editor",
             "username": "galleryeditor",
             "bio": "Testing the four photo gallery.",
@@ -228,10 +233,13 @@ class ProfileGalleryEditingTests(TestCase):
 
         data = self.profile_data()
         data["remove_1"] = "on"
-        response = self.client.post(
-            reverse("profiles:edit_profile"),
-            data,
-        )
+        storage = ProfilePhoto._meta.get_field("image").storage
+        with patch.object(storage, "delete") as delete_file:
+            with self.captureOnCommitCallbacks(execute=True):
+                response = self.client.post(
+                    reverse("profiles:edit_profile"),
+                    data,
+                )
 
         self.assertEqual(response.status_code, 302)
         self.profile.refresh_from_db()
@@ -242,6 +250,19 @@ class ProfileGalleryEditingTests(TestCase):
             self.profile.profile_picture.name,
             second.image.name,
         )
+        delete_file.assert_called_once_with(first.image.name)
+
+    def test_edit_forms_include_double_submit_protection(self):
+        profile_response = self.client.get(
+            reverse("profiles:edit_profile")
+        )
+        interests_response = self.client.get(
+            reverse("profiles:edit_interests")
+        )
+
+        for response in (profile_response, interests_response):
+            self.assertContains(response, "let isSubmitting = false")
+            self.assertContains(response, "submitButton.disabled = true")
 
     def test_upload_and_remove_same_slot_is_rejected_without_changes(self):
         original = ProfilePhoto.objects.create(

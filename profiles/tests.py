@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from profiles.models import Profile
+from profiles.models import Interest, Profile
 
 
 User = get_user_model()
@@ -35,6 +35,23 @@ class ProfilesRoutesTests(TestCase):
 
         self.client.force_login(self.user)
 
+    def profile_version(self):
+        self.profile.refresh_from_db()
+        return self.profile.updated_at.isoformat(timespec="microseconds")
+
+    def valid_profile_data(self, **overrides):
+        data = {
+            "profile_version": self.profile_version(),
+            "display_name": "Updated Profile User",
+            "username": "updatedprofileuser",
+            "bio": "Testing reliable profile updates.",
+            "gender": "man",
+            "connection_goal": "both",
+            "interested_in": "women",
+        }
+        data.update(overrides)
+        return data
+
     def test_profile_home_loads(self):
         response = self.client.get(
             reverse("profiles:profile_home")
@@ -54,14 +71,7 @@ class ProfilesRoutesTests(TestCase):
     def test_profile_update_persists_and_synchronizes_identity(self):
         response = self.client.post(
             reverse("profiles:edit_profile"),
-            {
-                "display_name": "Updated Profile User",
-                "username": "updatedprofileuser",
-                "bio": "Testing reliable profile updates.",
-                "gender": "man",
-                "connection_goal": "both",
-                "interested_in": "women",
-            },
+            self.valid_profile_data(),
         )
 
         self.assertRedirects(
@@ -95,6 +105,80 @@ class ProfilesRoutesTests(TestCase):
         self.assertEqual(self.user.last_name, "Profile User")
         self.assertEqual(self.user.gender, "male")
         self.assertEqual(self.user.interested_in, "female")
+
+    def test_stale_profile_edit_does_not_overwrite_newer_data(self):
+        stale_version = self.profile_version()
+        self.profile.bio = "Saved by another request."
+        self.profile.save(update_fields=["bio", "updated_at"])
+
+        response = self.client.post(
+            reverse("profiles:edit_profile"),
+            self.valid_profile_data(
+                profile_version=stale_version,
+                bio="Stale browser value.",
+            ),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "updated in another request")
+        self.profile.refresh_from_db()
+        self.assertEqual(self.profile.bio, "Saved by another request.")
+
+    def test_profile_edit_pages_are_not_cached(self):
+        for route_name in (
+            "profiles:edit_profile",
+            "profiles:edit_interests",
+        ):
+            response = self.client.get(reverse(route_name))
+            self.assertEqual(response.status_code, 200)
+            cache_control = response.headers.get("Cache-Control", "")
+            self.assertIn("no-store", cache_control)
+            self.assertIn("max-age=0", cache_control)
+
+    def test_interest_update_is_versioned_and_transactional(self):
+        interest = Interest.objects.create(name="Reliability testing")
+        response = self.client.get(reverse("profiles:edit_interests"))
+        version = response.context["form"]["profile_version"].value()
+        previous_updated_at = self.profile.updated_at
+
+        response = self.client.post(
+            reverse("profiles:edit_interests"),
+            {
+                "profile_version": version,
+                "interests": [str(interest.id)],
+            },
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("profiles:profile_home"),
+            fetch_redirect_response=False,
+        )
+        self.profile.refresh_from_db()
+        self.assertEqual(
+            list(self.profile.interests.values_list("id", flat=True)),
+            [interest.id],
+        )
+        self.assertGreater(self.profile.updated_at, previous_updated_at)
+
+    def test_stale_interest_edit_is_rejected(self):
+        interest = Interest.objects.create(name="Stale interest")
+        response = self.client.get(reverse("profiles:edit_interests"))
+        stale_version = response.context["form"]["profile_version"].value()
+        self.profile.bio = "Concurrent profile change."
+        self.profile.save(update_fields=["bio", "updated_at"])
+
+        response = self.client.post(
+            reverse("profiles:edit_interests"),
+            {
+                "profile_version": stale_version,
+                "interests": [str(interest.id)],
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "updated in another request")
+        self.assertFalse(self.profile.interests.filter(id=interest.id).exists())
 
     def test_repair_form_preserves_goal_without_guessing_preference(self):
         self.user.interested_in = "friends"

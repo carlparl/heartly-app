@@ -6,6 +6,7 @@ from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
 
 from .blocking import block_exists_between, user_is_hidden_for
@@ -14,6 +15,7 @@ from .forms import (
     InterestForm,
     ProfileForm,
     ProfilePhotoForm,
+    profile_version_value,
 )
 from .identity import (
     identity_issue_messages,
@@ -36,6 +38,11 @@ except Exception:
 
 
 User = get_user_model()
+
+STALE_PROFILE_MESSAGE = (
+    "This profile was updated in another request. "
+    "Refresh the page before saving again."
+)
 
 
 DEFAULT_INTERESTS = [
@@ -396,6 +403,7 @@ def repair_identity(request):
     )
 
 @login_required
+@never_cache
 def edit_profile(request):
     ensure_default_interests()
     profile = get_profile(request.user)
@@ -416,10 +424,39 @@ def edit_profile(request):
         profile_is_valid = form.is_valid()
         photos_are_valid = photo_form.is_valid()
 
+        profile_saved = False
+
         if profile_is_valid and photos_are_valid:
             with transaction.atomic():
-                form.save()
-                photo_form.save()
+                locked_profile = (
+                    Profile.objects.select_for_update().get(pk=profile.pk)
+                )
+                submitted_version = (
+                    form.cleaned_data.get("profile_version") or ""
+                ).strip()
+
+                profile = locked_profile
+
+                if submitted_version != profile_version_value(locked_profile):
+                    form.add_error(None, STALE_PROFILE_MESSAGE)
+                else:
+                    locked_form = ProfileForm(
+                        request.POST,
+                        request.FILES,
+                        instance=locked_profile,
+                        user=request.user,
+                    )
+                    photo_form.bind_profile(locked_profile)
+
+                    if locked_form.is_valid():
+                        locked_form.save()
+                        photo_form.save()
+                        form = locked_form
+                        profile_saved = True
+                    else:
+                        form = locked_form
+
+        if profile_saved:
             messages.success(request, "Profile updated.")
             return redirect("profiles:profile_home")
     else:
@@ -466,35 +503,45 @@ def edit_profile(request):
 
 
 @login_required
+@never_cache
 def edit_interests(request):
     ensure_default_interests()
 
     profile = get_profile(request.user)
 
     if request.method == "POST":
-        try:
-            form = InterestForm(request.POST, instance=profile)
-        except TypeError:
-            form = InterestForm(request.POST)
+        form = InterestForm(request.POST, profile=profile)
+        interests_saved = False
 
         if form.is_valid():
-            if hasattr(form, "save"):
-                form.save()
-            else:
-                profile.interests.set(form.cleaned_data.get("interests", []))
-                profile.save()
+            with transaction.atomic():
+                locked_profile = (
+                    Profile.objects.select_for_update().get(pk=profile.pk)
+                )
+                submitted_version = (
+                    form.cleaned_data.get("profile_version") or ""
+                ).strip()
 
+                profile = locked_profile
+
+                if submitted_version != profile_version_value(locked_profile):
+                    form.add_error(None, STALE_PROFILE_MESSAGE)
+                else:
+                    locked_profile.interests.set(
+                        form.cleaned_data.get("interests", [])
+                    )
+                    locked_profile.save(update_fields=["updated_at"])
+                    interests_saved = True
+
+        if interests_saved:
             messages.success(request, "Interests updated.")
             return redirect("profiles:profile_home")
     else:
-        try:
-            form = InterestForm(instance=profile)
-        except TypeError:
-            form = InterestForm(initial={"interests": profile.interests.all()})
+        form = InterestForm(profile=profile)
 
     return render(
         request,
-        "profiles/edit_interests.html",
+        "profiles/interests.html",
         {
             "form": form,
             "profile": profile,

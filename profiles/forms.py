@@ -1,3 +1,4 @@
+import logging
 import os
 from datetime import timedelta
 
@@ -18,6 +19,8 @@ from .identity import (
 )
 from .models import Interest, Profile, ProfilePhoto
 
+
+logger = logging.getLogger(__name__)
 
 MAX_PROFILE_PHOTO_SIZE = 5 * 1024 * 1024
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
@@ -60,7 +63,39 @@ def validate_profile_photo(photo):
     return photo
 
 
+def profile_version_value(profile):
+    updated_at = getattr(profile, "updated_at", None)
+    if not updated_at:
+        return ""
+    return updated_at.isoformat(timespec="microseconds")
+
+
+def delete_unreferenced_profile_photo_files(storage, image_names):
+    for image_name in image_names:
+        if not image_name:
+            continue
+
+        is_referenced = (
+            ProfilePhoto.objects.filter(image=image_name).exists()
+            or Profile.objects.filter(profile_picture=image_name).exists()
+        )
+        if is_referenced:
+            continue
+
+        try:
+            storage.delete(image_name)
+        except Exception:
+            logger.exception(
+                "Profile photo cleanup failed for %s",
+                image_name,
+            )
+
+
 class ProfileForm(forms.ModelForm):
+    profile_version = forms.CharField(
+        required=False,
+        widget=forms.HiddenInput(),
+    )
     username = forms.CharField(
         label="Username",
         required=True,
@@ -137,6 +172,11 @@ class ProfileForm(forms.ModelForm):
         if self.user is not None:
             self.fields["username"].initial = (
                 getattr(self.user, "username", "") or ""
+            )
+
+        if not self.is_bound:
+            self.fields["profile_version"].initial = (
+                profile_version_value(self.instance)
             )
 
         self.fields["gender"].choices = [
@@ -271,6 +311,9 @@ class ProfilePhotoForm(forms.Form):
 
     def __init__(self, *args, profile, **kwargs):
         super().__init__(*args, **kwargs)
+        self.bind_profile(profile)
+
+    def bind_profile(self, profile):
         self.profile = profile
         self.existing_by_position = {
             photo.position: photo
@@ -334,6 +377,17 @@ class ProfilePhotoForm(forms.Form):
                 desired_photos.append(existing.image.name)
 
         with transaction.atomic():
+            old_image_names = {
+                photo.image.name
+                for photo in self.existing_by_position.values()
+                if photo.image and photo.image.name
+            }
+            if (
+                self.profile.profile_picture
+                and self.profile.profile_picture.name
+            ):
+                old_image_names.add(self.profile.profile_picture.name)
+
             self.profile.photos.all().delete()
             saved_photos = [
                 ProfilePhoto.objects.create(
@@ -357,6 +411,26 @@ class ProfilePhotoForm(forms.Form):
                 self.profile.profile_picture = primary_name or None
                 self.profile.save(
                     update_fields=["profile_picture", "updated_at"]
+                )
+
+            retained_image_names = {
+                photo.image.name
+                for photo in saved_photos
+                if photo.image and photo.image.name
+            }
+            obsolete_image_names = tuple(
+                sorted(old_image_names - retained_image_names)
+            )
+
+            if obsolete_image_names:
+                storage = ProfilePhoto._meta.get_field("image").storage
+                transaction.on_commit(
+                    lambda names=obsolete_image_names, backend=storage: (
+                        delete_unreferenced_profile_photo_files(
+                            backend,
+                            names,
+                        )
+                    )
                 )
 
         return saved_photos
@@ -570,9 +644,22 @@ class IdentityRepairForm(forms.Form):
         return self.profile
 
 class InterestForm(forms.Form):
+    profile_version = forms.CharField(
+        required=False,
+        widget=forms.HiddenInput(),
+    )
     interests = forms.ModelMultipleChoiceField(
         queryset=Interest.objects.all().order_by("name"),
         required=False,
         widget=forms.CheckboxSelectMultiple,
         label="Interests",
     )
+
+    def __init__(self, *args, profile, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.profile = profile
+
+        if not self.is_bound:
+            self.fields["profile_version"].initial = (
+                profile_version_value(profile)
+            )

@@ -7,6 +7,7 @@
 <div class="edit-profile-screen">
     <form method="post" enctype="multipart/form-data" class="edit-profile-form" id="editProfileForm">
         {% csrf_token %}
+        {{ form.profile_version }}
 
         <header class="edit-profile-topbar">
             <a href="{% url 'profiles:profile_home' %}" class="ep-back-btn" aria-label="Back to profile">â€¹</a>
@@ -944,6 +945,11 @@
         const heroUsername = document.getElementById("heroUsername");
         const heroBio = document.getElementById("heroBio");
         const bioCount = document.getElementById("bioCount");
+        const editForm = document.getElementById("editProfileForm");
+        const submitButton = editForm
+            ? editForm.querySelector('button[type="submit"]')
+            : null;
+        let isSubmitting = false;
 
         function cleanUsername(value) {
             value = (value || "").trim();
@@ -1018,6 +1024,26 @@
                 field.addEventListener("input", updateLivePreview);
             }
         });
+
+        if (editForm) {
+            editForm.addEventListener("submit", function (event) {
+                if (isSubmitting) {
+                    event.preventDefault();
+                    return;
+                }
+
+                if (!editForm.checkValidity()) {
+                    return;
+                }
+
+                isSubmitting = true;
+
+                if (submitButton) {
+                    submitButton.disabled = true;
+                    submitButton.textContent = "Saving...";
+                }
+            });
+        }
 
         updateLivePreview();
     });
