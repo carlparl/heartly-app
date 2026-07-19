@@ -13,6 +13,7 @@ from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 
+from profiles.email_verification import current_email_is_verified
 from profiles.identity import (
     identity_issue_messages,
     identity_repair_issues,
@@ -200,7 +201,7 @@ def discoverable_profiles_for(
 
     if (
         settings.HEARTLY_REQUIRE_VERIFIED_EMAIL
-        and not viewer_profile.email_verified
+        and not current_email_is_verified(viewer)
     ):
         return Profile.objects.none()
 
@@ -229,7 +230,7 @@ def discoverable_profiles_for(
     profiles = (
         Profile.objects
         .select_related("user")
-        .prefetch_related("interests")
+        .prefetch_related("interests", "user__emailaddress_set")
         .filter(
             user__is_active=True,
             user__is_staff=False,
@@ -252,15 +253,14 @@ def discoverable_profiles_for(
         .exclude(user_id__in=hidden_ids_for(viewer))
     )
 
-    if settings.HEARTLY_REQUIRE_VERIFIED_EMAIL:
-        profiles = profiles.filter(
-            email_verified=True
-        )
-
     eligible_profile_ids = [
         profile.id
         for profile in profiles
         if profile_identity_is_complete(profile)
+        and (
+            not settings.HEARTLY_REQUIRE_VERIFIED_EMAIL
+            or current_email_is_verified(profile.user)
+        )
     ]
     profiles = profiles.filter(
         id__in=eligible_profile_ids
@@ -435,7 +435,7 @@ def discover(request):
 
     if (
         settings.HEARTLY_REQUIRE_VERIFIED_EMAIL
-        and not viewer_profile.email_verified
+        and not current_email_is_verified(request.user)
     ):
         return render(
             request,
@@ -498,7 +498,7 @@ def swipe(request, user_id, action):
 
     if (
         settings.HEARTLY_REQUIRE_VERIFIED_EMAIL
-        and not viewer_profile.email_verified
+        and not current_email_is_verified(request.user)
     ):
         return match_error_response(
             request,

@@ -141,6 +141,10 @@ class SyncProfileEmailVerificationCommandTests(TestCase):
             update_fields=["email_verified", "updated_at"]
         )
 
+        baseline_missing_profiles = User.objects.exclude(
+            id__in=Profile.objects.values("user_id")
+        ).count()
+
         missing_profile_user, missing_profile = self.create_user(
             "missing_profile",
             verified=True,
@@ -165,4 +169,7 @@ class SyncProfileEmailVerificationCommandTests(TestCase):
                 missing_profile_user,
             )["issues"],
         )
-        self.assertEqual(report["summary"]["missing_profiles"], 1)
+        self.assertEqual(
+            report["summary"]["missing_profiles"],
+            baseline_missing_profiles + 1,
+        )

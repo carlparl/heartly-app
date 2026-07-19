@@ -7,6 +7,7 @@ from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils.cache import patch_cache_control, patch_vary_headers
 
+from .email_verification import current_email_is_verified
 from .identity import identity_repair_issues
 from .models import Profile
 
@@ -49,7 +50,7 @@ def _private_response(response):
 
 
 class AdultIdentityRequiredMiddleware:
-    """Protect Heartly's social surfaces with one consistent identity gate."""
+    """Protect social routes with adult-identity and email gates."""
 
     def __init__(self, get_response):
         self.get_response = get_response
@@ -58,7 +59,14 @@ class AdultIdentityRequiredMiddleware:
         return self.get_response(request)
 
     def process_view(self, request, view_func, view_args, view_kwargs):
-        if not settings.HEARTLY_ENFORCE_ADULT_IDENTITY:
+        enforce_adult_identity = (
+            settings.HEARTLY_ENFORCE_ADULT_IDENTITY
+        )
+        enforce_verified_email = (
+            settings.HEARTLY_REQUIRE_VERIFIED_EMAIL
+        )
+
+        if not enforce_adult_identity and not enforce_verified_email:
             return None
 
         match = request.resolver_match
@@ -82,27 +90,53 @@ class AdultIdentityRequiredMiddleware:
         if user.is_staff:
             return None
 
-        profile = Profile.objects.filter(user_id=user.pk).first()
+        if enforce_adult_identity:
+            profile = Profile.objects.filter(user_id=user.pk).first()
 
-        if not identity_repair_issues(user, profile):
-            return None
+            if identity_repair_issues(user, profile):
+                repair_url = reverse("profiles:repair_identity")
 
-        repair_url = reverse("profiles:repair_identity")
+                if request.method not in SAFE_METHODS:
+                    return _private_response(
+                        JsonResponse(
+                            {
+                                "ok": False,
+                                "error": (
+                                    "Complete your adult identity details "
+                                    "before using this Heartly feature."
+                                ),
+                                "repair_url": repair_url,
+                            },
+                            status=403,
+                        )
+                    )
 
-        if request.method not in SAFE_METHODS:
-            return _private_response(
-                JsonResponse(
-                    {
-                        "ok": False,
-                        "error": (
-                            "Complete your adult identity details before "
-                            "using this Heartly feature."
-                        ),
-                        "repair_url": repair_url,
-                    },
-                    status=403,
+                query = urlencode({"next": request.get_full_path()})
+                return _private_response(
+                    redirect(f"{repair_url}?{query}")
                 )
-            )
 
-        query = urlencode({"next": request.get_full_path()})
-        return _private_response(redirect(f"{repair_url}?{query}"))
+        if (
+            enforce_verified_email
+            and not current_email_is_verified(user)
+        ):
+            verification_url = reverse("settings_account")
+
+            if request.method not in SAFE_METHODS:
+                return _private_response(
+                    JsonResponse(
+                        {
+                            "ok": False,
+                            "error": (
+                                "Verify your current email before using "
+                                "this Heartly feature."
+                            ),
+                            "verification_url": verification_url,
+                        },
+                        status=403,
+                    )
+                )
+
+            return _private_response(redirect(verification_url))
+
+        return None

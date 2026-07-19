@@ -1,5 +1,6 @@
 from datetime import date
 
+from allauth.account.models import EmailAddress
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.urls import reverse
@@ -9,6 +10,17 @@ from profiles.models import Profile
 
 
 User = get_user_model()
+
+
+def set_current_email_verified(user, verified):
+    EmailAddress.objects.update_or_create(
+        user=user,
+        email=user.email,
+        defaults={
+            "primary": True,
+            "verified": verified,
+        },
+    )
 
 
 def years_ago(years):
@@ -49,6 +61,7 @@ def complete_user(
     profile.interested_in = profile_preference
     profile.email_verified = verified
     profile.save()
+    set_current_email_verified(user, verified)
     return user, profile
 
 
@@ -112,19 +125,18 @@ class VerifiedEmailDiscoverGateTests(TestCase):
         )
 
     def test_unverified_target_is_not_discoverable(self):
-        self.viewer_profile.email_verified = True
+        set_current_email_verified(self.viewer, True)
+        set_current_email_verified(self.target, False)
+
+        # Deliberately leave the denormalized profile flags stale to prove
+        # Discover uses the authoritative current EmailAddress records.
+        self.viewer_profile.email_verified = False
         self.viewer_profile.save(
-            update_fields=[
-                "email_verified",
-                "updated_at",
-            ]
+            update_fields=["email_verified", "updated_at"]
         )
-        self.target_profile.email_verified = False
+        self.target_profile.email_verified = True
         self.target_profile.save(
-            update_fields=[
-                "email_verified",
-                "updated_at",
-            ]
+            update_fields=["email_verified", "updated_at"]
         )
 
         response = self.client.get(
