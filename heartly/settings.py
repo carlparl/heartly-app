@@ -512,6 +512,34 @@ HEARTLY_REQUIRE_VERIFIED_EMAIL = env_bool(
     False,
 )
 
+HEARTLY_EMAIL_CODE_COOLDOWN_SECONDS = max(
+    1,
+    int(
+        os.environ.get(
+            "HEARTLY_EMAIL_CODE_COOLDOWN_SECONDS",
+            "60",
+        )
+    ),
+)
+HEARTLY_EMAIL_CODE_MAX_SENDS_PER_HOUR = max(
+    1,
+    int(
+        os.environ.get(
+            "HEARTLY_EMAIL_CODE_MAX_SENDS_PER_HOUR",
+            "5",
+        )
+    ),
+)
+HEARTLY_EMAIL_CODE_MAX_SENDS_PER_DAY = max(
+    HEARTLY_EMAIL_CODE_MAX_SENDS_PER_HOUR,
+    int(
+        os.environ.get(
+            "HEARTLY_EMAIL_CODE_MAX_SENDS_PER_DAY",
+            "10",
+        )
+    ),
+)
+
 # Adult identity enforcement is mandatory in production. Existing unrelated
 # tests opt out globally; the dedicated access-gate tests explicitly enable it.
 HEARTLY_ENFORCE_ADULT_IDENTITY = (

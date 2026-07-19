@@ -16,10 +16,9 @@ from django.views.decorators.http import require_http_methods, require_POST
 from profiles.identity import identity_repair_issues
 from profiles.models import Profile
 
-from .models import EmailVerificationCode
+from .models import CustomUser, EmailVerificationCode
 
 
-EMAIL_CODE_COOLDOWN_SECONDS = 60
 EMAIL_CODE_MAX_ATTEMPTS = 5
 
 
@@ -63,6 +62,65 @@ def _sync_profile_email_verification(user):
         )
 
     return verified
+
+
+def _reserve_email_verification_code(user, email):
+    """Atomically reserve one send slot and create its code."""
+    now = timezone.now()
+
+    with transaction.atomic():
+        locked_user = (
+            CustomUser.objects
+            .select_for_update()
+            .get(pk=user.pk)
+        )
+        locked_email = (locked_user.email or "").strip()
+
+        if locked_email.casefold() != email.casefold():
+            return None, None, "email_changed"
+
+        codes = EmailVerificationCode.objects.filter(
+            user=locked_user,
+            email__iexact=locked_email,
+        )
+
+        cooldown_boundary = now - timedelta(
+            seconds=(
+                settings.HEARTLY_EMAIL_CODE_COOLDOWN_SECONDS
+            )
+        )
+        if codes.filter(
+            created_at__gte=cooldown_boundary
+        ).exists():
+            return None, None, "cooldown"
+
+        hourly_boundary = now - timedelta(hours=1)
+        hourly_count = codes.filter(
+            created_at__gte=hourly_boundary
+        ).count()
+        if (
+            hourly_count
+            >= settings.HEARTLY_EMAIL_CODE_MAX_SENDS_PER_HOUR
+        ):
+            return None, None, "hourly"
+
+        daily_boundary = now - timedelta(days=1)
+        daily_count = codes.filter(
+            created_at__gte=daily_boundary
+        ).count()
+        if (
+            daily_count
+            >= settings.HEARTLY_EMAIL_CODE_MAX_SENDS_PER_DAY
+        ):
+            return None, None, "daily"
+
+        verification, raw_code = (
+            EmailVerificationCode.create_for_user(
+                locked_user
+            )
+        )
+
+    return verification, raw_code, None
 
 
 def welcome(request):
@@ -179,30 +237,30 @@ def send_email_code(request):
         )
         return redirect("settings_account")
 
-    cooldown_boundary = timezone.now() - timedelta(
-        seconds=EMAIL_CODE_COOLDOWN_SECONDS
+    verification, raw_code, limit_reason = (
+        _reserve_email_verification_code(user, email)
     )
-    recent_code = (
-        EmailVerificationCode.objects
-        .filter(
-            user=user,
-            email=email,
-            used_at__isnull=True,
-            created_at__gte=cooldown_boundary,
-        )
-        .order_by("-created_at")
-        .first()
-    )
-    if recent_code:
+
+    if limit_reason == "cooldown":
         messages.error(
             request,
             "A code was sent recently. Wait one minute before requesting another.",
         )
         return redirect("settings_account")
 
-    verification, raw_code = (
-        EmailVerificationCode.create_for_user(user)
-    )
+    if limit_reason == "email_changed":
+        messages.error(
+            request,
+            "Your email address changed. Refresh the page and try again.",
+        )
+        return redirect("settings_account")
+
+    if limit_reason:
+        messages.error(
+            request,
+            "Too many verification emails were requested. Try again later.",
+        )
+        return redirect("settings_account")
 
     body = (
         f"Your Heartly verification code is {raw_code}.\n\n"
