@@ -1,4 +1,5 @@
 from datetime import date
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -117,6 +118,65 @@ class SafeSignupTests(TestCase):
         self.assertEqual(user.gender, "prefer_not_to_say")
         self.assertEqual(profile.gender, Profile.GENDER_OTHER)
         self.assertEqual(identity_repair_issues(user, profile), [])
+
+    @patch(
+        "accounts.forms.mapped_profile_gender",
+        return_value=None,
+    )
+    def test_unmapped_gender_is_rejected_during_validation(
+        self,
+        _mapped_profile_gender,
+    ):
+        form = CustomSignupForm(data=self.valid_form_data())
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("gender", form.errors)
+
+    @patch(
+        "accounts.forms.mapped_profile_preference",
+        return_value=None,
+    )
+    def test_unmapped_preference_is_rejected_during_validation(
+        self,
+        _mapped_profile_preference,
+    ):
+        form = CustomSignupForm(data=self.valid_form_data())
+
+        self.assertFalse(form.is_valid())
+        self.assertIn("interested_in", form.errors)
+
+    @patch(
+        "accounts.forms.mapped_profile_gender",
+        return_value=None,
+    )
+    def test_signup_route_returns_form_error_without_creating_user(
+        self,
+        _mapped_profile_gender,
+    ):
+        data = self.valid_form_data()
+        data.update(
+            {
+                "email": "mapping-failure@example.com",
+                "password1": "StrongPass123!",
+                "password2": "StrongPass123!",
+            }
+        )
+
+        response = self.client.post(
+            reverse("account_signup"),
+            data,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            "This selection is temporarily unavailable.",
+        )
+        self.assertFalse(
+            User.objects.filter(
+                email="mapping-failure@example.com"
+            ).exists()
+        )
 
 
 class FirstLoginOnboardingTests(TestCase):

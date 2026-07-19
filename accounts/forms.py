@@ -141,6 +141,39 @@ class CustomSignupForm(forms.Form):
             self.cleaned_data.get("phone_number", "") or ""
         ).strip()
 
+    def clean_gender(self):
+        gender = self.cleaned_data.get("gender", "")
+        profile_gender = mapped_profile_gender(gender)
+
+        if not profile_gender:
+            raise ValidationError(
+                "This selection is temporarily unavailable. "
+                "Choose another option."
+            )
+
+        self._validated_profile_gender = profile_gender
+        return gender
+
+    def clean_interested_in(self):
+        interested_in = self.cleaned_data.get(
+            "interested_in",
+            "",
+        )
+        profile_preference = mapped_profile_preference(
+            interested_in
+        )
+
+        if not profile_preference:
+            raise ValidationError(
+                "This selection is temporarily unavailable. "
+                "Choose another option."
+            )
+
+        self._validated_profile_preference = (
+            profile_preference
+        )
+        return interested_in
+
     def clean_date_of_birth(self):
         date_of_birth = self.cleaned_data.get(
             "date_of_birth"
@@ -172,9 +205,15 @@ class CustomSignupForm(forms.Form):
             "date_of_birth"
         ]
 
-        profile_gender = mapped_profile_gender(gender)
-        profile_preference = mapped_profile_preference(
-            interested_in
+        profile_gender = getattr(
+            self,
+            "_validated_profile_gender",
+            None,
+        )
+        profile_preference = getattr(
+            self,
+            "_validated_profile_preference",
+            None,
         )
 
         if not profile_gender or not profile_preference:
