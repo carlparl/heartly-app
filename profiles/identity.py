@@ -11,6 +11,7 @@ USER_GENDER_TO_PROFILE_GENDER = {
     "male": "man",
     "female": "woman",
     "non_binary": "non_binary",
+    "prefer_not_to_say": "other",
 }
 
 

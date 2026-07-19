@@ -97,6 +97,27 @@ class SafeSignupTests(TestCase):
         )
         self.assertEqual(profile.age, user.age)
 
+    def test_prefer_not_to_say_signup_synchronizes_identity(self):
+        data = self.valid_form_data()
+        data["gender"] = "prefer_not_to_say"
+        form = CustomSignupForm(data=data)
+        self.assertTrue(form.is_valid(), form.errors)
+
+        user = User.objects.create_user(
+            username="private-gender-user",
+            email="private-gender-user@example.com",
+            password="StrongPass123!",
+        )
+
+        form.signup(None, user)
+
+        user.refresh_from_db()
+        profile = Profile.objects.get(user=user)
+
+        self.assertEqual(user.gender, "prefer_not_to_say")
+        self.assertEqual(profile.gender, Profile.GENDER_OTHER)
+        self.assertEqual(identity_repair_issues(user, profile), [])
+
 
 class FirstLoginOnboardingTests(TestCase):
     def test_incomplete_user_is_sent_to_identity_repair(self):
