@@ -4,6 +4,7 @@ from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
 
 from notifications.models import Notification
+from notifications.activity import notify_post_report
 from profiles.models import ModerationAction, Profile
 
 from .admin import PostAdmin, PostReportAdmin
@@ -103,6 +104,7 @@ class FeedModerationWorkflowTests(TestCase):
             reason=PostReport.REASON_SPAM,
             moderator_note="Report did not meet the action threshold.",
         )
+        notification = notify_post_report(report)[0]
         model_admin = PostReportAdmin(
             PostReport,
             admin.site,
@@ -120,6 +122,9 @@ class FeedModerationWorkflowTests(TestCase):
             PostReport.STATUS_DISMISSED,
         )
         self.assertEqual(report.reviewed_by, self.moderator)
+        notification.refresh_from_db()
+        self.assertTrue(notification.is_read)
+        self.assertTrue(notification.is_resolved)
         self.assertTrue(
             ModerationAction.objects.filter(
                 action=(

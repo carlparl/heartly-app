@@ -1,6 +1,10 @@
 from django.contrib import admin
 from django.utils import timezone
 
+from notifications.activity import (
+    resolve_moderation_report_notifications,
+)
+
 from .models import (
     Interest,
     ModerationAction,
@@ -271,6 +275,10 @@ class ProfileReportAdmin(admin.ModelAdmin):
             reviewed_by=request.user,
             reviewed_at=now,
         )
+        resolve_moderation_report_notifications(
+            "profiles.profilereport",
+            [report.id for report in reports],
+        )
         record_actions(
             [
                 {
@@ -352,6 +360,10 @@ class ProfileReportAdmin(admin.ModelAdmin):
             status=ProfileReport.STATUS_ACTIONED,
             reviewed_by=request.user,
             reviewed_at=timezone.now(),
+        )
+        resolve_moderation_report_notifications(
+            "profiles.profilereport",
+            [report.id for report in reports],
         )
         record_actions(
             [

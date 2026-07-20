@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.test import RequestFactory, TestCase, override_settings
 
+from notifications.activity import notify_chat_report
 from profiles.models import ModerationAction, Profile
 
 from .admin import ChatReportAdmin
@@ -52,6 +53,7 @@ class ChatModerationWorkflowTests(TestCase):
         )
 
     def test_chat_report_review_is_audited(self):
+        notification = notify_chat_report(self.report)[0]
         self.model_admin.mark_reviewed(
             self.request,
             ChatReport.objects.filter(pk=self.report.pk),
@@ -67,6 +69,9 @@ class ChatModerationWorkflowTests(TestCase):
             self.report.reviewed_by,
             self.moderator,
         )
+        notification.refresh_from_db()
+        self.assertTrue(notification.is_read)
+        self.assertTrue(notification.is_resolved)
         action = ModerationAction.objects.get(
             source_type=ModerationAction.SOURCE_CHAT_REPORT,
             source_object_id=self.report.id,

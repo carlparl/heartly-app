@@ -8,6 +8,8 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
 
+from notifications.activity import notify_profile_report
+
 from .blocking import (
     block_exists_between,
     resolve_notifications_between,
@@ -597,7 +599,8 @@ def report_profile(request, user_id):
         messages.info(request, "You already reported this profile.")
         return redirect("profiles:public_profile", user_id=target_user.id)
 
-    ProfileReport.objects.create(**create_data)
+    report = ProfileReport.objects.create(**create_data)
+    notify_profile_report(report)
 
     messages.success(request, "Profile reported. Thank you for helping keep Heartly safe.")
     return redirect("profiles:public_profile", user_id=target_user.id)

@@ -2,6 +2,7 @@ from django.conf import settings
 from notifications.activity import (
     notify_post_comment,
     notify_post_like,
+    notify_post_report,
     notify_story_reaction,
 )
 from django.contrib import messages
@@ -1250,6 +1251,9 @@ def report_post(request, post_id):
             "details": details,
         },
     )
+
+    if created:
+        notify_post_report(report)
 
     if wants_json(request):
         return json_success(

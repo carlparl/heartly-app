@@ -3,6 +3,9 @@ from django.db.models import Q
 from django.utils import timezone
 
 from notifications.models import Notification
+from notifications.activity import (
+    resolve_moderation_report_notifications,
+)
 from profiles.models import ModerationAction
 
 from .models import (
@@ -280,6 +283,10 @@ class PostReportAdmin(admin.ModelAdmin):
             reviewed_by=request.user,
             reviewed_at=timezone.now(),
         )
+        resolve_moderation_report_notifications(
+            "feed.postreport",
+            [report.id for report in reports],
+        )
         record_actions(
             [
                 {
@@ -357,6 +364,10 @@ class PostReportAdmin(admin.ModelAdmin):
             status=PostReport.STATUS_ACTIONED,
             reviewed_by=request.user,
             reviewed_at=timezone.now(),
+        )
+        resolve_moderation_report_notifications(
+            "feed.postreport",
+            [report.id for report in reports],
         )
         resolve_post_notifications(post_ids)
         record_actions(

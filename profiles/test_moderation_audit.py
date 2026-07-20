@@ -2,6 +2,8 @@ from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.test import RequestFactory, TestCase, override_settings
 
+from notifications.activity import notify_profile_report
+
 from .admin import (
     ModerationActionAdmin,
     ProfileAdmin,
@@ -82,6 +84,7 @@ class ProfileModerationAuditTests(TestCase):
             reason=ProfileReport.REASON_SPAM,
             moderator_note="Checked supporting evidence.",
         )
+        notification = notify_profile_report(report)[0]
         model_admin = ProfileReportAdmin(
             ProfileReport,
             admin.site,
@@ -100,6 +103,9 @@ class ProfileModerationAuditTests(TestCase):
         )
         self.assertEqual(report.reviewed_by, self.moderator)
         self.assertIsNotNone(report.reviewed_at)
+        notification.refresh_from_db()
+        self.assertTrue(notification.is_read)
+        self.assertTrue(notification.is_resolved)
         action = ModerationAction.objects.get(
             source_type=(
                 ModerationAction.SOURCE_PROFILE_REPORT

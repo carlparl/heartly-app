@@ -1,6 +1,9 @@
 from django.contrib import admin
 from django.utils import timezone
 
+from notifications.activity import (
+    resolve_moderation_report_notifications,
+)
 from profiles.models import ModerationAction, Profile
 
 from .models import Call, ChatAttachment, ChatMessage, ChatReport, ChatThread
@@ -119,6 +122,10 @@ class ChatReportAdmin(admin.ModelAdmin):
             reviewed_by=request.user,
             reviewed_at=timezone.now(),
         )
+        resolve_moderation_report_notifications(
+            "chat.chatreport",
+            [report.id for report in reports],
+        )
         record_actions(
             [
                 {
@@ -195,6 +202,10 @@ class ChatReportAdmin(admin.ModelAdmin):
             status=ChatReport.STATUS_ACTIONED,
             reviewed_by=request.user,
             reviewed_at=timezone.now(),
+        )
+        resolve_moderation_report_notifications(
+            "chat.chatreport",
+            [report.id for report in reports],
         )
         record_actions(
             [

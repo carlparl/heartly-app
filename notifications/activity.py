@@ -1,11 +1,17 @@
 from __future__ import annotations
 
+import logging
+
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.urls import reverse
+from django.utils import timezone
 
 from .models import Notification
 from .services import notify, notify_once
+
+
+logger = logging.getLogger(__name__)
 
 
 def display_name_for(user):
@@ -270,6 +276,123 @@ def mark_thread_message_notifications_read(thread, user):
         related_object_id__in=message_ids,
         is_read=False,
     ).update(is_read=True)
+
+
+def notify_moderation_report(
+    report,
+    *,
+    title,
+    message,
+    admin_view_name,
+    related_object_type,
+):
+    if report is None:
+        return []
+    User = get_user_model()
+    created = []
+    report_url = reverse(
+        admin_view_name,
+        args=[report.id],
+    )
+    excluded_staff_ids = {
+        report.reporter_id,
+        moderation_report_subject_user_id(report),
+    }
+    excluded_staff_ids.discard(None)
+    staff_users = User.objects.filter(
+        is_active=True,
+        is_staff=True,
+    ).exclude(id__in=excluded_staff_ids)
+    for staff_user in staff_users:
+        try:
+            item = notify_once(
+                recipient=staff_user,
+                actor=report.reporter,
+                notification_type=Notification.TYPE_REPORT,
+                title=title,
+                message=message,
+                url=report_url,
+                related_object_type=related_object_type,
+                related_object_id=report.id,
+            )
+        except Exception:
+            logger.exception(
+                "Could not create moderation report alert.",
+                extra={
+                    "report_id": report.id,
+                    "related_object_type": related_object_type,
+                    "staff_user_id": staff_user.id,
+                },
+            )
+            continue
+        if item is not None:
+            created.append(item)
+    return created
+
+
+def moderation_report_subject_user_id(report):
+    reported_user_id = getattr(
+        report,
+        "reported_user_id",
+        None,
+    )
+    if reported_user_id is not None:
+        return reported_user_id
+
+    post = getattr(report, "post", None)
+    return getattr(post, "author_id", None)
+
+
+def notify_profile_report(report):
+    if report is None:
+        return []
+    return notify_moderation_report(
+        report,
+        title="Profile report",
+        message=(
+            f"{display_name_for(report.reporter)} "
+            "reported a profile."
+        ),
+        admin_view_name=(
+            "admin:profiles_profilereport_change"
+        ),
+        related_object_type="profiles.profilereport",
+    )
+
+
+def notify_post_report(report):
+    if report is None:
+        return []
+    return notify_moderation_report(
+        report,
+        title="Post report",
+        message=(
+            f"{display_name_for(report.reporter)} "
+            "reported a post."
+        ),
+        admin_view_name="admin:feed_postreport_change",
+        related_object_type="feed.postreport",
+    )
+
+
+def resolve_moderation_report_notifications(
+    related_object_type,
+    report_ids,
+):
+    report_ids = list(report_ids)
+    if not report_ids:
+        return 0
+
+    return Notification.objects.filter(
+        notification_type=Notification.TYPE_REPORT,
+        related_object_type=related_object_type,
+        related_object_id__in=report_ids,
+        is_resolved=False,
+    ).update(
+        is_read=True,
+        is_resolved=True,
+        updated_at=timezone.now(),
+    )
 
 
 def notify_chat_report(report):
