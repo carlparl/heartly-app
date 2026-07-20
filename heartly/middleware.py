@@ -30,6 +30,7 @@ RATE_LIMIT_VIEW_GROUPS = {
     "send_email_code": "email_verification",
     "verify_email_code": "email_verification",
     "delete_account": "sensitive_account",
+    "data_export": "sensitive_account",
     "profiles:report_profile": "reports",
     "feed:report_post": "reports",
     "chat:report_thread_user": "reports",

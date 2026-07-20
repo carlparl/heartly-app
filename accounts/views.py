@@ -8,6 +8,7 @@ from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.core.mail import send_mail
 from django.db import transaction
+from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -16,6 +17,7 @@ from django.views.decorators.http import require_http_methods, require_POST
 from profiles.identity import identity_repair_issues
 from profiles.models import Profile
 
+from .data_export import build_user_data_export
 from .models import CustomUser, EmailVerificationCode
 
 
@@ -319,6 +321,49 @@ def settings_account(request):
             "email_verified": email_verified,
         },
     )
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def data_export(request):
+    if request.method == "GET":
+        return render(request, "accounts/data_export.html")
+
+    confirm_export = request.POST.get(
+        "confirm_export",
+        "",
+    ).strip()
+    password = request.POST.get("password", "")
+
+    if confirm_export != "EXPORT":
+        messages.error(
+            request,
+            "Type EXPORT exactly to create your data file.",
+        )
+        return redirect("data_export")
+
+    if (
+        request.user.has_usable_password()
+        and not request.user.check_password(password)
+    ):
+        messages.error(
+            request,
+            "Incorrect password. No data file was created.",
+        )
+        return redirect("data_export")
+
+    export = build_user_data_export(request.user)
+    response = JsonResponse(
+        export,
+        json_dumps_params={"indent": 2, "sort_keys": True},
+    )
+    response["Content-Disposition"] = (
+        'attachment; filename="heartly-account-data.json"'
+    )
+    response["Cache-Control"] = "no-store, private"
+    response["Pragma"] = "no-cache"
+    response["X-Content-Type-Options"] = "nosniff"
+    return response
 
 
 @login_required

@@ -1,0 +1,79 @@
+{% extends "heartly/base.html" %}
+
+{% block title %}Download Account Data - Heartly{% endblock %}
+
+{% block content %}
+<div class="heartly-page settings-page">
+    <section class="heartly-hero-card settings-hero">
+        <span class="heartly-kicker">Privacy</span>
+        <h1 class="heartly-page-title">Download account data</h1>
+        <p class="heartly-page-subtitle">
+            Create a JSON copy of account, profile, activity, and content data
+            associated with your account.
+        </p>
+    </section>
+
+    <section class="heartly-panel settings-card">
+        <p>
+            The download excludes internal moderation evidence, staff notes,
+            credentials, security secrets, and other members’ private account
+            information.
+        </p>
+
+        <form method="post" class="data-export-form">
+            {% csrf_token %}
+
+            {% if request.user.has_usable_password %}
+                <label for="export-password">Current password</label>
+                <input
+                    id="export-password"
+                    name="password"
+                    type="password"
+                    autocomplete="current-password"
+                    required
+                >
+            {% endif %}
+
+            <label for="export-confirmation">Type EXPORT to confirm</label>
+            <input
+                id="export-confirmation"
+                name="confirm_export"
+                type="text"
+                autocomplete="off"
+                required
+            >
+
+            <button type="submit" class="heartly-btn-primary">
+                Download private JSON file
+            </button>
+        </form>
+
+        <a href="{% url 'settings_account' %}" class="heartly-btn-secondary">
+            Back to account settings
+        </a>
+    </section>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+.settings-page,
+.settings-card,
+.data-export-form {
+    display: grid;
+    gap: 14px;
+}
+
+.data-export-form label {
+    color: var(--heartly-text);
+    font-weight: 850;
+}
+
+.data-export-form input {
+    min-height: 48px;
+    padding: 10px 12px;
+    border: 1px solid var(--heartly-border);
+    border-radius: 14px;
+    background: var(--heartly-card-solid);
+    color: var(--heartly-text);
+}
+{% endblock %}

@@ -19,6 +19,14 @@
       <p class="small text-muted mb-4">
         Contact Heartly support if you believe this decision needs review.
       </p>
+      <div class="d-flex flex-wrap gap-2 mb-3">
+        <a class="btn btn-outline-secondary" href="{% url 'data_export' %}">
+          Download account data
+        </a>
+        <a class="btn btn-outline-danger" href="{% url 'delete_account' %}">
+          Delete account
+        </a>
+      </div>
       <form method="post" action="{% url 'account_logout' %}">
         {% csrf_token %}
         <button class="btn btn-outline-secondary" type="submit">

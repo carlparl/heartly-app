@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from django.conf import settings
 from django.core.cache import cache
 
+from .integrity_metrics import record_rate_limit_event
+
 
 logger = logging.getLogger(__name__)
 
@@ -89,8 +91,12 @@ def consume_rate_limit(group, identity, *, now=None):
         )
         return RateLimitDecision(True, limit, limit, 0)
 
+    allowed = count <= limit
+    if not allowed:
+        record_rate_limit_event(group)
+
     return RateLimitDecision(
-        allowed=count <= limit,
+        allowed=allowed,
         limit=limit,
         remaining=max(0, limit - count),
         retry_after=retry_after,

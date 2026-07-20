@@ -357,6 +357,10 @@ if RUNNING_TESTS:
     STORAGES["default"] = {
         "BACKEND": "django.core.files.storage.InMemoryStorage",
     }
+    # Tests must not depend on a previously collected production manifest.
+    STORAGES["staticfiles"] = {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    }
 
 DATA_UPLOAD_MAX_MEMORY_SIZE = int(os.environ.get("DJANGO_DATA_UPLOAD_MAX_MEMORY_SIZE", 70 * 1024 * 1024))
 FILE_UPLOAD_MAX_MEMORY_SIZE = int(os.environ.get("DJANGO_FILE_UPLOAD_MAX_MEMORY_SIZE", 70 * 1024 * 1024))
@@ -935,6 +939,14 @@ HEARTLY_CHAT_THREAD_LIMIT = min(
 HEARTLY_CHAT_MESSAGE_LIMIT = min(
     250,
     max(25, int(os.environ.get("HEARTLY_CHAT_MESSAGE_LIMIT", "100"))),
+)
+
+HEARTLY_DATA_EXPORT_MAX_RECORDS = min(
+    50_000,
+    max(
+        100,
+        int(os.environ.get("HEARTLY_DATA_EXPORT_MAX_RECORDS", "10000")),
+    ),
 )
 
 # Aggregate runtime counters contain no paths, query strings, user IDs, or

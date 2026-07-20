@@ -38,6 +38,8 @@ class AccountModerationMiddleware:
             reverse("community_guidelines"),
             reverse("privacy_policy"),
             reverse("terms_of_service"),
+            reverse("data_export"),
+            reverse("delete_account"),
         }
         if request.path in exempt_paths:
             return self.get_response(request)
