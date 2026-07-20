@@ -1,6 +1,9 @@
 from django.contrib import admin
-
+from django.db.models import Q
 from django.utils import timezone
+
+from notifications.models import Notification
+from profiles.models import ModerationAction
 
 from .models import (
     Comment,
@@ -13,6 +16,42 @@ from .models import (
 )
 
 
+def record_actions(rows):
+    if rows:
+        ModerationAction.objects.bulk_create(
+            [ModerationAction(**row) for row in rows]
+        )
+
+
+def resolve_post_notifications(post_ids):
+    post_ids = list(post_ids)
+    if not post_ids:
+        return 0
+
+    comment_ids = list(
+        Comment.objects.filter(
+            post_id__in=post_ids,
+        ).values_list("id", flat=True)
+    )
+    return Notification.objects.filter(
+        Q(
+            related_object_type="feed.post",
+            related_object_id__in=post_ids,
+        )
+        | Q(
+            related_object_type__in=[
+                "feed.comment",
+                "feed.comment_reply",
+            ],
+            related_object_id__in=comment_ids,
+        )
+    ).update(
+        is_read=True,
+        is_resolved=True,
+        updated_at=timezone.now(),
+    )
+
+
 @admin.register(Post)
 class PostAdmin(admin.ModelAdmin):
     list_display = (
@@ -21,6 +60,26 @@ class PostAdmin(admin.ModelAdmin):
         "short_content",
         "has_image",
         "has_video",
+        "hidden_by_moderation",
+    )
+    list_filter = (
+        "hidden_by_moderation",
+        "created_at",
+    )
+    search_fields = (
+        "author__username",
+        "author__email",
+        "content",
+        "moderation_note",
+    )
+    readonly_fields = (
+        "hidden_by_moderation",
+        "moderated_by",
+        "moderated_at",
+    )
+    actions = (
+        "hide_posts",
+        "restore_posts",
     )
     ordering = ("-id",)
 
@@ -50,6 +109,68 @@ class PostAdmin(admin.ModelAdmin):
 
     has_video.boolean = True
     has_video.short_description = "Video"
+
+    @admin.action(
+        description="Hide selected posts from Heartly",
+        permissions=["change"],
+    )
+    def hide_posts(self, request, queryset):
+        posts = list(
+            queryset.filter(
+                hidden_by_moderation=False,
+            ).select_related("author")
+        )
+        post_ids = [post.id for post in posts]
+        Post.objects.filter(id__in=post_ids).update(
+            hidden_by_moderation=True,
+            moderated_by=request.user,
+            moderated_at=timezone.now(),
+        )
+        resolve_post_notifications(post_ids)
+        record_actions(
+            [
+                {
+                    "moderator": request.user,
+                    "target_user": post.author,
+                    "action": ModerationAction.ACTION_POST_HIDDEN,
+                    "source_type": ModerationAction.SOURCE_POST,
+                    "source_object_id": post.id,
+                    "note": post.moderation_note,
+                }
+                for post in posts
+            ]
+        )
+
+    @admin.action(
+        description="Restore selected posts to Heartly",
+        permissions=["change"],
+    )
+    def restore_posts(self, request, queryset):
+        posts = list(
+            queryset.filter(
+                hidden_by_moderation=True,
+            ).select_related("author")
+        )
+        Post.objects.filter(
+            id__in=[post.id for post in posts]
+        ).update(
+            hidden_by_moderation=False,
+            moderated_by=request.user,
+            moderated_at=timezone.now(),
+        )
+        record_actions(
+            [
+                {
+                    "moderator": request.user,
+                    "target_user": post.author,
+                    "action": ModerationAction.ACTION_POST_RESTORED,
+                    "source_type": ModerationAction.SOURCE_POST,
+                    "source_object_id": post.id,
+                    "note": post.moderation_note,
+                }
+                for post in posts
+            ]
+        )
 
 
 @admin.register(Comment)
@@ -96,11 +217,13 @@ class PostReportAdmin(admin.ModelAdmin):
         "post",
         "reporter",
         "reason",
+        "status",
         "reviewed",
         "created_at",
     )
     list_filter = (
         "reason",
+        "status",
         "reviewed",
         "created_at",
     )
@@ -111,12 +234,17 @@ class PostReportAdmin(admin.ModelAdmin):
         "reporter__email",
         "post__content",
         "details",
+        "moderator_note",
     )
     readonly_fields = (
         "post",
         "reporter",
         "reason",
         "details",
+        "status",
+        "reviewed",
+        "reviewed_by",
+        "reviewed_at",
         "created_at",
     )
     list_select_related = (
@@ -125,11 +253,154 @@ class PostReportAdmin(admin.ModelAdmin):
         "reporter",
     )
     ordering = ("-created_at",)
-    actions = ("mark_reviewed",)
+    actions = (
+        "mark_reviewed",
+        "mark_actioned",
+        "mark_dismissed",
+        "hide_reported_posts",
+        "restore_reported_posts",
+    )
 
-    @admin.action(description="Mark selected reports as reviewed")
+    def set_report_status(
+        self,
+        request,
+        queryset,
+        *,
+        status,
+        audit_action,
+    ):
+        reports = list(
+            queryset.select_related("post__author")
+        )
+        PostReport.objects.filter(
+            id__in=[report.id for report in reports]
+        ).update(
+            reviewed=True,
+            status=status,
+            reviewed_by=request.user,
+            reviewed_at=timezone.now(),
+        )
+        record_actions(
+            [
+                {
+                    "moderator": request.user,
+                    "target_user": report.post.author,
+                    "action": audit_action,
+                    "source_type": ModerationAction.SOURCE_POST_REPORT,
+                    "source_object_id": report.id,
+                    "note": report.moderator_note,
+                }
+                for report in reports
+            ]
+        )
+
+    @admin.action(
+        description="Mark selected reports as reviewed",
+        permissions=["change"],
+    )
     def mark_reviewed(self, request, queryset):
-        queryset.update(reviewed=True)
+        self.set_report_status(
+            request,
+            queryset,
+            status=PostReport.STATUS_REVIEWED,
+            audit_action=(
+                ModerationAction.ACTION_REPORT_REVIEWED
+            ),
+        )
+
+    @admin.action(
+        description="Mark selected reports as actioned",
+        permissions=["change"],
+    )
+    def mark_actioned(self, request, queryset):
+        self.set_report_status(
+            request,
+            queryset,
+            status=PostReport.STATUS_ACTIONED,
+            audit_action=(
+                ModerationAction.ACTION_REPORT_ACTIONED
+            ),
+        )
+
+    @admin.action(
+        description="Dismiss selected reports",
+        permissions=["change"],
+    )
+    def mark_dismissed(self, request, queryset):
+        self.set_report_status(
+            request,
+            queryset,
+            status=PostReport.STATUS_DISMISSED,
+            audit_action=(
+                ModerationAction.ACTION_REPORT_DISMISSED
+            ),
+        )
+
+    @admin.action(
+        description="Hide posts from selected reports",
+        permissions=["change"],
+    )
+    def hide_reported_posts(self, request, queryset):
+        reports = list(
+            queryset.select_related("post__author")
+        )
+        post_ids = {report.post_id for report in reports}
+        Post.objects.filter(id__in=post_ids).update(
+            hidden_by_moderation=True,
+            moderated_by=request.user,
+            moderated_at=timezone.now(),
+        )
+        PostReport.objects.filter(
+            id__in=[report.id for report in reports]
+        ).update(
+            reviewed=True,
+            status=PostReport.STATUS_ACTIONED,
+            reviewed_by=request.user,
+            reviewed_at=timezone.now(),
+        )
+        resolve_post_notifications(post_ids)
+        record_actions(
+            [
+                {
+                    "moderator": request.user,
+                    "target_user": report.post.author,
+                    "action": ModerationAction.ACTION_POST_HIDDEN,
+                    "source_type": ModerationAction.SOURCE_POST_REPORT,
+                    "source_object_id": report.id,
+                    "note": report.moderator_note,
+                }
+                for report in reports
+            ]
+        )
+
+    @admin.action(
+        description="Restore posts from selected reports",
+        permissions=["change"],
+    )
+    def restore_reported_posts(self, request, queryset):
+        reports = list(
+            queryset.select_related("post__author")
+        )
+        Post.objects.filter(
+            id__in={report.post_id for report in reports}
+        ).update(
+            hidden_by_moderation=False,
+            moderated_by=request.user,
+            moderated_at=timezone.now(),
+        )
+        record_actions(
+            [
+                {
+                    "moderator": request.user,
+                    "target_user": report.post.author,
+                    "action": ModerationAction.ACTION_POST_RESTORED,
+                    "source_type": ModerationAction.SOURCE_POST_REPORT,
+                    "source_object_id": report.id,
+                    "note": report.moderator_note,
+                }
+                for report in reports
+            ]
+        )
 
 
 @admin.register(Story)

@@ -198,6 +198,89 @@ class UserBlock(models.Model):
         ).exists()
 
 
+class ModerationAction(models.Model):
+    ACTION_REPORT_REVIEWED = "report_reviewed"
+    ACTION_REPORT_ACTIONED = "report_actioned"
+    ACTION_REPORT_DISMISSED = "report_dismissed"
+    ACTION_PROFILE_HIDDEN = "profile_hidden"
+    ACTION_PROFILE_RESTORED = "profile_restored"
+    ACTION_POST_HIDDEN = "post_hidden"
+    ACTION_POST_RESTORED = "post_restored"
+
+    ACTION_CHOICES = [
+        (ACTION_REPORT_REVIEWED, "Report reviewed"),
+        (ACTION_REPORT_ACTIONED, "Report actioned"),
+        (ACTION_REPORT_DISMISSED, "Report dismissed"),
+        (ACTION_PROFILE_HIDDEN, "Profile hidden"),
+        (ACTION_PROFILE_RESTORED, "Profile restored"),
+        (ACTION_POST_HIDDEN, "Post hidden"),
+        (ACTION_POST_RESTORED, "Post restored"),
+    ]
+
+    SOURCE_PROFILE = "profile"
+    SOURCE_PROFILE_REPORT = "profile_report"
+    SOURCE_POST = "post"
+    SOURCE_POST_REPORT = "post_report"
+    SOURCE_CHAT_REPORT = "chat_report"
+
+    SOURCE_CHOICES = [
+        (SOURCE_PROFILE, "Profile"),
+        (SOURCE_PROFILE_REPORT, "Profile report"),
+        (SOURCE_POST, "Post"),
+        (SOURCE_POST_REPORT, "Post report"),
+        (SOURCE_CHAT_REPORT, "Chat report"),
+    ]
+
+    moderator = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="moderation_actions_performed",
+    )
+    target_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="moderation_actions_received",
+    )
+    action = models.CharField(
+        max_length=40,
+        choices=ACTION_CHOICES,
+    )
+    source_type = models.CharField(
+        max_length=40,
+        choices=SOURCE_CHOICES,
+    )
+    source_object_id = models.PositiveBigIntegerField(
+        blank=True,
+        null=True,
+    )
+    note = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+        indexes = [
+            models.Index(
+                fields=["-created_at"],
+                name="profiles_mod_created_idx",
+            ),
+            models.Index(
+                fields=["target_user", "-created_at"],
+                name="profiles_mod_target_idx",
+            ),
+            models.Index(
+                fields=["action", "-created_at"],
+                name="profiles_mod_action_idx",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.get_action_display()} by {self.moderator or 'system'}"
+
+
 class ProfileReport(models.Model):
     REASON_FAKE = "fake"
     REASON_HARASSMENT = "harassment"

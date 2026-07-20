@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.db import models
 from django.db.models import Q
+from django.utils import timezone
 
 
 class ChatThread(models.Model):
@@ -194,6 +195,18 @@ class ChatReport(models.Model):
         (REASON_OTHER, "Other"),
     ]
 
+    STATUS_PENDING = "pending"
+    STATUS_REVIEWED = "reviewed"
+    STATUS_ACTIONED = "actioned"
+    STATUS_DISMISSED = "dismissed"
+
+    STATUS_CHOICES = [
+        (STATUS_PENDING, "Pending"),
+        (STATUS_REVIEWED, "Reviewed"),
+        (STATUS_ACTIONED, "Action taken"),
+        (STATUS_DISMISSED, "Dismissed"),
+    ]
+
     thread = models.ForeignKey(
         ChatThread,
         on_delete=models.CASCADE,
@@ -212,12 +225,47 @@ class ChatReport(models.Model):
     reason = models.CharField(max_length=20, choices=REASON_CHOICES)
     details = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default=STATUS_PENDING,
+    )
+    reviewed = models.BooleanField(default=False)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="reviewed_chat_reports",
+    )
+    reviewed_at = models.DateTimeField(blank=True, null=True)
+    moderator_note = models.TextField(blank=True)
 
     class Meta:
         ordering = ["-created_at"]
 
     def __str__(self):
         return f"{self.reporter} reported {self.reported_user}"
+
+    def set_review_status(self, status, *, moderator=None, note=None):
+        if status not in dict(self.STATUS_CHOICES):
+            raise ValueError("Invalid chat report status.")
+
+        self.status = status
+        self.reviewed = status != self.STATUS_PENDING
+        self.reviewed_by = moderator if self.reviewed else None
+        self.reviewed_at = timezone.now() if self.reviewed else None
+        if note is not None:
+            self.moderator_note = note
+        self.save(
+            update_fields=[
+                "status",
+                "reviewed",
+                "reviewed_by",
+                "reviewed_at",
+                "moderator_note",
+            ]
+        )
 
 
 class Call(models.Model):

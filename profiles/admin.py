@@ -1,7 +1,21 @@
 from django.contrib import admin
 from django.utils import timezone
 
-from .models import Interest, Profile, ProfilePhoto, ProfileReport, UserBlock
+from .models import (
+    Interest,
+    ModerationAction,
+    Profile,
+    ProfilePhoto,
+    ProfileReport,
+    UserBlock,
+)
+
+
+def record_actions(rows):
+    if rows:
+        ModerationAction.objects.bulk_create(
+            [ModerationAction(**row) for row in rows]
+        )
 
 
 class ProfilePhotoInline(admin.TabularInline):
@@ -56,6 +70,7 @@ class ProfileAdmin(admin.ModelAdmin):
     inlines = (ProfilePhotoInline,)
 
     readonly_fields = (
+        "hidden_by_moderation",
         "created_at",
         "updated_at",
     )
@@ -117,15 +132,59 @@ class ProfileAdmin(admin.ModelAdmin):
         ),
     )
 
+    @admin.action(
+        description="Hide selected profiles from Heartly",
+        permissions=["change"],
+    )
     def hide_profiles(self, request, queryset):
-        queryset.update(hidden_by_moderation=True)
+        profiles = list(
+            queryset.filter(
+                hidden_by_moderation=False,
+            ).select_related("user")
+        )
+        Profile.objects.filter(
+            id__in=[profile.id for profile in profiles]
+        ).update(hidden_by_moderation=True)
+        record_actions(
+            [
+                {
+                    "moderator": request.user,
+                    "target_user": profile.user,
+                    "action": ModerationAction.ACTION_PROFILE_HIDDEN,
+                    "source_type": ModerationAction.SOURCE_PROFILE,
+                    "source_object_id": profile.id,
+                    "note": profile.moderation_note,
+                }
+                for profile in profiles
+            ]
+        )
 
-    hide_profiles.short_description = "Hide selected profiles from Heartly"
-
+    @admin.action(
+        description="Restore selected profiles to Heartly",
+        permissions=["change"],
+    )
     def restore_profiles(self, request, queryset):
-        queryset.update(hidden_by_moderation=False)
-
-    restore_profiles.short_description = "Restore selected profiles to Heartly"
+        profiles = list(
+            queryset.filter(
+                hidden_by_moderation=True,
+            ).select_related("user")
+        )
+        Profile.objects.filter(
+            id__in=[profile.id for profile in profiles]
+        ).update(hidden_by_moderation=False)
+        record_actions(
+            [
+                {
+                    "moderator": request.user,
+                    "target_user": profile.user,
+                    "action": ModerationAction.ACTION_PROFILE_RESTORED,
+                    "source_type": ModerationAction.SOURCE_PROFILE,
+                    "source_object_id": profile.id,
+                    "note": profile.moderation_note,
+                }
+                for profile in profiles
+            ]
+        )
 
 
 @admin.register(ProfilePhoto)
@@ -175,6 +234,10 @@ class ProfileReportAdmin(admin.ModelAdmin):
         "reporter",
         "reason",
         "details",
+        "status",
+        "reviewed",
+        "reviewed_by",
+        "reviewed_at",
         "created_at",
     )
 
@@ -188,38 +251,93 @@ class ProfileReportAdmin(admin.ModelAdmin):
 
     ordering = ("-created_at",)
 
+    def set_report_status(
+        self,
+        request,
+        queryset,
+        *,
+        status,
+        audit_action,
+    ):
+        reports = list(
+            queryset.select_related("reported_user")
+        )
+        now = timezone.now()
+        ProfileReport.objects.filter(
+            id__in=[report.id for report in reports]
+        ).update(
+            reviewed=True,
+            status=status,
+            reviewed_by=request.user,
+            reviewed_at=now,
+        )
+        record_actions(
+            [
+                {
+                    "moderator": request.user,
+                    "target_user": report.reported_user,
+                    "action": audit_action,
+                    "source_type": ModerationAction.SOURCE_PROFILE_REPORT,
+                    "source_object_id": report.id,
+                    "note": report.moderator_note,
+                }
+                for report in reports
+            ]
+        )
+
+    @admin.action(
+        description="Mark selected reports as reviewed",
+        permissions=["change"],
+    )
     def mark_reviewed(self, request, queryset):
-        queryset.update(
-            reviewed=True,
+        self.set_report_status(
+            request,
+            queryset,
             status=ProfileReport.STATUS_REVIEWED,
-            reviewed_by=request.user,
-            reviewed_at=timezone.now(),
+            audit_action=(
+                ModerationAction.ACTION_REPORT_REVIEWED
+            ),
         )
 
-    mark_reviewed.short_description = "Mark selected reports as reviewed"
-
+    @admin.action(
+        description="Mark selected reports as actioned",
+        permissions=["change"],
+    )
     def mark_actioned(self, request, queryset):
-        queryset.update(
-            reviewed=True,
+        self.set_report_status(
+            request,
+            queryset,
             status=ProfileReport.STATUS_ACTIONED,
-            reviewed_by=request.user,
-            reviewed_at=timezone.now(),
+            audit_action=(
+                ModerationAction.ACTION_REPORT_ACTIONED
+            ),
         )
 
-    mark_actioned.short_description = "Mark selected reports as actioned"
-
+    @admin.action(
+        description="Dismiss selected reports",
+        permissions=["change"],
+    )
     def mark_dismissed(self, request, queryset):
-        queryset.update(
-            reviewed=True,
+        self.set_report_status(
+            request,
+            queryset,
             status=ProfileReport.STATUS_DISMISSED,
-            reviewed_by=request.user,
-            reviewed_at=timezone.now(),
+            audit_action=(
+                ModerationAction.ACTION_REPORT_DISMISSED
+            ),
         )
 
-    mark_dismissed.short_description = "Dismiss selected reports"
-
+    @admin.action(
+        description="Hide profiles from selected reports",
+        permissions=["change"],
+    )
     def hide_reported_profiles(self, request, queryset):
-        user_ids = queryset.values_list("reported_user_id", flat=True)
+        reports = list(
+            queryset.select_related("reported_user")
+        )
+        user_ids = {
+            report.reported_user_id for report in reports
+        }
 
         Profile.objects.filter(
             user_id__in=user_ids,
@@ -227,25 +345,101 @@ class ProfileReportAdmin(admin.ModelAdmin):
             hidden_by_moderation=True,
         )
 
-        queryset.update(
+        ProfileReport.objects.filter(
+            id__in=[report.id for report in reports]
+        ).update(
             reviewed=True,
             status=ProfileReport.STATUS_ACTIONED,
             reviewed_by=request.user,
             reviewed_at=timezone.now(),
         )
+        record_actions(
+            [
+                {
+                    "moderator": request.user,
+                    "target_user": report.reported_user,
+                    "action": ModerationAction.ACTION_PROFILE_HIDDEN,
+                    "source_type": ModerationAction.SOURCE_PROFILE_REPORT,
+                    "source_object_id": report.id,
+                    "note": report.moderator_note,
+                }
+                for report in reports
+            ]
+        )
 
-    hide_reported_profiles.short_description = "Hide profiles from selected reports"
-
+    @admin.action(
+        description="Restore profiles from selected reports",
+        permissions=["change"],
+    )
     def restore_reported_profiles(self, request, queryset):
-        user_ids = queryset.values_list("reported_user_id", flat=True)
+        reports = list(
+            queryset.select_related("reported_user")
+        )
+        user_ids = {
+            report.reported_user_id for report in reports
+        }
 
         Profile.objects.filter(
             user_id__in=user_ids,
         ).update(
             hidden_by_moderation=False,
         )
+        record_actions(
+            [
+                {
+                    "moderator": request.user,
+                    "target_user": report.reported_user,
+                    "action": ModerationAction.ACTION_PROFILE_RESTORED,
+                    "source_type": ModerationAction.SOURCE_PROFILE_REPORT,
+                    "source_object_id": report.id,
+                    "note": report.moderator_note,
+                }
+                for report in reports
+            ]
+        )
 
-    restore_reported_profiles.short_description = "Restore profiles from selected reports"
+
+@admin.register(ModerationAction)
+class ModerationActionAdmin(admin.ModelAdmin):
+    list_display = (
+        "created_at",
+        "action",
+        "moderator",
+        "target_user",
+        "source_type",
+        "source_object_id",
+    )
+    list_filter = (
+        "action",
+        "source_type",
+        "created_at",
+    )
+    search_fields = (
+        "moderator__username",
+        "moderator__email",
+        "target_user__username",
+        "target_user__email",
+        "note",
+    )
+    readonly_fields = (
+        "moderator",
+        "target_user",
+        "action",
+        "source_type",
+        "source_object_id",
+        "note",
+        "created_at",
+    )
+    ordering = ("-created_at", "-id")
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(UserBlock)

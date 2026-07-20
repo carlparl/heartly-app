@@ -45,6 +45,19 @@ class Post(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     edited_at = models.DateTimeField(blank=True, null=True)
+    hidden_by_moderation = models.BooleanField(
+        default=False,
+        db_index=True,
+    )
+    moderation_note = models.TextField(blank=True)
+    moderated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="moderated_feed_posts",
+    )
+    moderated_at = models.DateTimeField(blank=True, null=True)
 
     class Meta:
         ordering = ["-created_at"]
@@ -236,6 +249,18 @@ class PostReport(models.Model):
         (REASON_INAPPROPRIATE, "Inappropriate content"),
     ]
 
+    STATUS_PENDING = "pending"
+    STATUS_REVIEWED = "reviewed"
+    STATUS_ACTIONED = "actioned"
+    STATUS_DISMISSED = "dismissed"
+
+    STATUS_CHOICES = [
+        (STATUS_PENDING, "Pending"),
+        (STATUS_REVIEWED, "Reviewed"),
+        (STATUS_ACTIONED, "Action taken"),
+        (STATUS_DISMISSED, "Dismissed"),
+    ]
+
     post = models.ForeignKey(
         Post,
         on_delete=models.CASCADE,
@@ -250,6 +275,20 @@ class PostReport(models.Model):
     details = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     reviewed = models.BooleanField(default=False)
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default=STATUS_PENDING,
+    )
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="reviewed_feed_post_reports",
+    )
+    reviewed_at = models.DateTimeField(blank=True, null=True)
+    moderator_note = models.TextField(blank=True)
 
     class Meta:
         ordering = ["-created_at"]
@@ -257,6 +296,26 @@ class PostReport(models.Model):
 
     def __str__(self):
         return f"Report on post {self.post_id} by {self.reporter}"
+
+    def set_review_status(self, status, *, moderator=None, note=None):
+        if status not in dict(self.STATUS_CHOICES):
+            raise ValueError("Invalid post report status.")
+
+        self.status = status
+        self.reviewed = status != self.STATUS_PENDING
+        self.reviewed_by = moderator if self.reviewed else None
+        self.reviewed_at = timezone.now() if self.reviewed else None
+        if note is not None:
+            self.moderator_note = note
+        self.save(
+            update_fields=[
+                "status",
+                "reviewed",
+                "reviewed_by",
+                "reviewed_at",
+                "moderator_note",
+            ]
+        )
 
 
 STORY_LIFETIME = timedelta(hours=5)

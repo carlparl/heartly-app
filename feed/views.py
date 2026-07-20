@@ -312,7 +312,9 @@ def enrich_posts(posts, viewer):
 
 
 def visible_posts_for(viewer):
-    queryset = Post.objects.all()
+    queryset = Post.objects.filter(
+        hidden_by_moderation=False,
+    )
     hidden_ids = hidden_user_ids_for(viewer)
 
     if hidden_ids:
