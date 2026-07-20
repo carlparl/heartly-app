@@ -27,11 +27,17 @@ except Exception:
     cloudinary_uploader = None
 
 try:
-    from profiles.blocking import user_is_hidden_for, hidden_user_ids_for, block_exists_between
+    from profiles.blocking import (
+        block_exists_between,
+        hidden_user_ids_for,
+        resolve_notifications_between,
+        user_is_hidden_for,
+    )
 except Exception:
     user_is_hidden_for = None
     hidden_user_ids_for = None
     block_exists_between = None
+    resolve_notifications_between = None
 
 from matches.models import MutualMatch
 from profiles.models import Profile, UserBlock
@@ -253,6 +259,15 @@ def blocked_between(user, other_user):
         blocker=other_user,
         blocked=user,
     ).exists()
+
+
+def call_is_available_to(user, call):
+    thread = call.thread
+    if not thread.has_user(user):
+        return False
+
+    other_user = thread.other_user(user)
+    return not user_hidden_for(user, other_user)
 
 
 def validate_upload(uploaded_file, allowed_types, allowed_extensions, max_size, min_size=1):
@@ -1191,6 +1206,8 @@ def block_thread_user(request, thread_id):
 
     other_user = thread.other_user(request.user)
     UserBlock.objects.get_or_create(blocker=request.user, blocked=other_user)
+    if resolve_notifications_between:
+        resolve_notifications_between(request.user, other_user)
 
     messages.success(request, "User blocked.")
     return redirect("chat:chat_home")
@@ -1523,7 +1540,7 @@ def start_call(request, thread_id, call_type):
 
     other_user = thread.other_user(request.user)
 
-    if blocked_between(request.user, other_user):
+    if user_hidden_for(request.user, other_user):
         messages.error(
             request,
             "This call is not available.",
@@ -1619,12 +1636,14 @@ def call_room(request, call_id):
     )
     thread = call.thread
 
-    if not thread.has_user(request.user):
+    if not call_is_available_to(request.user, call):
         messages.error(
             request,
             "You do not have access to this call.",
         )
         return redirect("chat:chat_home")
+
+    other_user = thread.other_user(request.user)
 
     if (
         request.user == call.receiver
@@ -1644,12 +1663,6 @@ def call_room(request, call_id):
                 call,
                 request.user,
             )
-
-    other_user = (
-        call.receiver
-        if request.user == call.caller
-        else call.caller
-    )
 
     return render(
         request,
@@ -1682,7 +1695,7 @@ def call_status(request, call_id):
         id=call_id,
     )
 
-    if not call.thread.has_user(request.user):
+    if not call_is_available_to(request.user, call):
         return json_error(
             "You do not have access to this call.",
             status=403,
@@ -1704,6 +1717,19 @@ def accept_call(request, call_id):
         ),
         id=call_id,
     )
+
+    if not call_is_available_to(request.user, call):
+        if wants_json(request):
+            return json_error(
+                "You do not have access to this call.",
+                status=403,
+            )
+
+        messages.error(
+            request,
+            "You do not have access to this call.",
+        )
+        return redirect("chat:chat_home")
 
     if request.user != call.receiver:
         if wants_json(request):
@@ -1761,10 +1787,7 @@ def decline_call(request, call_id):
         id=call_id,
     )
 
-    if request.user not in [
-        call.caller,
-        call.receiver,
-    ]:
+    if not call_is_available_to(request.user, call):
         if wants_json(request):
             return json_error(
                 "You do not have access to this call.",
@@ -1817,10 +1840,7 @@ def end_call(request, call_id):
         id=call_id,
     )
 
-    if request.user not in [
-        call.caller,
-        call.receiver,
-    ]:
+    if not call_is_available_to(request.user, call):
         if wants_json(request):
             return json_error(
                 "You do not have access to this call.",
@@ -1876,7 +1896,10 @@ def miss_call(request, call_id):
         id=call_id,
     )
 
-    if request.user != call.caller:
+    if (
+        request.user != call.caller
+        or not call_is_available_to(request.user, call)
+    ):
         return json_error(
             "Only the caller can mark this call missed.",
             status=403,
@@ -1916,24 +1939,47 @@ def report_thread_user(request, thread_id):
 
     reported_user = thread.other_user(request.user)
     reason = (request.POST.get("reason") or ChatReport.REASON_OTHER).strip()
-    details = (request.POST.get("details") or "").strip()
+    details = (request.POST.get("details") or "").strip()[:2000]
     valid_reasons = [choice[0] for choice in ChatReport.REASON_CHOICES]
 
     if reason not in valid_reasons:
         reason = ChatReport.REASON_OTHER
 
-    report = ChatReport.objects.create(
-        thread=thread,
-        reporter=request.user,
-        reported_user=reported_user,
-        reason=reason,
-        details=details,
-    )
+    with transaction.atomic():
+        ChatThread.objects.select_for_update().get(pk=thread.pk)
+        report = ChatReport.objects.filter(
+            thread=thread,
+            reporter=request.user,
+            reported_user=reported_user,
+        ).first()
+        created = report is None
 
-    notify_chat_report(report)
+        if created:
+            report = ChatReport.objects.create(
+                thread=thread,
+                reporter=request.user,
+                reported_user=reported_user,
+                reason=reason,
+                details=details,
+            )
+
+    if created:
+        notify_chat_report(report)
 
     if wants_json(request):
-        return json_success(message="Chat reported.")
+        return json_success(
+            message=(
+                "Chat reported."
+                if created
+                else "You already reported this chat."
+            ),
+            report_id=report.id,
+            created=created,
+        )
+
+    if not created:
+        messages.info(request, "You already reported this chat.")
+        return redirect("chat:chat_room", thread.id)
 
     messages.success(request, "Chat reported.")
     return redirect("chat:chat_room", thread.id)
@@ -2051,6 +2097,11 @@ def open_message_attachment(request, message_id):
     thread = message.thread
 
     if not thread.has_user(request.user):
+        messages.error(request, "This attachment is not available.")
+        return redirect("chat:chat_home")
+
+    other_user = thread.other_user(request.user)
+    if user_hidden_for(request.user, other_user):
         messages.error(request, "This attachment is not available.")
         return redirect("chat:chat_home")
 

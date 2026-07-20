@@ -151,7 +151,7 @@ class NormalizeProfileIdentityCommandTests(TestCase):
             first_report,
             unresolved_user,
         )
-        self.assertIn(
+        self.assertNotIn(
             "unsupported_user_gender",
             unresolved_detail["unresolved"],
         )

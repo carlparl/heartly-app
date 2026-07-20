@@ -6,6 +6,7 @@ from .models import (
     Comment,
     Post,
     PostLike,
+    PostReport,
     Story,
     StoryReaction,
     StoryView,
@@ -86,6 +87,49 @@ class PostLikeAdmin(admin.ModelAdmin):
         return getattr(obj, "user", None) or "Unknown"
 
     liked_by.short_description = "User"
+
+
+@admin.register(PostReport)
+class PostReportAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "post",
+        "reporter",
+        "reason",
+        "reviewed",
+        "created_at",
+    )
+    list_filter = (
+        "reason",
+        "reviewed",
+        "created_at",
+    )
+    search_fields = (
+        "post__author__username",
+        "post__author__email",
+        "reporter__username",
+        "reporter__email",
+        "post__content",
+        "details",
+    )
+    readonly_fields = (
+        "post",
+        "reporter",
+        "reason",
+        "details",
+        "created_at",
+    )
+    list_select_related = (
+        "post",
+        "post__author",
+        "reporter",
+    )
+    ordering = ("-created_at",)
+    actions = ("mark_reviewed",)
+
+    @admin.action(description="Mark selected reports as reviewed")
+    def mark_reviewed(self, request, queryset):
+        queryset.update(reviewed=True)
 
 
 @admin.register(Story)

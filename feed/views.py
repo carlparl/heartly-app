@@ -24,6 +24,7 @@ from .models import (
     CommentReaction,
     Post,
     PostLike,
+    PostReport,
     PostSave,
     Story,
     StoryReaction,
@@ -179,8 +180,20 @@ def decorate_user_identity(target, user):
     return target
 
 
-def decorate_comment(comment, viewer=None):
+def decorate_comment(
+    comment,
+    viewer=None,
+    *,
+    hidden_ids=None,
+):
     decorate_user_identity(comment, comment.user)
+
+    if hidden_ids is None:
+        hidden_ids = (
+            hidden_user_ids_for(viewer)
+            if viewer and viewer.is_authenticated
+            else set()
+        )
 
     # Keep the old multi-reaction summary hidden, but support the single
     # Instagram-style heart count used inside the comments sheet.
@@ -193,17 +206,32 @@ def decorate_comment(comment, viewer=None):
         if reaction:
             comment.viewer_reaction = reaction.reaction_type
 
+    replies_qs = comment.replies
+    if hidden_ids:
+        replies_qs = replies_qs.exclude(
+            user_id__in=hidden_ids
+        )
+
     replies = list(
-        comment.replies
+        replies_qs
         .select_related("user", "user__profile")
         .order_by("created_at")[:4]
     )
 
     for reply in replies:
-        decorate_comment(reply, viewer)
+        decorate_comment(
+            reply,
+            viewer,
+            hidden_ids=hidden_ids,
+        )
 
     comment.visible_replies = replies
-    comment.replies_count = comment.replies.count()
+    visible_replies = comment.replies
+    if hidden_ids:
+        visible_replies = visible_replies.exclude(
+            user_id__in=hidden_ids
+        )
+    comment.replies_count = visible_replies.count()
     comment.more_replies_count = max(comment.replies_count - len(replies), 0)
     return comment
 
@@ -229,13 +257,25 @@ def decorate_post(post, viewer):
 
         post.is_saved_by_user = post.saves.filter(user=viewer).exists()
 
-    post.comments_count = post.comments.filter(parent__isnull=True).count()
+    hidden_ids = (
+        hidden_user_ids_for(viewer)
+        if viewer and viewer.is_authenticated
+        else set()
+    )
+    visible_comments = post.comments.filter(
+        parent__isnull=True
+    )
+    if hidden_ids:
+        visible_comments = visible_comments.exclude(
+            user_id__in=hidden_ids
+        )
+
+    post.comments_count = visible_comments.count()
 
     # Render enough comments for the bottom sheet without adding a new endpoint.
     # This keeps the first patch simple and fast for the current app size.
     visible_comments = list(
-        post.comments
-        .filter(parent__isnull=True)
+        visible_comments
         .select_related("user", "user__profile")
         .prefetch_related(
             "reactions",
@@ -249,7 +289,11 @@ def decorate_post(post, viewer):
     visible_comments.reverse()
 
     for comment in visible_comments:
-        decorate_comment(comment, viewer)
+        decorate_comment(
+            comment,
+            viewer,
+            hidden_ids=hidden_ids,
+        )
 
     post.visible_comments = visible_comments
     post.more_comments_count = max(post.comments_count - len(visible_comments), 0)
@@ -265,6 +309,16 @@ def decorate_post(post, viewer):
 def enrich_posts(posts, viewer):
     for post in posts:
         yield decorate_post(post, viewer)
+
+
+def visible_posts_for(viewer):
+    queryset = Post.objects.all()
+    hidden_ids = hidden_user_ids_for(viewer)
+
+    if hidden_ids:
+        queryset = queryset.exclude(author_id__in=hidden_ids)
+
+    return queryset
 
 
 def visible_active_stories(viewer):
@@ -653,7 +707,7 @@ def toggle_comment_reaction(
 @login_required
 def feed_home(request):
     posts_qs = (
-        Post.objects
+        visible_posts_for(request.user)
         .select_related("author", "author__profile")
         .prefetch_related(
             "likes",
@@ -972,7 +1026,10 @@ def delete_post(request, post_id):
 @login_required
 @require_POST
 def like_post(request, post_id):
-    post = get_object_or_404(Post, id=post_id)
+    post = get_object_or_404(
+        visible_posts_for(request.user),
+        id=post_id,
+    )
     reaction_type = clean_reaction_type(request.POST.get("reaction_type"))
 
     reacted = toggle_post_reaction(
@@ -1003,7 +1060,10 @@ def like_post(request, post_id):
 @login_required
 @require_POST
 def save_post(request, post_id):
-    post = get_object_or_404(Post, id=post_id)
+    post = get_object_or_404(
+        visible_posts_for(request.user),
+        id=post_id,
+    )
 
     saved = toggle_saved_post(
         post=post,
@@ -1025,7 +1085,10 @@ def save_post(request, post_id):
 @login_required
 @require_POST
 def comment_post(request, post_id):
-    post = get_object_or_404(Post, id=post_id)
+    post = get_object_or_404(
+        visible_posts_for(request.user),
+        id=post_id,
+    )
     content = (request.POST.get("content") or request.POST.get("comment") or "").strip()
 
     if not content:
@@ -1072,7 +1135,13 @@ def comment_post(request, post_id):
 @login_required
 @require_POST
 def reply_comment(request, comment_id):
-    parent = get_object_or_404(Comment, id=comment_id, parent__isnull=True)
+    parent = get_object_or_404(
+        Comment.objects.filter(
+            post__in=visible_posts_for(request.user),
+        ),
+        id=comment_id,
+        parent__isnull=True,
+    )
     post = parent.post
     content = (request.POST.get("content") or request.POST.get("reply") or "").strip()
 
@@ -1119,7 +1188,12 @@ def reply_comment(request, comment_id):
 def react_comment(request, comment_id):
     # Kept for URL compatibility. The rebuilt templates no longer display
     # comment reaction controls.
-    comment = get_object_or_404(Comment, id=comment_id)
+    comment = get_object_or_404(
+        Comment.objects.filter(
+            post__in=visible_posts_for(request.user),
+        ),
+        id=comment_id,
+    )
     reaction_type = clean_reaction_type(request.POST.get("reaction_type"))
 
     reacted = toggle_comment_reaction(
@@ -1145,13 +1219,46 @@ def react_comment(request, comment_id):
 @login_required
 @require_POST
 def report_post(request, post_id):
-    post = get_object_or_404(Post, id=post_id)
+    post = get_object_or_404(
+        visible_posts_for(request.user),
+        id=post_id,
+    )
 
     if post.author_id == request.user.id:
         return respond_error(request, "You cannot report your own post.")
 
+    reason = (
+        request.POST.get("reason")
+        or PostReport.REASON_OTHER
+    ).strip()
+    valid_reasons = {
+        value for value, _label in PostReport.REASON_CHOICES
+    }
+    if reason not in valid_reasons:
+        reason = PostReport.REASON_OTHER
+
+    details = (
+        request.POST.get("details") or ""
+    ).strip()[:2000]
+    report, created = PostReport.objects.get_or_create(
+        post=post,
+        reporter=request.user,
+        defaults={
+            "reason": reason,
+            "details": details,
+        },
+    )
+
     if wants_json(request):
-        return json_success(post_id=post.id)
+        return json_success(
+            post_id=post.id,
+            report_id=report.id,
+            created=created,
+        )
+
+    if not created:
+        messages.info(request, "You already reported this post.")
+        return redirect("feed:feed_home")
 
     messages.success(request, "Post reported. Our team will review it.")
     return redirect("feed:feed_home")

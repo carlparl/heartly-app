@@ -1,3 +1,6 @@
+from django.db.models import Q
+from django.utils import timezone
+
 from .models import Profile, UserBlock
 
 
@@ -47,6 +50,23 @@ def block_exists_between(user, other_user):
     return (
         UserBlock.objects.filter(blocker=user, blocked=other_user).exists()
         or UserBlock.objects.filter(blocker=other_user, blocked=user).exists()
+    )
+
+
+def resolve_notifications_between(user_one, user_two):
+    """Remove existing member-to-member alerts after either member blocks."""
+    if not user_one or not user_two:
+        return 0
+
+    from notifications.models import Notification
+
+    return Notification.objects.filter(
+        Q(recipient=user_one, actor=user_two)
+        | Q(recipient=user_two, actor=user_one)
+    ).update(
+        is_read=True,
+        is_resolved=True,
+        updated_at=timezone.now(),
     )
 
 

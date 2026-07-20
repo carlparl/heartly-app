@@ -4,12 +4,15 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
-from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
 
-from .blocking import block_exists_between, user_is_hidden_for
+from .blocking import (
+    block_exists_between,
+    resolve_notifications_between,
+    user_is_hidden_for,
+)
 from .forms import (
     IdentityRepairForm,
     InterestForm,
@@ -185,20 +188,6 @@ def profile_summary_context(user):
         "is_owner": True,
         "is_blocked": False,
     }
-
-
-def clear_notifications_between(user_one, user_two):
-    if Notification is None:
-        return
-
-    Notification.objects.filter(
-        Q(recipient=user_one, actor=user_two)
-        | Q(recipient=user_two, actor=user_one)
-    ).update(
-        is_read=True,
-        is_resolved=True,
-        resolved_at=timezone.now(),
-    )
 
 
 @login_required
@@ -562,8 +551,14 @@ def report_profile(request, user_id):
         messages.error(request, "This profile is not available.")
         return redirect("matches:discover")
 
-    reason = request.POST.get("reason", "").strip() or "other"
-    details = request.POST.get("details", "").strip()
+    reason = request.POST.get("reason", "").strip()
+    valid_reasons = {
+        value for value, _label in ProfileReport.REASON_CHOICES
+    }
+    if reason not in valid_reasons:
+        reason = ProfileReport.REASON_OTHER
+
+    details = request.POST.get("details", "").strip()[:2000]
 
     report_fields = {field.name for field in ProfileReport._meta.fields}
     create_data = {}
@@ -622,7 +617,7 @@ def block_user(request, user_id):
         blocked=target_user,
     )
 
-    clear_notifications_between(request.user, target_user)
+    resolve_notifications_between(request.user, target_user)
 
     messages.success(request, f"{get_display_name(target_user)} has been blocked.")
     return redirect("profiles:profile_home")

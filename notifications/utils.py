@@ -25,23 +25,28 @@ def visible_notifications_for(user):
         is_resolved=False,
     ).select_related("actor", "recipient")
 
+    safety_notification_types = [
+        Notification.TYPE_BROADCAST,
+        Notification.TYPE_REPORT,
+    ]
+
     blocked_ids = hidden_user_ids(user)
     if blocked_ids:
         notifications = notifications.exclude(
             Q(actor_id__in=blocked_ids)
-            & ~Q(notification_type=Notification.TYPE_BROADCAST)
+            & ~Q(notification_type__in=safety_notification_types)
         )
 
     if model_has_field(Profile, "hidden_by_moderation"):
         notifications = notifications.exclude(
             Q(actor__profile__hidden_by_moderation=True)
-            & ~Q(notification_type=Notification.TYPE_BROADCAST)
+            & ~Q(notification_type__in=safety_notification_types)
         )
 
     if model_has_field(Profile, "profile_visible"):
         notifications = notifications.exclude(
             Q(actor__profile__profile_visible=False)
-            & ~Q(notification_type=Notification.TYPE_BROADCAST)
+            & ~Q(notification_type__in=safety_notification_types)
         )
 
     return notifications.order_by("-created_at")

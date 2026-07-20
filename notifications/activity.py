@@ -277,6 +277,10 @@ def notify_chat_report(report):
         return []
     User = get_user_model()
     created = []
+    report_url = reverse(
+        "admin:chat_chatreport_change",
+        args=[report.id],
+    )
     for staff_user in User.objects.filter(is_active=True, is_staff=True).exclude(id=report.reporter_id):
         item = notify_once(
             recipient=staff_user,
@@ -284,7 +288,7 @@ def notify_chat_report(report):
             notification_type=Notification.TYPE_REPORT,
             title="Chat report",
             message=f"{display_name_for(report.reporter)} reported a chat.",
-            url=reverse("chat:chat_room", args=[report.thread_id]),
+            url=report_url,
             related_object_type="chat.chatreport",
             related_object_id=report.id,
         )
