@@ -1,9 +1,11 @@
+from asgiref.sync import sync_to_async
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from django.utils import timezone
 
 from accounts.moderation import account_id_can_access
 from chat.models import CallSession
+from heartly.security import consume_user_rate_limit
 
 from .models import Notification
 from .utils import notification_snapshot
@@ -11,6 +13,10 @@ from .utils import notification_snapshot
 
 current_account_can_access = database_sync_to_async(
     account_id_can_access
+)
+current_user_rate_limit = sync_to_async(
+    consume_user_rate_limit,
+    thread_sensitive=False,
 )
 
 
@@ -44,6 +50,20 @@ class NotificationConsumer(AsyncJsonWebsocketConsumer):
     async def receive_json(self, content, **kwargs):
         if not await current_account_can_access(self.user.id):
             await self.close(code=4403)
+            return
+
+        decision = await current_user_rate_limit(
+            "websocket_events",
+            self.user.id,
+        )
+        if not decision.allowed:
+            await self.send_json(
+                {
+                    "type": "rate.limit",
+                    "retry_after": decision.retry_after,
+                }
+            )
+            await self.close(code=4429)
             return
 
         event_type = content.get("type")

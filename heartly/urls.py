@@ -7,6 +7,7 @@ from django.http import FileResponse, Http404
 from django.urls import include, path
 
 from accounts import views as accounts_views
+from heartly import health
 from heartly import pwa_views
 
 
@@ -53,6 +54,10 @@ def pwa_registration_js(request):
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+
+    # Aggregate probes expose no database, cache, user, or version details.
+    path("health/live/", health.liveness, name="health_liveness"),
+    path("health/ready/", health.readiness, name="health_readiness"),
 
     # Root-scoped PWA files.
     path("manifest.webmanifest", pwa_views.manifest, name="pwa_manifest"),

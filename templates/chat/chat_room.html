@@ -34,8 +34,14 @@
                 <button type="button" id="openProfilePreviewBtn">Profile preview</button>
                 <button type="button" id="openWallpaperModalBtn">Chat wallpaper</button>
                 <button type="button" id="toggleSelectModeBtn">Select messages</button>
-                <a href="{% url 'chat:start_call' thread.id 'audio' %}" class="chat-menu-item">Audio call</a>
-                <a href="{% url 'chat:start_call' thread.id 'video' %}" class="chat-menu-item">Video call</a>
+                <form method="post" action="{% url 'chat:start_call' thread.id 'audio' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="chat-menu-item" data-call-start>Audio call</button>
+                </form>
+                <form method="post" action="{% url 'chat:start_call' thread.id 'video' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="chat-menu-item" data-call-start>Video call</button>
+                </form>
                 <button type="button" id="openReportModalBtn">Report</button>
                 <form method="post" action="{% url 'chat:block_thread_user' thread.id %}">
                     {% csrf_token %}
@@ -1471,7 +1477,10 @@ body {
         if(callAvatar)callAvatar.textContent=type==="video"?"🎥":"☎";
         if(callTitle)callTitle.textContent=caller;
         if(callText)callText.textContent=(type==="video"?"Video":"Audio")+" call incoming";
-        if(callAnswerBtn)callAnswerBtn.href=payload.accept_url||payload.url||("/chat/call/"+payload.call_id+"/");
+        if(callAnswerBtn){
+            callAnswerBtn.href=payload.url||payload.accept_url||("/chat/call/"+payload.call_id+"/");
+            callAnswerBtn.dataset.acceptPostUrl=payload.accept_post_url||"";
+        }
         if(callToast)callToast.hidden=false;
         startRingtone();
     }
@@ -1901,13 +1910,25 @@ body {
     }
     if(chatComposerForm)chatComposerForm.addEventListener("submit",sendComposer);
     if(clearReplyBtn)clearReplyBtn.addEventListener("click",clearReply);
-    document.querySelectorAll('a[href*="/call/start/"]').forEach(link=>{link.addEventListener("click",()=>{ensureRingtoneContext();beepOnce(0.18,700);setTimeout(()=>beepOnce(0.18,620),240);});});
+    document.querySelectorAll("[data-call-start]").forEach(button=>{button.addEventListener("click",()=>{ensureRingtoneContext();beepOnce(0.18,700);setTimeout(()=>beepOnce(0.18,620),240);});});
     if(callDeclineBtn)callDeclineBtn.addEventListener("click",async()=>{
         if(!activeIncomingCall||!activeIncomingCall.call_id){hideCallToast();return;}
         try{await fetch(`/chat/call/${activeIncomingCall.call_id}/decline/`,{method:"POST",headers:{"X-CSRFToken":getCookie("csrftoken"),"X-Requested-With":"XMLHttpRequest"},credentials:"same-origin"});}catch(error){}
         hideCallToast();
     });
-    if(callAnswerBtn)callAnswerBtn.addEventListener("click",()=>{stopRingtone();});
+    if(callAnswerBtn)callAnswerBtn.addEventListener("click",async event=>{
+        event.preventDefault();
+        stopRingtone();
+        const target=callAnswerBtn.href;
+        const acceptPostUrl=callAnswerBtn.dataset.acceptPostUrl;
+        if(acceptPostUrl){
+            try{
+                const response=await fetch(acceptPostUrl,{method:"POST",headers:{"X-CSRFToken":getCookie("csrftoken"),"X-Requested-With":"XMLHttpRequest","Accept":"application/json"},credentials:"same-origin"});
+                if(!response.ok){startRingtone();return;}
+            }catch(error){startRingtone();return;}
+        }
+        window.location.assign(target);
+    });
 
     document.addEventListener("change",event=>{if(event.target.matches(".message-check"))updateSelectedCount();});
     document.addEventListener("click",function(event){

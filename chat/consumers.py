@@ -1,3 +1,4 @@
+from asgiref.sync import sync_to_async
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from django.db.models import Q
@@ -5,6 +6,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from accounts.moderation import account_id_can_access
+from heartly.security import consume_user_rate_limit
 from profiles.models import Profile, UserBlock
 
 from .models import CallSession, ChatMessage, ChatThread
@@ -26,6 +28,10 @@ except Exception:
 
 current_account_can_access = database_sync_to_async(
     account_id_can_access
+)
+current_user_rate_limit = sync_to_async(
+    consume_user_rate_limit,
+    thread_sensitive=False,
 )
 
 
@@ -97,6 +103,29 @@ class ThreadConsumer(AsyncJsonWebsocketConsumer):
             return
 
         event_type = content.get("type")
+        signal_types = {
+            "call.ready",
+            "webrtc.offer",
+            "webrtc.answer",
+            "webrtc.ice",
+        }
+        decision = await current_user_rate_limit(
+            (
+                "webrtc_signals"
+                if event_type in signal_types
+                else "websocket_events"
+            ),
+            self.user.id,
+        )
+        if not decision.allowed:
+            await self.send_json(
+                {
+                    "type": "rate.limit",
+                    "retry_after": decision.retry_after,
+                }
+            )
+            await self.close(code=4429)
+            return
 
         if event_type == "chat.message":
             # HTTP is the only authoritative message-write path.

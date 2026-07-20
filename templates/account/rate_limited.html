@@ -1,0 +1,16 @@
+{% extends "account/auth_base.html" %}
+
+{% block title %}Please wait | Heartly{% endblock %}
+
+{% block content %}
+<section style="padding: 28px; border: 1px solid var(--heartly-border); border-radius: 22px; background: var(--heartly-card);">
+  <h1 style="margin-top: 0;">Please wait a moment</h1>
+  <p style="color: var(--heartly-muted); line-height: 1.6;">
+    Heartly received too many requests in a short period. This safety limit
+    protects accounts and the community.
+  </p>
+  <p style="margin-bottom: 0;">
+    Try again in about {{ retry_after }} seconds.
+  </p>
+</section>
+{% endblock %}

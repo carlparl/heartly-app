@@ -434,8 +434,8 @@
           );
         } catch (error) {
           /*
-           * The call room keeps a GET acceptance fallback for
-           * older clients and temporary network races.
+           * The call room remains available, but acceptance stays
+           * POST-only and requires an explicit retry there.
            */
         }
 

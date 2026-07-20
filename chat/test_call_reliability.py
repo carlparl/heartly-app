@@ -61,16 +61,29 @@ class CallReliabilityTests(TestCase):
             args=[self.thread.id, "audio"],
         )
 
-        first = self.client.get(url)
-        second = self.client.get(url)
+        first = self.client.post(url)
+        second = self.client.post(url)
 
         self.assertEqual(first.status_code, 302)
         self.assertEqual(second.status_code, 302)
         self.assertEqual(CallSession.objects.count(), 1)
         broadcast.assert_called_once()
 
+    def test_start_call_rejects_get_without_writing(self):
+        self.client.force_login(self.caller)
+
+        response = self.client.get(
+            reverse(
+                "chat:start_call",
+                args=[self.thread.id, "audio"],
+            )
+        )
+
+        self.assertEqual(response.status_code, 405)
+        self.assertEqual(CallSession.objects.count(), 0)
+
     @patch("chat.views.broadcast_call_event")
-    def test_receiver_opening_room_accepts_call(
+    def test_receiver_opening_room_does_not_accept_call(
         self,
         broadcast,
     ):
@@ -83,15 +96,9 @@ class CallReliabilityTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         call.refresh_from_db()
-        self.assertEqual(
-            call.status,
-            CallSession.STATUS_ACCEPTED,
-        )
-        self.assertIsNotNone(call.accepted_at)
-        broadcast.assert_called_once_with(
-            call,
-            "call.accepted",
-        )
+        self.assertEqual(call.status, CallSession.STATUS_RINGING)
+        self.assertIsNone(call.accepted_at)
+        broadcast.assert_not_called()
 
     def test_status_endpoint_is_participant_only(self):
         call = self.create_call()

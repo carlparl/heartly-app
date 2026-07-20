@@ -1523,6 +1523,7 @@ def _active_call_for_thread(thread):
 
 
 @login_required
+@require_POST
 def start_call(request, thread_id, call_type):
     thread = get_object_or_404(
         ChatThread.objects.select_related(
@@ -1645,25 +1646,6 @@ def call_room(request, call_id):
         return redirect("chat:chat_home")
 
     other_user = thread.other_user(request.user)
-
-    if (
-        request.user == call.receiver
-        and call.status == CallSession.STATUS_RINGING
-    ):
-        call, changed = _transition_call(
-            call.id,
-            {CallSession.STATUS_RINGING},
-            CallSession.STATUS_ACCEPTED,
-        )
-        if changed:
-            broadcast_call_event(
-                call,
-                "call.accepted",
-            )
-            resolve_call_notification(
-                call,
-                request.user,
-            )
 
     return render(
         request,

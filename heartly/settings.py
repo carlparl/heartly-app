@@ -142,6 +142,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "heartly.middleware.RequestIDMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
 
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -152,7 +153,9 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "heartly.middleware.SessionSecurityMiddleware",
     "accounts.middleware.AccountModerationMiddleware",
+    "heartly.middleware.AbuseRateLimitMiddleware",
     "profiles.middleware.AdultIdentityRequiredMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -415,6 +418,46 @@ ACCOUNT_SESSION_REMEMBER = True
 
 ACCOUNT_PREVENT_ENUMERATION = True
 
+# Authenticated sessions are bounded by both inactivity and absolute age.
+# Existing sessions receive their timestamps on their first request after
+# deployment, which keeps this rollout safe while still enforcing the limits.
+SESSION_COOKIE_AGE = max(
+    300,
+    int(os.environ.get("DJANGO_SESSION_COOKIE_AGE", "604800")),
+)
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SAMESITE = "Lax"
+SESSION_SAVE_EVERY_REQUEST = False
+
+HEARTLY_SESSION_IDLE_TIMEOUT_SECONDS = max(
+    300,
+    int(
+        os.environ.get(
+            "HEARTLY_SESSION_IDLE_TIMEOUT_SECONDS",
+            "3600",
+        )
+    ),
+)
+HEARTLY_SESSION_ABSOLUTE_TIMEOUT_SECONDS = max(
+    HEARTLY_SESSION_IDLE_TIMEOUT_SECONDS,
+    int(
+        os.environ.get(
+            "HEARTLY_SESSION_ABSOLUTE_TIMEOUT_SECONDS",
+            "604800",
+        )
+    ),
+)
+HEARTLY_SESSION_ACTIVITY_UPDATE_SECONDS = max(
+    30,
+    int(
+        os.environ.get(
+            "HEARTLY_SESSION_ACTIVITY_UPDATE_SECONDS",
+            "60",
+        )
+    ),
+)
+
 PASSWORD_RESET_TIMEOUT = int(
     os.environ.get(
         "DJANGO_PASSWORD_RESET_TIMEOUT",
@@ -644,6 +687,37 @@ CACHES = {
     }
 }
 
+USE_REDIS_CACHE = (
+    False
+    if RUNNING_TESTS
+    else env_bool(
+        "USE_REDIS_CACHE",
+        bool(REDIS_URL) and IS_PRODUCTION,
+    )
+)
+
+if USE_REDIS_CACHE:
+    if not REDIS_URL:
+        raise RuntimeError(
+            "USE_REDIS_CACHE=True but REDIS_URL is missing."
+        )
+
+    CACHES = {
+        "default": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": REDIS_URL,
+            "OPTIONS": {
+                "CLIENT_CLASS": (
+                    "django_redis.client.DefaultClient"
+                ),
+                "SOCKET_CONNECT_TIMEOUT": 5,
+                "SOCKET_TIMEOUT": 5,
+                "IGNORE_EXCEPTIONS": True,
+            },
+            "KEY_PREFIX": "heartly",
+        }
+    }
+
 if RUNNING_TESTS:
     CACHES = {
         "default": {
@@ -664,6 +738,177 @@ RATELIMIT_ENABLE = (
 )
 
 RATELIMIT_USE_CACHE = "default"
+
+HEARTLY_TRUST_X_FORWARDED_FOR = env_bool(
+    "HEARTLY_TRUST_X_FORWARDED_FOR",
+    IS_PRODUCTION,
+)
+
+# Each rule is a fixed-window maximum. Environment variables keep emergency
+# tuning possible without a code deployment while preserving safe defaults.
+HEARTLY_RATE_LIMITS = {
+    "auth_login": {
+        "limit": max(
+            1,
+            int(os.environ.get("HEARTLY_RATE_LOGIN_LIMIT", "20")),
+        ),
+        "window": 15 * 60,
+    },
+    "auth_signup": {
+        "limit": max(
+            1,
+            int(os.environ.get("HEARTLY_RATE_SIGNUP_LIMIT", "10")),
+        ),
+        "window": 60 * 60,
+    },
+    "auth_recovery": {
+        "limit": max(
+            1,
+            int(os.environ.get("HEARTLY_RATE_RECOVERY_LIMIT", "10")),
+        ),
+        "window": 60 * 60,
+    },
+    "email_verification": {
+        "limit": max(
+            1,
+            int(os.environ.get("HEARTLY_RATE_EMAIL_CODE_LIMIT", "12")),
+        ),
+        "window": 60 * 60,
+    },
+    "reports": {
+        "limit": max(
+            1,
+            int(os.environ.get("HEARTLY_RATE_REPORT_LIMIT", "20")),
+        ),
+        "window": 60 * 60,
+    },
+    "blocking": {
+        "limit": max(
+            1,
+            int(os.environ.get("HEARTLY_RATE_BLOCK_LIMIT", "60")),
+        ),
+        "window": 60 * 60,
+    },
+    "swipes": {
+        "limit": max(
+            1,
+            int(os.environ.get("HEARTLY_RATE_SWIPE_LIMIT", "120")),
+        ),
+        "window": 60,
+    },
+    "messages": {
+        "limit": max(
+            1,
+            int(os.environ.get("HEARTLY_RATE_MESSAGE_LIMIT", "90")),
+        ),
+        "window": 60,
+    },
+    "feed_writes": {
+        "limit": max(
+            1,
+            int(os.environ.get("HEARTLY_RATE_FEED_WRITE_LIMIT", "60")),
+        ),
+        "window": 60,
+    },
+    "call_controls": {
+        "limit": max(
+            1,
+            int(os.environ.get("HEARTLY_RATE_CALL_LIMIT", "40")),
+        ),
+        "window": 60,
+    },
+    "profile_writes": {
+        "limit": max(
+            1,
+            int(os.environ.get("HEARTLY_RATE_PROFILE_WRITE_LIMIT", "40")),
+        ),
+        "window": 60,
+    },
+    "sensitive_account": {
+        "limit": max(
+            1,
+            int(os.environ.get("HEARTLY_RATE_SENSITIVE_LIMIT", "8")),
+        ),
+        "window": 60 * 60,
+    },
+    "websocket_events": {
+        "limit": max(
+            1,
+            int(os.environ.get("HEARTLY_RATE_WEBSOCKET_LIMIT", "240")),
+        ),
+        "window": 60,
+    },
+    "webrtc_signals": {
+        "limit": max(
+            1,
+            int(os.environ.get("HEARTLY_RATE_WEBRTC_LIMIT", "600")),
+        ),
+        "window": 60,
+    },
+}
+
+HEARTLY_BACKUP_PROVIDER = os.environ.get(
+    "HEARTLY_BACKUP_PROVIDER",
+    "",
+).strip()
+HEARTLY_RECOVERY_RUNBOOK_REFERENCE = os.environ.get(
+    "HEARTLY_RECOVERY_RUNBOOK_REFERENCE",
+    "",
+).strip()
+HEARTLY_LAST_RECOVERY_DRILL_AT = os.environ.get(
+    "HEARTLY_LAST_RECOVERY_DRILL_AT",
+    "",
+).strip()
+HEARTLY_RECOVERY_DRILL_MAX_AGE_DAYS = max(
+    1,
+    int(
+        os.environ.get(
+            "HEARTLY_RECOVERY_DRILL_MAX_AGE_DAYS",
+            "90",
+        )
+    ),
+)
+
+# Short-lived operational records have explicit retention windows. Safety
+# reports, evidence snapshots, messages, posts, and moderation audit rows are
+# deliberately outside this automatic cleanup policy.
+HEARTLY_RETENTION_EMAIL_CODE_DAYS = max(
+    1,
+    int(
+        os.environ.get(
+            "HEARTLY_RETENTION_EMAIL_CODE_DAYS",
+            "2",
+        )
+    ),
+)
+HEARTLY_RETENTION_RESOLVED_NOTIFICATION_DAYS = max(
+    7,
+    int(
+        os.environ.get(
+            "HEARTLY_RETENTION_RESOLVED_NOTIFICATION_DAYS",
+            "90",
+        )
+    ),
+)
+HEARTLY_RETENTION_DISABLED_PUSH_DAYS = max(
+    1,
+    int(
+        os.environ.get(
+            "HEARTLY_RETENTION_DISABLED_PUSH_DAYS",
+            "30",
+        )
+    ),
+)
+
+HEARTLY_SLOW_REQUEST_MILLISECONDS = max(
+    100,
+    int(
+        os.environ.get(
+            "HEARTLY_SLOW_REQUEST_MILLISECONDS",
+            "1500",
+        )
+    ),
+)
 
 SILENCED_SYSTEM_CHECKS = [
     "django_ratelimit.E003",
@@ -760,6 +1005,9 @@ if DEBUG:
     ]
 else:
     SECURE_CONTENT_TYPE_NOSNIFF = True
+
+    SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
+    SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin-allow-popups"
 
     X_FRAME_OPTIONS = "DENY"
 
