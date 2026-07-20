@@ -1,0 +1,23 @@
+{% if page_obj and page_obj.has_other_pages %}
+<nav class="heartly-pagination" aria-label="{{ pagination_label|default:'Results pagination' }}">
+    {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&amp;q={{ search_query|urlencode }}{% endif %}" rel="prev">
+            Previous
+        </a>
+    {% else %}
+        <span aria-disabled="true">Previous</span>
+    {% endif %}
+
+    <span aria-current="page">
+        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+    </span>
+
+    {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&amp;q={{ search_query|urlencode }}{% endif %}" rel="next">
+            Next
+        </a>
+    {% else %}
+        <span aria-disabled="true">Next</span>
+    {% endif %}
+</nav>
+{% endif %}

@@ -15,7 +15,7 @@
     <section class="ig-chat-search-card">
         <div class="ig-search-row">
             <span>🔎</span>
-            <input type="text" id="chatSearchInput" placeholder="Search messages..." autocomplete="off">
+            <input type="search" id="chatSearchInput" placeholder="Search messages..." autocomplete="off" aria-label="Filter conversations on this page">
         </div>
     </section>
 
@@ -76,6 +76,7 @@
                 </div>
             {% endfor %}
         </div>
+        {% include "heartly/includes/pagination.html" with pagination_label="Conversation pages" %}
     </section>
 </div>
 {% endblock %}

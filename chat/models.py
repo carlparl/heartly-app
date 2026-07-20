@@ -20,6 +20,16 @@ class ChatThread(models.Model):
 
     class Meta:
         ordering = ["-updated_at"]
+        indexes = [
+            models.Index(
+                fields=["user_one", "-updated_at"],
+                name="chat_thread_user1_idx",
+            ),
+            models.Index(
+                fields=["user_two", "-updated_at"],
+                name="chat_thread_user2_idx",
+            ),
+        ]
         constraints = [
             models.UniqueConstraint(
                 fields=["user_one", "user_two"],

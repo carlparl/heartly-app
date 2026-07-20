@@ -11,8 +11,9 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 from django.db import IntegrityError, transaction
-from django.db.models import Q
+from django.db.models import Count, OuterRef, Q, Subquery
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -184,6 +185,11 @@ def users_have_mutual_match(user_a, user_b):
 
 
 def get_profile(user):
+    try:
+        return user.profile
+    except Profile.DoesNotExist:
+        pass
+
     profile, created = Profile.objects.get_or_create(user=user)
     return profile
 
@@ -645,18 +651,14 @@ def latest_message_preview(message, viewer):
     return "New message"
 
 
-def build_thread_card(thread, user):
+def build_thread_card(
+    thread,
+    user,
+    *,
+    latest_message=None,
+):
     other_user = thread.other_user(user)
-
-    latest_message = (
-        thread.messages
-        .select_related("sender", "reply_to", "reply_to__sender")
-        .prefetch_related("attachments", "reply_to__attachments")
-        .order_by("-created_at")
-        .first()
-    )
-
-    unread_count = thread.messages.filter(is_read=False).exclude(sender=user).count()
+    unread_count = getattr(thread, "unread_count", 0)
 
     return {
         "thread": thread,
@@ -672,31 +674,88 @@ def build_thread_card(thread, user):
 @login_required
 def chat_home(request):
     hidden_ids = hidden_ids_for(request.user)
+    latest_message = (
+        ChatMessage.objects
+        .filter(thread_id=OuterRef("pk"))
+        .order_by("-created_at", "-id")
+    )
 
-    threads = (
+    threads_qs = (
         ChatThread.objects
         .filter(Q(user_one=request.user) | Q(user_two=request.user))
         .exclude(user_one_id__in=hidden_ids)
         .exclude(user_two_id__in=hidden_ids)
-        .select_related("user_one", "user_two")
-        .prefetch_related("messages", "messages__attachments")
+        .select_related(
+            "user_one",
+            "user_one__profile",
+            "user_two",
+            "user_two__profile",
+        )
+        .annotate(
+            latest_message_id=Subquery(
+                latest_message.values("id")[:1]
+            ),
+            unread_count=Count(
+                "messages",
+                filter=(
+                    Q(messages__is_read=False)
+                    & ~Q(messages__sender_id=request.user.id)
+                ),
+                distinct=True,
+            ),
+        )
         .order_by("-updated_at")
     )
+    paginator = Paginator(
+        threads_qs,
+        settings.HEARTLY_CHAT_THREAD_LIMIT,
+    )
+    page_obj = paginator.get_page(request.GET.get("page"))
+    threads = list(page_obj.object_list)
+
+    latest_ids = {
+        thread.latest_message_id
+        for thread in threads
+        if thread.latest_message_id
+    }
+    latest_by_id = {
+        message.id: message
+        for message in (
+            ChatMessage.objects
+            .filter(id__in=latest_ids)
+            .select_related(
+                "sender",
+                "reply_to",
+                "reply_to__sender",
+            )
+            .prefetch_related(
+                "attachments",
+                "reply_to__attachments",
+            )
+        )
+    }
 
     thread_cards = []
 
     for thread in threads:
-        other_user = thread.other_user(request.user)
+        thread_cards.append(
+            build_thread_card(
+                thread,
+                request.user,
+                latest_message=latest_by_id.get(
+                    thread.latest_message_id
+                ),
+            )
+        )
 
-        if blocked_between(request.user, other_user):
-            continue
-
-        if not profile_is_available(other_user):
-            continue
-
-        thread_cards.append(build_thread_card(thread, request.user))
-
-    return render(request, "chat/chat_home.html", {"thread_cards": thread_cards})
+    return render(
+        request,
+        "chat/chat_home.html",
+        {
+            "thread_cards": thread_cards,
+            "page_obj": page_obj,
+        },
+    )
 
 
 @login_required
@@ -766,12 +825,22 @@ def chat_room(request, thread_id):
         request.user,
     )
 
-    chat_messages = list(
+    recent_messages = list(
         thread.messages
         .select_related("sender", "reply_to", "reply_to__sender")
         .prefetch_related("attachments", "reply_to__attachments")
-        .order_by("created_at")
+        .order_by("-created_at", "-id")[
+            : settings.HEARTLY_CHAT_MESSAGE_LIMIT + 1
+        ]
     )
+    message_history_limited = (
+        len(recent_messages)
+        > settings.HEARTLY_CHAT_MESSAGE_LIMIT
+    )
+    recent_messages = recent_messages[
+        : settings.HEARTLY_CHAT_MESSAGE_LIMIT
+    ]
+    chat_messages = list(reversed(recent_messages))
     for message in chat_messages:
         for attachment in message.attachments.all():
             attachment.playable_url = playable_file_url(attachment)
@@ -791,6 +860,7 @@ def chat_room(request, thread_id):
             "other_user_photo": get_photo_url(other_user),
             "current_user_name": get_display_name(request.user),
             "current_user_photo": get_photo_url(request.user),
+            "message_history_limited": message_history_limited,
         },
     )
 

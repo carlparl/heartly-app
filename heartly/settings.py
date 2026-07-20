@@ -910,6 +910,52 @@ HEARTLY_SLOW_REQUEST_MILLISECONDS = max(
     ),
 )
 
+# Bound member-facing collections so page render cost stays predictable as
+# Heartly grows. Values can be tuned without a deployment, but the hard caps
+# prevent accidental unbounded production queries.
+HEARTLY_DISCOVER_PAGE_SIZE = min(
+    60,
+    max(6, int(os.environ.get("HEARTLY_DISCOVER_PAGE_SIZE", "24"))),
+)
+HEARTLY_DISCOVER_CANDIDATE_LIMIT = min(
+    1000,
+    max(
+        HEARTLY_DISCOVER_PAGE_SIZE,
+        int(os.environ.get("HEARTLY_DISCOVER_CANDIDATE_LIMIT", "240")),
+    ),
+)
+HEARTLY_NOTIFICATION_PAGE_SIZE = min(
+    100,
+    max(10, int(os.environ.get("HEARTLY_NOTIFICATION_PAGE_SIZE", "30"))),
+)
+HEARTLY_CHAT_THREAD_LIMIT = min(
+    200,
+    max(20, int(os.environ.get("HEARTLY_CHAT_THREAD_LIMIT", "100"))),
+)
+HEARTLY_CHAT_MESSAGE_LIMIT = min(
+    250,
+    max(25, int(os.environ.get("HEARTLY_CHAT_MESSAGE_LIMIT", "100"))),
+)
+
+# Aggregate runtime counters contain no paths, query strings, user IDs, or
+# request bodies. They are used only for operational error/latency gates.
+HEARTLY_RUNTIME_METRIC_TTL_SECONDS = max(
+    7200,
+    int(os.environ.get("HEARTLY_RUNTIME_METRIC_TTL_SECONDS", "172800")),
+)
+HEARTLY_RUNTIME_SAMPLE_MINIMUM = max(
+    1,
+    int(os.environ.get("HEARTLY_RUNTIME_SAMPLE_MINIMUM", "20")),
+)
+HEARTLY_RUNTIME_MAX_5XX_PERCENT = min(
+    100.0,
+    max(0.0, float(os.environ.get("HEARTLY_RUNTIME_MAX_5XX_PERCENT", "5"))),
+)
+HEARTLY_RUNTIME_MAX_SLOW_PERCENT = min(
+    100.0,
+    max(0.0, float(os.environ.get("HEARTLY_RUNTIME_MAX_SLOW_PERCENT", "20"))),
+)
+
 SILENCED_SYSTEM_CHECKS = [
     "django_ratelimit.E003",
     "django_ratelimit.W001",

@@ -64,6 +64,7 @@ class CustomUser(AbstractUser):
     date_of_birth = models.DateField(
         null=True,
         blank=True,
+        db_index=True,
     )
 
     moderation_status = models.CharField(

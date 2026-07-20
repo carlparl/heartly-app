@@ -6,6 +6,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q
 from django.http import JsonResponse
@@ -187,6 +188,8 @@ def discoverable_profiles_for(
     viewer,
     *,
     exclude_acted=True,
+    search_query="",
+    target_user_id=None,
 ):
     """
     Return profiles that are safe and mutually compatible.
@@ -253,19 +256,6 @@ def discoverable_profiles_for(
         .exclude(user_id__in=hidden_ids_for(viewer))
     )
 
-    eligible_profile_ids = [
-        profile.id
-        for profile in profiles
-        if profile_identity_is_complete(profile)
-        and (
-            not settings.HEARTLY_REQUIRE_VERIFIED_EMAIL
-            or current_email_is_verified(profile.user)
-        )
-    ]
-    profiles = profiles.filter(
-        id__in=eligible_profile_ids
-    )
-
     if exclude_acted:
         acted_user_ids = MatchAction.objects.filter(
             from_user=viewer,
@@ -274,6 +264,28 @@ def discoverable_profiles_for(
         profiles = profiles.exclude(
             user_id__in=acted_user_ids
         )
+
+    if search_query:
+        profiles = profiles.filter(
+            build_profile_search_query(search_query)
+        ).distinct()
+
+    if target_user_id is not None:
+        profiles = profiles.filter(user_id=target_user_id)
+
+    candidate_profiles = profiles.order_by("-updated_at")[
+        : settings.HEARTLY_DISCOVER_CANDIDATE_LIMIT
+    ]
+    eligible_profile_ids = [
+        profile.id
+        for profile in candidate_profiles
+        if profile_identity_is_complete(profile)
+        and (
+            not settings.HEARTLY_REQUIRE_VERIFIED_EMAIL
+            or current_email_is_verified(profile.user)
+        )
+    ]
+    profiles = profiles.filter(id__in=eligible_profile_ids)
 
     return profiles.order_by("-updated_at")
 
@@ -449,18 +461,23 @@ def discover(request):
             },
         )
 
-    profiles = discoverable_profiles_for(request.user)
+    profiles = discoverable_profiles_for(
+        request.user,
+        search_query=search_query,
+    )
 
-    if search_query:
-        profiles = profiles.filter(
-            build_profile_search_query(search_query)
-        ).distinct()
+    paginator = Paginator(
+        profiles,
+        settings.HEARTLY_DISCOVER_PAGE_SIZE,
+    )
+    page_obj = paginator.get_page(request.GET.get("page"))
 
     return render(
         request,
         "matches/discover.html",
         {
-            "profiles": profiles,
+            "profiles": page_obj.object_list,
+            "page_obj": page_obj,
             "viewer_profile": viewer_profile,
             "viewer_profile_complete": True,
             "identity_issues": [],
@@ -510,8 +527,8 @@ def swipe(request, user_id, action):
         discoverable_profiles_for(
             request.user,
             exclude_acted=False,
+            target_user_id=user_id,
         )
-        .filter(user_id=user_id)
         .first()
     )
 

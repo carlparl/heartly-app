@@ -24,6 +24,7 @@
         value="{{ search_query }}"
         placeholder="Search people..."
         autocomplete="off"
+        aria-label="Search visible profiles"
     >
 
     {% if search_query %}
@@ -174,6 +175,7 @@
             {% endfor %}
 
         </div>
+        {% include "heartly/includes/pagination.html" with pagination_label="Discover pages" %}
     </section>
 
     <p class="matches-footer">Heartly v1.0</p>

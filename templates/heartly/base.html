@@ -7,7 +7,7 @@
     {% include "heartly/pwa_head.html" %}
     <meta
         name="viewport"
-        content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no"
+        content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     >
 
     <meta name="mobile-web-app-capable" content="yes">
@@ -215,6 +215,58 @@
                 color 0.2s var(--heartly-ease-fast),
                 box-shadow 0.2s var(--heartly-ease-fast),
                 opacity 0.2s var(--heartly-ease-fast);
+        }
+
+        :where(a, button, input, textarea, select, summary):focus-visible {
+            outline: 3px solid var(--heartly-accent);
+            outline-offset: 3px;
+        }
+
+        .heartly-skip-link {
+            position: fixed;
+            left: 12px;
+            top: 12px;
+            z-index: 1000;
+            padding: 10px 14px;
+            border-radius: 12px;
+            background: var(--heartly-card-solid);
+            color: var(--heartly-text);
+            box-shadow: var(--heartly-shadow);
+            font-weight: 900;
+            transform: translateY(-160%);
+        }
+
+        .heartly-skip-link:focus {
+            transform: translateY(0);
+        }
+
+        .heartly-pagination {
+            margin: 14px auto 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .heartly-pagination a,
+        .heartly-pagination span {
+            min-height: 40px;
+            padding: 9px 12px;
+            border: 1px solid var(--heartly-border);
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--heartly-card);
+            color: var(--heartly-text);
+            font-size: 0.78rem;
+            font-weight: 850;
+        }
+
+        .heartly-pagination span[aria-disabled="true"] {
+            color: var(--heartly-muted);
+            opacity: 0.65;
         }
 
         button:active,
@@ -939,6 +991,18 @@
         }
 
         @media (prefers-reduced-motion: reduce) {
+            html {
+                scroll-behavior: auto;
+            }
+
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+
             body.heartly-swipe-ready .heartly-app-main,
             .heartly-swipe-indicator,
             .heartly-swipe-toast {
@@ -973,6 +1037,9 @@
     "
     data-heartly-swipe-section="{% if user.is_authenticated %}{% if request.resolver_match.namespace == 'feed' and request.resolver_match.url_name == 'feed_home' %}feed{% elif request.resolver_match.namespace == 'ai_features' and request.resolver_match.url_name == 'ai_coach' %}ai{% elif request.resolver_match.namespace == 'chat' and request.resolver_match.url_name == 'chat_home' %}chat{% elif request.resolver_match.namespace == 'profiles' and request.resolver_match.url_name == 'profile_home' %}profile{% endif %}{% endif %}"
 >
+<a class="heartly-skip-link" href="#heartly-main-content">
+    Skip to main content
+</a>
 <script>
     (function () {
         const savedTheme = localStorage.getItem("heartlyTheme") || localStorage.getItem("heartly-theme");
@@ -1045,10 +1112,18 @@
         </header>
     {% endif %}
 
-    <main class="heartly-app-main">
+    <main
+        class="heartly-app-main"
+        id="heartly-main-content"
+        tabindex="-1"
+    >
 
         {% if messages %}
-            <section class="heartly-messages">
+            <section
+                class="heartly-messages"
+                aria-live="polite"
+                aria-atomic="true"
+            >
                 {% for message in messages %}
                     <div class="heartly-message {{ message.tags }}">
                         {{ message }}
@@ -1069,6 +1144,7 @@
                     href="{% url 'feed:feed_home' %}"
                     class="heartly-nav-item {% if request.resolver_match.namespace == 'feed' %}active{% endif %}"
                     aria-label="Feed"
+                    {% if request.resolver_match.namespace == 'feed' %}aria-current="page"{% endif %}
                 >
                     <span class="heartly-nav-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24">
@@ -1081,6 +1157,7 @@
                     href="{% url 'matches:discover' %}"
                     class="heartly-nav-item {% if request.resolver_match.namespace == 'matches' %}active{% endif %}"
                     aria-label="Matches"
+                    {% if request.resolver_match.namespace == 'matches' %}aria-current="page"{% endif %}
                 >
                     <span class="heartly-nav-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24">
@@ -1093,6 +1170,7 @@
                     href="{% url 'ai_features:ai_coach' %}"
                     class="heartly-nav-item {% if request.resolver_match.namespace == 'ai_features' %}active{% endif %}"
                     aria-label="AI Coach"
+                    {% if request.resolver_match.namespace == 'ai_features' %}aria-current="page"{% endif %}
                 >
                     <span class="heartly-nav-icon heartly-nav-icon-ai" aria-hidden="true">
                         <svg viewBox="0 0 24 24">
@@ -1106,6 +1184,7 @@
                     href="{% url 'chat:chat_home' %}"
                     class="heartly-nav-item {% if request.resolver_match.namespace == 'chat' %}active{% endif %}"
                     aria-label="Chat"
+                    {% if request.resolver_match.namespace == 'chat' %}aria-current="page"{% endif %}
                 >
                     <span class="heartly-nav-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24">
@@ -1124,6 +1203,7 @@
                     href="{% url 'profiles:profile_home' %}"
                     class="heartly-nav-item {% if request.resolver_match.namespace == 'profiles' %}active{% endif %}"
                     aria-label="Profile"
+                    {% if request.resolver_match.namespace == 'profiles' %}aria-current="page"{% endif %}
                 >
                     <span class="heartly-nav-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24">

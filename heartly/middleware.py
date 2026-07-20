@@ -11,6 +11,7 @@ from django.shortcuts import redirect, render
 from django.urls import reverse
 
 from .security import consume_rate_limit, request_identity
+from .runtime_metrics import record_request_metric
 
 
 request_logger = logging.getLogger("heartly.request")
@@ -114,6 +115,8 @@ class RequestIDMiddleware:
         response = self.get_response(request)
         elapsed_ms = int((time.monotonic() - started) * 1000)
         response["X-Request-ID"] = request_id
+        response["Server-Timing"] = f"app;dur={elapsed_ms}"
+        record_request_metric(response.status_code, elapsed_ms)
 
         log_fields = {
             "request_id": request_id,

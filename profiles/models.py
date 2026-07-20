@@ -100,6 +100,19 @@ class Profile(models.Model):
 
     class Meta:
         ordering = ["-updated_at"]
+        indexes = [
+            models.Index(
+                fields=[
+                    "profile_visible",
+                    "hidden_by_moderation",
+                    "gender",
+                    "interested_in",
+                    "connection_goal",
+                    "-updated_at",
+                ],
+                name="profiles_discovery_idx",
+            ),
+        ]
 
     def __str__(self):
         return self.name

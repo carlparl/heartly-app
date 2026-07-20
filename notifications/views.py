@@ -8,6 +8,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
+from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q
 from django.http import JsonResponse
@@ -67,13 +68,19 @@ def refresh_notification_users(user_ids, notification_ids=None):
 def notifications_home(request):
     notifications = visible_notifications_for(request.user)
     unread_count = notifications.filter(is_read=False).count()
+    paginator = Paginator(
+        notifications,
+        settings.HEARTLY_NOTIFICATION_PAGE_SIZE,
+    )
+    page_obj = paginator.get_page(request.GET.get("page"))
 
     return render(
         request,
         "notifications/notifications_home.html",
         {
-            "notifications": notifications,
+            "notifications": page_obj.object_list,
             "unread_count": unread_count,
+            "page_obj": page_obj,
         },
     )
 
