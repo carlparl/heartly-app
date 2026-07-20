@@ -273,6 +273,10 @@ class PostReport(models.Model):
     )
     reason = models.CharField(max_length=40, choices=REASON_CHOICES, default=REASON_OTHER)
     details = models.TextField(blank=True)
+    evidence_snapshot = models.JSONField(
+        default=dict,
+        blank=True,
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     reviewed = models.BooleanField(default=False)
     status = models.CharField(

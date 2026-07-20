@@ -4,6 +4,7 @@ from django.db.models import Q
 from django.urls import reverse
 from django.utils import timezone
 
+from accounts.moderation import account_id_can_access
 from profiles.models import Profile, UserBlock
 
 from .models import CallSession, ChatMessage, ChatThread
@@ -21,6 +22,11 @@ try:
     from notifications.models import Notification
 except Exception:
     Notification = None
+
+
+current_account_can_access = database_sync_to_async(
+    account_id_can_access
+)
 
 
 def model_has_field(model, field_name):
@@ -46,6 +52,10 @@ class ThreadConsumer(AsyncJsonWebsocketConsumer):
 
         if not self.user.is_authenticated:
             await self.close()
+            return
+
+        if not await current_account_can_access(self.user.id):
+            await self.close(code=4403)
             return
 
         allowed = await self.user_can_access_thread()
@@ -78,6 +88,10 @@ class ThreadConsumer(AsyncJsonWebsocketConsumer):
             await self.channel_layer.group_discard(self.group_name, self.channel_name)
 
     async def receive_json(self, content, **kwargs):
+        if not await current_account_can_access(self.user.id):
+            await self.close(code=4403)
+            return
+
         if not await self.user_can_access_thread():
             await self.close()
             return
@@ -725,6 +739,10 @@ class GlobalCallConsumer(AsyncJsonWebsocketConsumer):
 
         if not self.user.is_authenticated:
             await self.close()
+            return
+
+        if not await current_account_can_access(self.user.id):
+            await self.close(code=4403)
             return
 
         self.group_name = f"heartly_user_{self.user.id}"

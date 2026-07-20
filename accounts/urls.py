@@ -3,6 +3,21 @@ from . import views
 
 urlpatterns = [
     path("", views.welcome, name="welcome"),
+    path(
+        "community-guidelines/",
+        views.community_guidelines,
+        name="community_guidelines",
+    ),
+    path(
+        "privacy/",
+        views.privacy_policy,
+        name="privacy_policy",
+    ),
+    path(
+        "terms/",
+        views.terms_of_service,
+        name="terms_of_service",
+    ),
 
     path("settings/", views.settings_home, name="settings"),
     path("settings/account/", views.settings_account, name="settings_account"),

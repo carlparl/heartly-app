@@ -5,6 +5,7 @@ from notifications.activity import (
     notify_post_report,
     notify_story_reaction,
 )
+from profiles.moderation_evidence import capture_post_evidence
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
@@ -1249,6 +1250,7 @@ def report_post(request, post_id):
         defaults={
             "reason": reason,
             "details": details,
+            "evidence_snapshot": capture_post_evidence(post),
         },
     )
 

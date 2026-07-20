@@ -224,6 +224,10 @@ class ChatReport(models.Model):
     )
     reason = models.CharField(max_length=20, choices=REASON_CHOICES)
     details = models.TextField(blank=True)
+    evidence_snapshot = models.JSONField(
+        default=dict,
+        blank=True,
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     status = models.CharField(
         max_length=20,

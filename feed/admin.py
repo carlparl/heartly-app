@@ -244,6 +244,7 @@ class PostReportAdmin(admin.ModelAdmin):
         "reporter",
         "reason",
         "details",
+        "evidence_snapshot",
         "status",
         "reviewed",
         "reviewed_by",

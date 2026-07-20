@@ -2,10 +2,16 @@ from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from django.utils import timezone
 
+from accounts.moderation import account_id_can_access
 from chat.models import CallSession
 
 from .models import Notification
 from .utils import notification_snapshot
+
+
+current_account_can_access = database_sync_to_async(
+    account_id_can_access
+)
 
 
 class NotificationConsumer(AsyncJsonWebsocketConsumer):
@@ -14,6 +20,10 @@ class NotificationConsumer(AsyncJsonWebsocketConsumer):
 
         if not self.user.is_authenticated:
             await self.close(code=4401)
+            return
+
+        if not await current_account_can_access(self.user.id):
+            await self.close(code=4403)
             return
 
         self.group_name = f"heartly_user_{self.user.id}"
@@ -32,6 +42,10 @@ class NotificationConsumer(AsyncJsonWebsocketConsumer):
             )
 
     async def receive_json(self, content, **kwargs):
+        if not await current_account_can_access(self.user.id):
+            await self.close(code=4403)
+            return
+
         event_type = content.get("type")
 
         if event_type == "ping":

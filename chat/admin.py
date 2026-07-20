@@ -82,6 +82,7 @@ class ChatReportAdmin(admin.ModelAdmin):
         "reported_user",
         "reason",
         "details",
+        "evidence_snapshot",
         "status",
         "reviewed",
         "reviewed_by",

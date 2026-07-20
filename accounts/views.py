@@ -22,6 +22,111 @@ from .models import CustomUser, EmailVerificationCode
 EMAIL_CODE_MAX_ATTEMPTS = 5
 
 
+POLICY_PAGES = {
+    "community_guidelines": {
+        "title": "Community Guidelines",
+        "intro": (
+            "Heartly is an adults-only community built around "
+            "respect, honesty, privacy, and safer interaction."
+        ),
+        "sections": [
+            (
+                "Adults only",
+                "Accounts are limited to people aged 18 or older. "
+                "Identity information must be accurate.",
+            ),
+            (
+                "Respect and boundaries",
+                "Do not harass, threaten, pressure, impersonate, "
+                "or target other members.",
+            ),
+            (
+                "Authentic participation",
+                "Do not use scams, spam, deceptive profiles, or "
+                "misleading content.",
+            ),
+            (
+                "Privacy and reporting",
+                "Protect personal information. Use Heartly's block "
+                "and report tools when something feels unsafe.",
+            ),
+            (
+                "Enforcement",
+                "Heartly may hide content, restrict accounts, or "
+                "preserve report evidence for safety review.",
+            ),
+        ],
+    },
+    "privacy_policy": {
+        "title": "Privacy Policy",
+        "intro": (
+            "This summary explains how Heartly uses and protects "
+            "account, profile, activity, and safety information."
+        ),
+        "sections": [
+            (
+                "Information collected",
+                "Heartly stores account details, profile content, "
+                "connection activity, messages, and safety reports.",
+            ),
+            (
+                "How information is used",
+                "Information supports account access, matching, "
+                "communication, security, and moderation.",
+            ),
+            (
+                "Visibility and control",
+                "Profile and privacy settings control what other "
+                "members can see where the feature allows it.",
+            ),
+            (
+                "Safety retention",
+                "Bounded report evidence may be retained so staff can "
+                "review reports even if content later changes.",
+            ),
+            (
+                "Account choices",
+                "Members can manage settings and request account "
+                "deletion, subject to lawful safety retention needs.",
+            ),
+        ],
+    },
+    "terms_of_service": {
+        "title": "Terms of Service",
+        "intro": (
+            "These terms describe the basic rules for using Heartly."
+        ),
+        "sections": [
+            (
+                "Eligibility",
+                "You must be at least 18 and provide accurate account "
+                "and identity information.",
+            ),
+            (
+                "Acceptable use",
+                "Use Heartly lawfully and follow the Community "
+                "Guidelines and safety controls.",
+            ),
+            (
+                "Your content",
+                "You remain responsible for content you submit and "
+                "must have permission to share it.",
+            ),
+            (
+                "Safety actions",
+                "Heartly may review reports, hide content, suspend or "
+                "ban accounts, and keep an audit history.",
+            ),
+            (
+                "Service changes",
+                "Features may change as Heartly improves reliability, "
+                "privacy, and safety.",
+            ),
+        ],
+    },
+}
+
+
 def _current_email_address(user):
     email = (user.email or "").strip()
     if not email:
@@ -127,6 +232,26 @@ def welcome(request):
     if request.user.is_authenticated:
         return redirect("post_login_redirect")
     return render(request, "welcome.html")
+
+
+def _render_policy(request, policy_name):
+    return render(
+        request,
+        "account/policy_page.html",
+        POLICY_PAGES[policy_name],
+    )
+
+
+def community_guidelines(request):
+    return _render_policy(request, "community_guidelines")
+
+
+def privacy_policy(request):
+    return _render_policy(request, "privacy_policy")
+
+
+def terms_of_service(request):
+    return _render_policy(request, "terms_of_service")
 
 
 @login_required

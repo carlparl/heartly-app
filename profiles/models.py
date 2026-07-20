@@ -206,6 +206,9 @@ class ModerationAction(models.Model):
     ACTION_PROFILE_RESTORED = "profile_restored"
     ACTION_POST_HIDDEN = "post_hidden"
     ACTION_POST_RESTORED = "post_restored"
+    ACTION_ACCOUNT_SUSPENDED = "account_suspended"
+    ACTION_ACCOUNT_BANNED = "account_banned"
+    ACTION_ACCOUNT_RESTORED = "account_restored"
 
     ACTION_CHOICES = [
         (ACTION_REPORT_REVIEWED, "Report reviewed"),
@@ -215,6 +218,9 @@ class ModerationAction(models.Model):
         (ACTION_PROFILE_RESTORED, "Profile restored"),
         (ACTION_POST_HIDDEN, "Post hidden"),
         (ACTION_POST_RESTORED, "Post restored"),
+        (ACTION_ACCOUNT_SUSPENDED, "Account suspended"),
+        (ACTION_ACCOUNT_BANNED, "Account banned"),
+        (ACTION_ACCOUNT_RESTORED, "Account restored"),
     ]
 
     SOURCE_PROFILE = "profile"
@@ -222,6 +228,7 @@ class ModerationAction(models.Model):
     SOURCE_POST = "post"
     SOURCE_POST_REPORT = "post_report"
     SOURCE_CHAT_REPORT = "chat_report"
+    SOURCE_ACCOUNT = "account"
 
     SOURCE_CHOICES = [
         (SOURCE_PROFILE, "Profile"),
@@ -229,6 +236,7 @@ class ModerationAction(models.Model):
         (SOURCE_POST, "Post"),
         (SOURCE_POST_REPORT, "Post report"),
         (SOURCE_CHAT_REPORT, "Chat report"),
+        (SOURCE_ACCOUNT, "Account"),
     ]
 
     moderator = models.ForeignKey(
@@ -329,6 +337,10 @@ class ProfileReport(models.Model):
     )
 
     details = models.TextField(blank=True)
+    evidence_snapshot = models.JSONField(
+        default=dict,
+        blank=True,
+    )
 
     status = models.CharField(
         max_length=20,

@@ -1,0 +1,31 @@
+{% extends "heartly/base.html" %}
+
+{% block title %}Account unavailable | Heartly{% endblock %}
+
+{% block content %}
+<main class="container py-5" style="max-width: 720px;">
+  <section class="card shadow-sm border-0">
+    <div class="card-body p-4 p-md-5">
+      <h1 class="h3 mb-3">Account unavailable</h1>
+      <p class="text-muted mb-3">
+        This account is not currently available because of a safety review.
+      </p>
+      {% if moderation_status == "suspended" and available_after %}
+        <p class="mb-3">
+          The restriction is scheduled to end after
+          <strong>{{ available_after }}</strong>.
+        </p>
+      {% endif %}
+      <p class="small text-muted mb-4">
+        Contact Heartly support if you believe this decision needs review.
+      </p>
+      <form method="post" action="{% url 'account_logout' %}">
+        {% csrf_token %}
+        <button class="btn btn-outline-secondary" type="submit">
+          Sign out
+        </button>
+      </form>
+    </div>
+  </section>
+</main>
+{% endblock %}

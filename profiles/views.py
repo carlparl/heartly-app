@@ -10,6 +10,7 @@ from django.views.decorators.http import require_POST
 
 from notifications.activity import notify_profile_report
 
+from .moderation_evidence import capture_profile_evidence
 from .blocking import (
     block_exists_between,
     resolve_notifications_between,
@@ -582,6 +583,11 @@ def report_profile(request, user_id):
         create_data["details"] = details
     elif "description" in report_fields:
         create_data["description"] = details
+
+    if "evidence_snapshot" in report_fields:
+        create_data["evidence_snapshot"] = (
+            capture_profile_evidence(target_user)
+        )
 
     existing_filter = {}
 

@@ -41,6 +41,7 @@ except Exception:
 
 from matches.models import MutualMatch
 from profiles.models import Profile, UserBlock
+from profiles.moderation_evidence import capture_chat_evidence
 
 from notifications.activity import (
     notify_chat_message,
@@ -1961,6 +1962,10 @@ def report_thread_user(request, thread_id):
                 reported_user=reported_user,
                 reason=reason,
                 details=details,
+                evidence_snapshot=capture_chat_evidence(
+                    thread,
+                    reported_user,
+                ),
             )
 
     if created:
