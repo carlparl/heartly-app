@@ -1,0 +1,321 @@
+/*
+ * Heartly foundation
+ * Shared shell and interaction contract for every public app page.
+ */
+
+:root {
+    color-scheme: light;
+    --heartly-page-max: 720px;
+    --heartly-desktop-nav-width: 224px;
+    --heartly-content-padding: clamp(12px, 3vw, 20px);
+    --heartly-bottomnav-bar-height: 78px;
+}
+
+html.heartly-dark-root {
+    color-scheme: dark;
+}
+
+html,
+body {
+    min-height: 100%;
+    background: var(--heartly-bg);
+}
+
+body {
+    text-rendering: optimizeLegibility;
+}
+
+.heartly-app-shell {
+    width: min(100%, var(--heartly-page-max));
+    min-height: 100dvh;
+    margin-inline: auto;
+    background: var(--heartly-bg);
+}
+
+.heartly-app-main {
+    width: 100%;
+    min-height: 100dvh;
+    padding-inline: var(--heartly-content-padding);
+}
+
+.heartly-nav-label {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    color: currentColor;
+    font-size: 0.65rem;
+    font-weight: 800;
+    line-height: 1;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.heartly-nav-item {
+    align-content: center;
+    justify-items: center;
+    gap: 4px;
+}
+
+.heartly-nav-icon,
+.heartly-nav-icon svg {
+    width: 22px;
+    height: 22px;
+}
+
+.heartly-bottomnav {
+    width: min(100%, var(--heartly-page-max));
+}
+
+.heartly-bottomnav-inner {
+    border-radius: 24px;
+}
+
+body.heartly-conversation-mode .heartly-bottomnav {
+    display: none;
+}
+
+body.heartly-conversation-mode .heartly-app-main {
+    padding: 0;
+}
+
+:where(
+    .profile-screen,
+    .profile-details-screen,
+    .profile-media-screen,
+    .profile-activity-screen,
+    .edit-profile-screen,
+    .interests-screen,
+    .discover-screen,
+    .matches-screen,
+    .chat-home-screen,
+    .notifications-screen,
+    .ai-coach-screen,
+    .settings-screen,
+    .settings-subpage,
+    .feed-screen,
+    .heartly-feed-page
+) {
+    width: 100%;
+    max-width: 100%;
+    margin-inline: auto;
+}
+
+:where(
+    .profile-screen,
+    .profile-details-screen,
+    .profile-media-screen,
+    .profile-activity-screen,
+    .edit-profile-screen,
+    .interests-screen,
+    .discover-screen,
+    .matches-screen,
+    .chat-home-screen,
+    .notifications-screen,
+    .settings-screen,
+    .settings-subpage
+) {
+    display: grid;
+    gap: var(--heartly-section-gap);
+}
+
+:where(button, [role="button"], a, input, textarea, select) {
+    -webkit-tap-highlight-color: transparent;
+}
+
+:where(button, [role="button"], a):focus-visible,
+:where(input, textarea, select):focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--heartly-accent) 68%, white);
+    outline-offset: 3px;
+}
+
+:where(input, textarea, select) {
+    min-height: 44px;
+}
+
+:where(textarea) {
+    line-height: 1.5;
+}
+
+:where(button, a)[aria-disabled="true"],
+:where(button):disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+    transform: none !important;
+}
+
+.heartly-state {
+    width: 100%;
+    padding: clamp(24px, 7vw, 48px) 20px;
+    border: 1px solid var(--heartly-border);
+    border-radius: var(--heartly-radius-lg);
+    display: grid;
+    justify-items: center;
+    gap: 10px;
+    background: var(--heartly-card);
+    color: var(--heartly-text);
+    text-align: center;
+    box-shadow: var(--heartly-shadow-soft);
+}
+
+.heartly-state h1,
+.heartly-state h2,
+.heartly-state p {
+    margin: 0;
+}
+
+.heartly-state p {
+    max-width: 42ch;
+    color: var(--heartly-muted);
+    line-height: 1.55;
+}
+
+.heartly-skeleton {
+    overflow: hidden;
+    position: relative;
+    background: var(--heartly-card-soft);
+}
+
+.heartly-skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        color-mix(in srgb, var(--heartly-card) 70%, transparent),
+        transparent
+    );
+    transform: translateX(-100%);
+    animation: heartly-skeleton 1.35s ease-in-out infinite;
+}
+
+@keyframes heartly-skeleton {
+    to { transform: translateX(100%); }
+}
+
+.heartly-feed-toast,
+.heartly-live-match-toast,
+.global-call-pop {
+    max-width: min(440px, calc(100vw - 24px));
+}
+
+.heartly-feed-toast,
+.heartly-live-match-toast {
+    bottom: calc(var(--heartly-bottomnav-height) + 14px);
+}
+
+body.heartly-conversation-mode :where(.heartly-feed-toast, .heartly-live-match-toast) {
+    bottom: calc(var(--heartly-safe-bottom) + 14px);
+}
+
+@media (min-width: 900px) {
+    :root {
+        --heartly-page-max: 1180px;
+        --heartly-topbar-height: 0px;
+        --heartly-bottomnav-height: 0px;
+    }
+
+    body.heartly-authenticated {
+        background:
+            radial-gradient(circle at 8% 0%, var(--heartly-primary-soft), transparent 28rem),
+            var(--heartly-bg);
+    }
+
+    .heartly-app-shell {
+        display: grid;
+        grid-template-columns: var(--heartly-desktop-nav-width) minmax(0, 1fr);
+        gap: 28px;
+        padding: 22px;
+    }
+
+    .heartly-app-main {
+        grid-column: 2;
+        min-width: 0;
+        padding: 18px clamp(16px, 3vw, 36px) 48px;
+        border: 1px solid var(--heartly-border);
+        border-radius: 30px;
+        background: color-mix(in srgb, var(--heartly-bg) 92%, var(--heartly-card));
+        box-shadow: var(--heartly-shadow-soft);
+    }
+
+    .heartly-bottomnav {
+        position: sticky;
+        inset: 22px auto auto 0;
+        grid-column: 1;
+        grid-row: 1;
+        width: 100%;
+        height: auto;
+        padding: 0;
+        transform: none;
+        align-self: start;
+    }
+
+    .heartly-bottomnav::before {
+        content: "Heartly";
+        display: block;
+        margin: 8px 14px 20px;
+        color: var(--heartly-text);
+        font-size: 1.55rem;
+        font-weight: 900;
+        letter-spacing: -0.04em;
+    }
+
+    .heartly-bottomnav-inner {
+        height: auto;
+        padding: 10px;
+        grid-template-columns: 1fr;
+        gap: 6px;
+        border-radius: 26px;
+    }
+
+    .heartly-nav-item {
+        min-height: 54px;
+        padding: 0 14px;
+        grid-template-columns: 28px minmax(0, 1fr);
+        justify-items: start;
+        border-radius: 18px;
+    }
+
+    .heartly-nav-item::after {
+        left: 4px;
+        bottom: 50%;
+        width: 3px;
+        height: 22px;
+        transform: translateY(50%) scaleY(0);
+    }
+
+    .heartly-nav-item.active::after {
+        transform: translateY(50%) scaleY(1);
+    }
+
+    .heartly-nav-label {
+        font-size: 0.82rem;
+    }
+
+    .heartly-nav-item .heartly-notification-badge {
+        top: 50%;
+        right: 12px;
+        transform: translateY(-50%);
+    }
+
+    body.heartly-conversation-mode .heartly-app-shell {
+        display: block;
+        max-width: 1080px;
+    }
+
+    body.heartly-conversation-mode .heartly-app-main {
+        min-height: calc(100dvh - 44px);
+    }
+}
+
+@media (max-width: 420px) {
+    .heartly-nav-label {
+        font-size: 0.6rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .heartly-skeleton::after {
+        display: none;
+    }
+}

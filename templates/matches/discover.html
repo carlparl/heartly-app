@@ -13,7 +13,7 @@
         </div>
 
         <a href="{% url 'matches:your_matches' %}" class="top-icon-btn heartly-icon-btn" title="Your matches" aria-label="Your matches">
-            ðŸ’ž
+            ♥
         </a>
     </div>
     
@@ -36,7 +36,7 @@
         <div class="matches-card matches-main-card">
 
             <div class="matches-summary">
-                <div class="matches-summary-icon">ðŸ’—</div>
+                <div class="matches-summary-icon" aria-hidden="true">♥</div>
 
                 <div>
                     <h2 class="matches-summary-title">Find people</h2>
@@ -47,8 +47,8 @@
             </div>
 
             <div class="matches-meta">
-                <span class="matches-pill">ðŸ›¡ï¸ Safety first</span>
-                <span class="matches-pill">ðŸ‘ï¸ Visible profiles</span>
+                <span class="matches-pill">Safety first</span>
+                <span class="matches-pill">Visible profiles</span>
             </div>
 
             <div class="matches-actions">
@@ -101,15 +101,15 @@
 
                         <div class="discover-meta">
                             {% if profile.age %}
-                                <span>ðŸŽ‚ {{ profile.age }} years</span>
+                                <span>{{ profile.age }} years</span>
                             {% endif %}
 
                             {% if profile.location %}
-                                <span>ðŸ“ {{ profile.location }}</span>
+                                <span>{{ profile.location }}</span>
                             {% endif %}
 
                             {% if profile.email_verified %}
-                                <span>âœ… Verified</span>
+                                <span>✓ Verified</span>
                             {% endif %}
                         </div>
 
@@ -150,7 +150,7 @@
             {% empty %}
                 <div class="matches-card" id="discoverEmptyCard">
                     <div class="matches-empty">
-                        <div class="matches-empty-icon">ðŸ’ž</div>
+                        <div class="matches-empty-icon" aria-hidden="true">♥</div>
                         {% if search_query %}
                             <h3 class="matches-empty-title">No results for "{{ search_query }}"</h3>
                             <p class="matches-empty-text">
@@ -207,7 +207,7 @@
             stack.insertAdjacentHTML(
                 'beforeend',
                 '<div class="matches-card" id="discoverEmptyCard"><div class="matches-empty">' +
-                '<div class="matches-empty-icon">ðŸ’ž</div>' +
+                '<div class="matches-empty-icon" aria-hidden="true">♥</div>' +
                 '<h3 class="matches-empty-title">No more profiles right now</h3>' +
                 '<p class="matches-empty-text">Check back later for new people to discover.</p>' +
                 '</div></div>'

@@ -10,7 +10,7 @@
         {{ form.profile_version }}
 
         <header class="edit-profile-topbar">
-            <a href="{% url 'profiles:profile_home' %}" class="ep-back-btn" aria-label="Back to profile">â€¹</a>
+            <a href="{% url 'profiles:profile_home' %}" class="ep-back-btn" aria-label="Back to profile">‹</a>
             <div class="ep-title-wrap">
                 <h1>Edit Profile</h1>
                 <p>Update your Heartly identity</p>
@@ -41,12 +41,12 @@
                     <img src="" alt="Profile photo preview" class="ep-avatar-img hidden" id="profilePhotoPreview">
                 {% endif %}
 
-                <label for="{{ photo_form.photo_1.id_for_label }}" class="ep-camera-btn" aria-label="Change primary profile photo">ðŸ“·</label>
+                <label for="{{ photo_form.photo_1.id_for_label }}" class="ep-camera-btn" aria-label="Change primary profile photo">Photo</label>
             </div>
 
             <h2 class="ep-hero-name" id="heroDisplayName">
                 {% if profile.display_name %}{{ profile.display_name }}{% else %}Heartly User{% endif %}
-                <span class="ep-verified">â—†</span>
+                <span class="ep-verified" aria-label="Verified">◆</span>
             </h2>
             <p class="ep-hero-username" id="heroUsername">@{{ request.user.username }}</p>
 
@@ -54,20 +54,20 @@
                 {% if profile.bio %}
                     {{ profile.bio }}
                 {% else %}
-                    Coffee lover â˜• | Travel enthusiast âœˆï¸ | Good vibes only âœ¨
+                    Add a short introduction to help people know you.
                 {% endif %}
             </p>
 
             <div class="ep-badge-row">
-                <span class="ep-soft-badge ep-pink">â™¥ Heartly member</span>
-                <span class="ep-soft-badge ep-blue">ðŸ›¡ Safety first</span>
+                <span class="ep-soft-badge ep-pink">Heartly member</span>
+                <span class="ep-soft-badge ep-blue">Safety first</span>
             </div>
         </section>
 
         <section class="ep-panel-card ep-gallery-card">
             <div class="ep-card-head ep-between">
                 <div class="ep-head-left">
-                    <div class="ep-section-icon">â–£</div>
+                    <div class="ep-section-icon" aria-hidden="true">▣</div>
                     <div>
                         <h3>Profile photos</h3>
                         <p class="ep-gallery-help">Add up to four images. Photo 1 is shown first.</p>
@@ -114,7 +114,7 @@
 
         <section class="ep-panel-card">
             <div class="ep-card-head">
-                <div class="ep-section-icon">ðŸ‘¤</div>
+                <div class="ep-section-icon" aria-hidden="true">●</div>
                 <h3>Basic details</h3>
             </div>
 
@@ -142,7 +142,7 @@
 
         <section class="ep-panel-card">
             <div class="ep-card-head">
-                <div class="ep-section-icon ep-heart-icon">â™¥</div>
+                <div class="ep-section-icon ep-heart-icon" aria-hidden="true">♥</div>
                 <h3>More about you</h3>
             </div>
 
@@ -172,7 +172,7 @@
         <section class="ep-panel-card ep-interests-card">
             <div class="ep-card-head ep-between">
                 <div class="ep-head-left">
-                    <div class="ep-section-icon">âœ¦</div>
+                    <div class="ep-section-icon" aria-hidden="true">✦</div>
                     <h3>Interests</h3>
                 </div>
                 <a href="{% url 'profiles:edit_interests' %}" class="ep-edit-link">Edit</a>
@@ -182,7 +182,7 @@
                 {% for interest in interest_chips %}
                     <span class="ep-interest-chip {% if selected_interest_count %}selected{% endif %}">
                         {{ interest.name }}
-                        {% if selected_interest_count %}<b>âœ“</b>{% endif %}
+                        {% if selected_interest_count %}<b aria-label="Selected">✓</b>{% endif %}
                     </span>
                 {% empty %}
                     <span class="ep-interest-chip">Travel</span>
@@ -970,7 +970,7 @@
             }
 
             if (bioInput && heroBio) {
-                heroBio.textContent = bioInput.value || "Coffee lover â˜• | Travel enthusiast âœˆï¸ | Good vibes only âœ¨";
+                heroBio.textContent = bioInput.value || "Add a short introduction to help people know you.";
             }
 
             if (bioInput && bioCount) {

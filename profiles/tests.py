@@ -67,6 +67,31 @@ class ProfilesRoutesTests(TestCase):
 
         html = response.content.decode("utf-8")
         self.assertEqual(html.count('<button type="submit"'), 1)
+        self.assertNotIn("â", html)
+        self.assertNotIn("ðŸ", html)
+
+    def test_authenticated_shell_uses_shared_foundation_and_labeled_navigation(self):
+        response = self.client.get(
+            reverse("profiles:profile_home")
+        )
+
+        self.assertContains(
+            response,
+            "css/heartly-foundation.css",
+        )
+
+        html = response.content.decode("utf-8")
+        for label in (
+            "Feed",
+            "Matches",
+            "AI Coach",
+            "Chat",
+            "Profile",
+        ):
+            self.assertIn(
+                f'<span class="heartly-nav-label">{label}</span>',
+                html,
+            )
 
     def test_profile_update_persists_and_synchronizes_identity(self):
         response = self.client.post(

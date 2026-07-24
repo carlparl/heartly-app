@@ -1012,11 +1012,12 @@
 
     </style>
 
+    <link rel="stylesheet" href="{% static 'css/heartly-buttons.css' %}">
+    <link rel="stylesheet" href="{% static 'css/heartly-concept2-theme.css' %}">
+    <link rel="stylesheet" href="{% static 'css/heartly-foundation.css' %}">
     <style>
         {% block extra_css %}{% endblock %}
     </style>
-    <link rel="stylesheet" href="{% static 'css/heartly-buttons.css' %}">
-    <link rel="stylesheet" href="{% static 'css/heartly-concept2-theme.css' %}">
 </head>
 
 <body
@@ -1151,6 +1152,7 @@
                             <path d="M3.5 10.5 12 3l8.5 7.5v9a1.5 1.5 0 0 1-1.5 1.5h-4.5v-6h-5v6H5a1.5 1.5 0 0 1-1.5-1.5v-9Z"></path>
                         </svg>
                     </span>
+                    <span class="heartly-nav-label">Feed</span>
                 </a>
 
                 <a
@@ -1164,6 +1166,7 @@
                             <path d="M12 20.5S4.5 16 4.5 9.6A4.1 4.1 0 0 1 12 7.2a4.1 4.1 0 0 1 7.5 2.4C19.5 16 12 20.5 12 20.5Z"></path>
                         </svg>
                     </span>
+                    <span class="heartly-nav-label">Matches</span>
                 </a>
 
                 <a
@@ -1178,6 +1181,7 @@
                             <path d="m18.5 15 .9 2.6L22 18.5l-2.6.9-.9 2.6-.9-2.6-2.6-.9 2.6-.9.9-2.6Z"></path>
                         </svg>
                     </span>
+                    <span class="heartly-nav-label">AI Coach</span>
                 </a>
 
                 <a
@@ -1191,6 +1195,7 @@
                             <path d="M5 18.5 3.5 21l4.2-1.2A9 9 0 1 0 5 18.5Z"></path>
                         </svg>
                     </span>
+                    <span class="heartly-nav-label">Chat</span>
 
                     {% if unread_chat_messages_count %}
                         <em class="heartly-notification-badge">
@@ -1211,6 +1216,7 @@
                             <path d="M4.5 21a7.5 7.5 0 0 1 15 0"></path>
                         </svg>
                     </span>
+                    <span class="heartly-nav-label">Profile</span>
                 </a>
 
             </div>

@@ -105,6 +105,14 @@ class DiscoverTests(MatchTestBase):
         )
         self.client.force_login(self.viewer)
 
+    def test_discover_page_has_clean_utf8_content(self):
+        response = self.client.get(reverse("matches:discover"))
+
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode("utf-8")
+        self.assertNotIn("â", html)
+        self.assertNotIn("ðŸ", html)
+
     def test_discover_returns_only_safe_mutual_candidates(self):
         compatible, _ = self.create_profile_user(
             "compatible_man",
