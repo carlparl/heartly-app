@@ -79,6 +79,10 @@ class ProfilesRoutesTests(TestCase):
             response,
             "css/heartly-foundation.css",
         )
+        self.assertContains(
+            response,
+            "css/heartly-page-polish.css",
+        )
 
         html = response.content.decode("utf-8")
         for label in (

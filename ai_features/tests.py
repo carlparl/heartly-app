@@ -20,6 +20,8 @@ class AIFeaturesRoutesTests(TestCase):
     def test_ai_coach_page_loads(self):
         response = self.client.get(reverse("ai_features:ai_coach"))
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "AI service available")
+        self.assertNotContains(response, "Online and ready to help")
 
     def test_ai_coach_send_creates_user_and_ai_message(self):
         response = self.client.post(
